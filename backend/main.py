@@ -431,6 +431,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ─── KEEP-AWAKE MECHANISM ─────────────────────────────────────
+def ping_server():
+    """Synchronous function to ping the health endpoint."""
+    try:
+        # RENDER_EXTERNAL_URL is automatically provided by Render
+        # Fallback to localhost:8000 for local testing
+        base_url = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8000")
+        health_url = f"{base_url}/health"
+        
+        response = requests.get(health_url, timeout=10)
+        print(f"[Keep-Alive] Pinged {health_url} - Status: {response.status_code}")
+    except Exception as e:
+        print(f"[Keep-Alive] Ping failed: {e}")
+
+async def keep_awake_task():
+    """Async loop that waits 14 minutes, then runs the ping."""
+    while True:
+        await asyncio.sleep(14 * 60)  # Wait for 14 minutes (14 * 60 seconds)
+        loop = asyncio.get_event_loop()
+        # Run the synchronous ping in the existing thread pool so it doesn't block the server
+        await loop.run_in_executor(_pool, ping_server)
+
+@app.on_event("startup")
+async def startup_event():
+    """Starts the background task when the FastAPI server starts."""
+    print("[FairAI] Starting keep-awake background task...")
+    asyncio.create_task(keep_awake_task())
+# ──────────────────────────────────────────────────────────────
 
 
 # ─── PROMPTS ──────────────────────────────────────────────────
