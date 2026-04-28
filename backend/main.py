@@ -29,12 +29,69 @@ class ColabUrlUpdate(BaseModel):
     new_url: str
 
 # ─── CONFIG ───────────────────────────────────────────────────
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-if not GROQ_API_KEY:
-    print("WARNING: Missing GROQ_API_KEY environment variable. API calls will fail.", file=sys.stderr)
-    client = None
-else:
-    client = Groq(api_key=GROQ_API_KEY)
+import groq
+
+class RotatingGroqClient:
+    def __init__(self):
+        keys = []
+        for i in range(1, 10):
+            k = os.environ.get(f"GROQ_PRIMARY_KEY_{i}")
+            if k:
+                keys.append(k)
+        
+        if not keys:
+            legacy_key = os.environ.get("GROQ_API_KEY")
+            if legacy_key:
+                keys.append(legacy_key)
+                print("WARNING: Using legacy GROQ_API_KEY. Recommend using GROQ_PRIMARY_KEY_1, _2, etc.", file=sys.stderr)
+            else:
+                print("WARNING: Missing GROQ_PRIMARY_KEY_X environment variables. API calls will fail.", file=sys.stderr)
+        
+        self.clients = [Groq(api_key=k) for k in keys]
+        self.current_idx = 0
+
+    @property
+    def chat(self):
+        return self.Chat(self)
+
+    class Chat:
+        def __init__(self, parent):
+            self.parent = parent
+            self.completions = self.Completions(parent)
+
+        class Completions:
+            def __init__(self, parent):
+                self.parent = parent
+
+            def create(self, **kwargs):
+                if not self.parent.clients:
+                    raise Exception("No Groq API keys configured.")
+                
+                attempts = 0
+                max_attempts = len(self.parent.clients)
+                last_err = None
+                
+                while attempts < max_attempts:
+                    client = self.parent.clients[self.parent.current_idx]
+                    try:
+                        return client.chat.completions.create(**kwargs)
+                    except groq.RateLimitError as e:
+                        print(f"[FairAI] Primary Key {self.parent.current_idx + 1} rate limited. Switching to next key...")
+                        self.parent.current_idx = (self.parent.current_idx + 1) % len(self.parent.clients)
+                        attempts += 1
+                        last_err = e
+                    except Exception as e:
+                        if "429" in str(e) or "rate limit" in str(e).lower():
+                            print(f"[FairAI] Primary Key {self.parent.current_idx + 1} rate limited (generic). Switching to next key...")
+                            self.parent.current_idx = (self.parent.current_idx + 1) % len(self.parent.clients)
+                            attempts += 1
+                            last_err = e
+                        else:
+                            raise e
+                
+                raise Exception(f"All Groq API keys rate limited. Last error: {last_err}")
+
+client = RotatingGroqClient() if os.environ.get("GROQ_PRIMARY_KEY_1") or os.environ.get("GROQ_API_KEY") else None
 
 MODEL  = "llama-3.3-70b-versatile"
 
