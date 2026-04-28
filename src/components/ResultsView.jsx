@@ -1,0 +1,196 @@
+import React from 'react';
+import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download } from 'lucide-react';
+import { SectionHeading, Pill, ScoreMeter, AnimatedBar, useCountUp, getFitVariant } from './UIHelpers';
+import { PercentileBadge, PIIStripPanel, SkillDepthSection, SkillMatchSection } from './FeatureSections';
+import { ProofOfWorkSection, BiasStabilitySection } from './AnalysisPanels';
+import { FeatureAttributionChart, FairnessMetricsCard, ComplianceDashboard, ResearchCitationsSection } from './CompliancePanels';
+import { ModelComparisonPanel } from './ModelComparisonPanel';
+import SkillKnowledgeGraph from './SkillKnowledgeGraph';
+import { SEVERITY_STYLE, BIAS_TYPE_LABELS } from './constants';
+
+export default function ResultsView({ s }) {
+  const result = s.result;
+  const fitScore = result?.fit_score || 0;
+  const legacyScore = result?.counterfactual?.legacy_ats_score || Math.max(0, fitScore - 20);
+  const scoreDelta = result?.counterfactual?.score_delta || (fitScore - legacyScore);
+  const biasProxies = result?.bias_proxies || [];
+  const radar = result?.radar || {};
+  const fitLevel = result?.fit_level || '';
+  const recommendation = result?.recommendation || 'Schedule Screening Call';
+  const legacyVerdict = result?.legacy_ats_verdict || 'Flagged for Review';
+  const animScore = useCountUp(fitScore, 1500);
+  const animTech = useCountUp(radar.technical_depth || 0, 1200);
+  const animLead = useCountUp(radar.project_complexity || 0, 1200);
+
+  return (
+    <div className="p-8 pb-20 max-w-6xl animate-fade-in">
+      {biasProxies.length > 0 && !s.fairnessConfirmed && (
+        <div className="mb-4 rounded-2xl warning-card-yellow px-6 py-4 flex items-start gap-4 no-print animate-fade-in-up">
+          <AlertTriangle className="w-5 h-5 text-black shrink-0 mt-0.5" />
+          <div className="flex-1"><div className="font-semibold text-black mb-0.5">Fairness Review Required</div><p className="text-xs text-black/80">{biasProxies.length} bias proxies detected. Acknowledge before proceeding.</p></div>
+          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2 rounded-xl bg-black/10 hover:bg-black/20 border border-black/20 text-black text-xs font-bold transition-colors shrink-0">Review →</button>
+        </div>
+      )}
+      {s.fairnessConfirmed && (
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-4 flex items-center gap-4 no-print"><CheckCircle className="w-5 h-5 text-white/50 shrink-0" /><div><div className="font-semibold text-white/70">Review Completed</div><p className="text-xs text-white/30">Timestamped for compliance.</p></div></div>
+      )}
+      <PIIStripPanel items={result.pii_removed || []} />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in-up">
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/25 mb-1">Audit Trail / Results</div>
+          <h1 className="text-2xl font-bold text-white">Candidate Analysis</h1>
+          <p className="text-white/40 text-sm">Sr. Director of Engineering · Candidate ID: #AETH-{Math.floor(Math.random() * 9000 + 1000)}</p>
+        </div>
+        <div className="flex items-center gap-3 no-print">
+          <button onClick={() => window.print()} className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white/60 transition-all flex items-center gap-2 hover-lift"><Download className="w-4 h-4" />Export PDF</button>
+          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2.5 rounded-xl text-sm bg-white text-black font-bold transition-all flex items-center gap-2 hover:bg-white/90 active:scale-95 hover-lift"><CheckCircle className="w-4 h-4" />Advance to Final</button>
+        </div>
+      </div>
+
+      {/* Score Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="glass-card-hover rounded-2xl p-6 flex flex-col items-center text-center animate-fade-in-up stagger-1">
+          <div className="flex items-center justify-between w-full mb-2"><span className="text-xs text-white/25 uppercase tracking-wider">Composite Score</span><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/20">● CLEARED</span></div>
+          <ScoreMeter value={fitScore} size={180} />
+          <p className="text-xs text-white/30 mt-3">Top {100 - (result.percentile || 88)}% of candidate pool for this role archetype.</p>
+        </div>
+        <div className="glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-2">
+          <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white/70">Technical Aptitude</span><span className="text-white/20">📊</span></div>
+          <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animTech}</span><span className="text-sm text-[#22c55e] font-semibold">+4% avg</span></div>
+          <AnimatedBar value={radar.technical_depth || 0} delay={200} color="bg-white/40" />
+        </div>
+        <div className="glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-3">
+          <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white/70">Leadership Index</span><span className="text-white/20">👥</span></div>
+          <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animLead}</span><span className="text-sm text-white/40 font-semibold">-1% avg</span></div>
+          <AnimatedBar value={radar.project_complexity || 0} delay={300} color="bg-white/30" />
+        </div>
+      </div>
+
+      {/* Warning Card */}
+      {biasProxies.some(p => p.severity === 'high') && (
+        <div className="mb-6 warning-card-yellow rounded-2xl p-5 flex items-start gap-4 animate-fade-in-up stagger-3">
+          <AlertTriangle className="w-6 h-6 text-black shrink-0 mt-0.5" />
+          <div className="flex-1"><h3 className="text-lg font-bold text-black mb-1">Employment Gap Detected</h3><p className="text-sm text-black/80 leading-relaxed">{biasProxies.find(p => p.severity === 'high')?.explanation || 'Automated check identified a variance.'}</p>
+            <button className="mt-3 px-4 py-2 rounded-lg border border-black/30 text-black text-sm font-bold hover:bg-black/10 transition-all">Request Clarification</button>
+          </div>
+        </div>
+      )}
+
+      {/* Cognitive & Behavioral Analysis */}
+      <section className="mb-6 animate-fade-in-up stagger-4">
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-white mb-5">Cognitive & Behavioral Analysis</h3>
+          {[{ label: 'Strategic Thinking', value: radar.problem_solving || 85, level: 'Superior' },
+            { label: 'Adaptability', value: radar.impact_evidence || 78, level: 'Proficient' },
+            { label: 'Risk Tolerance', value: radar.domain_knowledge || 82, level: 'Moderate' }
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-4 mb-4 last:mb-0">
+              <span className="text-sm text-white/60 w-40 shrink-0">{item.label}</span>
+              <div className="flex-1"><AnimatedBar value={item.value} delay={i * 200} color="bg-white/40" /></div>
+              <span className="text-sm font-semibold text-white/60 w-24 text-right">{item.level}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Skill Analysis with Knowledge Graph */}
+      <section className="mb-6 animate-fade-in-up stagger-5">
+        <SectionHeading icon={<Target className="w-3.5 h-3.5" />} label="Skill Analysis — Insights" />
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
+          <div className="space-y-4">
+            <div className="glass-card rounded-2xl p-5">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-2xl">👤</div>
+                <div><div className="text-lg font-bold text-white">Candidate Profile</div><p className="text-xs text-white/40">{s.jobRole ? s.jobRole + ' Candidate' : 'Candidate Evaluation'}</p>
+                  <div className="flex gap-2 mt-1"><span className="text-[10px] px-2 py-0.5 rounded-full bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/20 font-bold">● Verified</span><span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white/50 border border-white/[0.08] font-bold">98% Match</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="glass-card rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4"><span className="text-sm font-bold text-white/70">Expertise Distribution</span><span className="text-white/20 text-xs">ⓘ</span></div>
+              {(result.skill_usage_breakdown || []).filter(s => s.usage_type === 'contextual').slice(0, 4).map((skill, i) => (
+                <div key={i} className="mb-3 last:mb-0">
+                  <div className="flex justify-between text-sm mb-1"><span className="text-white/60">{skill.skill}</span><span className="font-bold text-white">{skill.impact_score}%</span></div>
+                  <AnimatedBar value={skill.impact_score} delay={i * 150} color="bg-white/40" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <SkillKnowledgeGraph skillData={result.skill_matches} />
+        </div>
+      </section>
+
+      <FeatureAttributionChart attributions={result.feature_attributions || []} fitScore={fitScore} />
+      <SkillDepthSection breakdown={result.skill_usage_breakdown || []} contextualRatio={result.contextual_ratio || 0} stuffingDetected={result.keyword_stuffing_detected || false} />
+      <SkillMatchSection matches={result.skill_matches || []} />
+      <ProofOfWorkSection detectedLinks={result.detected_links || (s.isDemo ? [{ url: '#', platform: 'github' }, { url: '#', platform: 'leetcode' }, { url: '#', platform: 'linkedin' }] : [])} proofResult={s.proofResult} isLoading={s.proofLoading} onFetch={s.handleProofOfWork} isDemo={s.isDemo} />
+
+      {biasProxies.length > 0 && (
+        <section className="mb-6 animate-fade-in-up stagger-6">
+          <SectionHeading icon={<Eye className="w-3.5 h-3.5" />} label={'Bias Proxies — ' + biasProxies.length + ' Found'} />
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+              <div className="col-span-3 text-xs font-bold uppercase tracking-widest text-white/25">Proxy</div>
+              <div className="col-span-2 text-xs font-bold uppercase tracking-widest text-white/25">Type</div>
+              <div className="col-span-1 text-xs font-bold uppercase tracking-widest text-white/25 text-center">Risk</div>
+              <div className="col-span-6 text-xs font-bold uppercase tracking-widest text-white/25">Explanation</div>
+            </div>
+            <div className="divide-y divide-white/[0.04]">{biasProxies.map((proxy, idx) => {
+              const sev = SEVERITY_STYLE[proxy.severity] || SEVERITY_STYLE.low;
+              const bt = BIAS_TYPE_LABELS[proxy.bias_type] || BIAS_TYPE_LABELS.gender;
+              return (
+                <div key={idx} className="grid grid-cols-12 gap-3 px-5 py-4 items-start hover:bg-white/[0.02] transition-colors animate-table-row" style={{ animationDelay: (idx * 0.1) + 's' }}>
+                  <div className="col-span-3"><code className={'text-xs px-2.5 py-1 rounded-lg border font-mono font-semibold ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>"{proxy.text}"</code></div>
+                  <div className="col-span-2 flex items-center"><span className={'text-xs font-semibold px-2 py-0.5 rounded-md border ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>{bt.label}</span></div>
+                  <div className="col-span-1 flex justify-center pt-0.5"><span className={'px-2 py-0.5 rounded-md text-xs font-bold uppercase border ' + sev.bg + ' ' + sev.text + ' ' + sev.border}>{proxy.severity}</span></div>
+                  <div className="col-span-6 text-xs text-white/40 leading-relaxed"><Shield className="w-3 h-3 text-white/20 inline mr-1.5" />{proxy.explanation}</div>
+                </div>
+              );
+            })}</div>
+          </div>
+        </section>
+      )}
+
+      <section className="mb-6 animate-fade-in-up stagger-6">
+        <SectionHeading icon={<ClipboardList className="w-3.5 h-3.5" />} label="Signals & Gaps" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="glass-card rounded-2xl p-5 hover-glow">
+            <div className="flex items-center gap-2 mb-4"><TrendingUp className="w-4 h-4 text-white/40" /><h4 className="font-semibold text-white/60 text-sm">Strong Signals ({(result.strong_signals || []).length})</h4></div>
+            <div className="space-y-3">{(result.strong_signals || []).map((sig, i) => (
+              <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/40" /><div><div className="text-sm font-semibold text-white/70">{sig.signal}</div><div className="text-xs text-white/30 italic mt-0.5">"{sig.evidence}"</div></div></div>
+            ))}</div>
+          </div>
+          <div className="glass-card rounded-2xl p-5 hover-glow">
+            <div className="flex items-center gap-2 mb-4"><TrendingDown className="w-4 h-4 text-white/30" /><h4 className="font-semibold text-white/40 text-sm">Gaps ({(result.gaps || []).length})</h4></div>
+            <div className="space-y-3">{(result.gaps || []).map((gap, i) => (
+              <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/20" /><div><div className="text-sm font-semibold text-white/60">{gap.gap}</div><div className="text-xs text-white/30 mt-0.5">{gap.severity === 'blocking' ? 'Blocking' : 'Minor'}</div></div></div>
+            ))}</div>
+          </div>
+        </div>
+      </section>
+
+      <BiasStabilitySection cfResult={s.cfResult} isRunning={s.runningCF} onRunTest={s.handleCounterfactualTest} isDemo={s.isDemo} />
+      <ModelComparisonPanel compResult={s.compResult} isRunning={s.runningComp} onRunTest={s.handleModelComparison} isDemo={s.isDemo} />
+      <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />
+      <ComplianceDashboard result={result} cfResult={s.cfResult} />
+      <ResearchCitationsSection />
+
+      <section className="animate-fade-in-up stagger-8">
+        <SectionHeading icon={<CheckCircle className="w-3.5 h-3.5" />} label="Recommendation" />
+        <div className="border border-white/10 rounded-2xl p-6 glass-card flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-white/[0.06] border border-white/[0.08]"><CheckCircle className="w-6 h-6 text-white/50" /></div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-white mb-1">{recommendation}</h3>
+            <p className="text-sm text-white/40 leading-relaxed">{result.summary}</p>
+            {scoreDelta > 0 && <p className="text-xs text-white/30 mt-2"><AlertTriangle className="w-3 h-3 inline mr-1" />Without blind eval, score would have been {legacyScore}/100.</p>}
+          </div>
+          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shrink-0 no-print flex items-center gap-2 bg-white text-black hover:bg-white/90 active:scale-95">
+            {biasProxies.length > 0 && !s.fairnessConfirmed ? <><AlertTriangle className="w-4 h-4" />Review & Proceed</> : 'Advance Candidate'}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}

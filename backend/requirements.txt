@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+groq
+PyPDF2
+python-multipart
+requests
+torch
+transformers
+sentencepiece
