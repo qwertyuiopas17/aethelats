@@ -422,7 +422,11 @@ _pool = ThreadPoolExecutor(max_workers=4)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://aethelats.vercel.app", 
+        "http://localhost:5173", # Add your local dev port here just in case
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
