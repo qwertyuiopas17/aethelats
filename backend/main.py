@@ -23,6 +23,10 @@ import PyPDF2
 
 from structure_agent import structure_resume
 from evaluator_agent import evaluate_resume
+from pydantic import BaseModel
+
+class ColabUrlUpdate(BaseModel):
+    new_url: str
 
 # ─── CONFIG ───────────────────────────────────────────────────
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -696,6 +700,12 @@ Platform data:
 
 
 # ─── ROUTES ───────────────────────────────────────────────────
+@app.post("/update-colab-url")
+def update_colab_url(payload: ColabUrlUpdate):
+    """Updates the Colab Cloudflare/Ngrok URL dynamically without restarting the server."""
+    # Update the environment variable in the current running memory
+    os.environ["COLAB_URL"] = payload.new_url.strip()
+    return {"success": True, "message": f"Colab URL instantly updated to {os.environ['COLAB_URL']}"}
 
 @app.get("/health")
 def health():
