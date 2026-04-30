@@ -74,29 +74,29 @@ export default function SkillKnowledgeGraph({ skillData }) {
   };
 
   return (
-    <div className="glass-card rounded-2xl p-5 relative overflow-hidden" ref={containerRef}>
+    <div className="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden animate-fade-in-up" ref={containerRef}>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-base font-bold text-white">Skill Knowledge Graph</h3>
-          <p className="text-xs text-white/30 mt-0.5">Interactive physics-based topology</p>
+          <h3 className="text-base font-bold text-white animate-slide-in-right stagger-1">Skill Knowledge Graph</h3>
+          <p className="text-xs text-white/80 mt-0.5 animate-slide-in-right stagger-2">Interactive physics-based topology</p>
         </div>
-        <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06]">
+        <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06] animate-scale-in stagger-3">
           <button 
             onClick={() => setMode('2D')} 
-            className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '2D' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white/70')}
+            className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '2D' ? 'bg-white text-black shadow-lg' : 'text-white/90 hover:text-white')}
           >
             <Layers className="w-3.5 h-3.5" /> 2D
           </button>
           <button 
             onClick={() => setMode('3D')} 
-            className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '3D' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white/70')}
+            className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '3D' ? 'bg-white text-black shadow-lg' : 'text-white/90 hover:text-white')}
           >
             <Box className="w-3.5 h-3.5" /> 3D
           </button>
         </div>
       </div>
 
-      <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.04]" style={{ height: '480px' }}>
+      <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.04] animate-fade-in stagger-4" style={{ height: '480px' }}>
         {dimensions.width > 0 && mode === '2D' && (
           <ForceGraph2D
             width={dimensions.width}
@@ -133,16 +133,16 @@ export default function SkillKnowledgeGraph({ skillData }) {
         )}
         
         {/* Helper text overlay */}
-        <div className="absolute bottom-4 right-4 pointer-events-none text-[10px] text-white/20 uppercase tracking-widest">
+        <div className="absolute bottom-4 right-4 pointer-events-none text-[10px] text-white uppercase tracking-widest animate-fade-in stagger-5">
           {mode === '2D' ? 'Drag nodes to interact' : 'Drag to rotate · Scroll to zoom'}
         </div>
       </div>
 
-      <div className="flex items-center gap-6 mt-4 pt-3 border-t border-white/[0.06] text-xs text-white/30">
+      <div className="flex items-center gap-6 mt-4 pt-3 border-t border-white/[0.06] text-xs text-white/80 animate-fade-in-up stagger-6">
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-white/20 border border-white/30" /> Core Skill</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-white/10 border border-white/15" /> Related Tech</span>
         <span className="flex items-center gap-1.5"><span className="w-6 h-px bg-white/15" /> Relevance</span>
-        <span className="ml-auto text-white/20">Aethel AI Engine</span>
+        <span className="ml-auto text-white">Aethel AI Engine</span>
       </div>
     </div>
   );
