@@ -25,7 +25,7 @@ BOT4_PATH     = _PROJECT_ROOT / "bot4"
 HF_REPO_ID      = os.environ.get("HF_REPO_ID", "Unded-17/bot4-phi35-resume-evaluator")
 HF_TOKEN        = os.environ.get("HF_TOKEN", "")  # Set HF_TOKEN env var — never hardcode tokens!
 HF_ENDPOINT_URL = os.environ.get("HF_ENDPOINT_URL", "")  # optional dedicated endpoint
-COLAB_URL       = os.environ.get("COLAB_URL", "https://airline-immigrants-prayer-arguments.trycloudflare.com")        # Paste your trycloudflare.com URL here!
+COLAB_URL       = os.environ.get("COLAB_URL", "https://pose-voted-joint-barriers.trycloudflare.com")        # Paste your trycloudflare.com URL here!
 
 # ── Prompt template (must match what was used during fine-tuning) ─────────────
 _SYSTEM_PROMPT = (

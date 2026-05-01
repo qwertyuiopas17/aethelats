@@ -1,4 +1,4 @@
-export const API_URL = 'http://localhost:8000';
+export const API_URL = 'https://aethelats.onrender.com';
 export const MODEL_NAME = 'Llama 3.3 70B via Groq';
 
 export const SCAN_LOGS = [

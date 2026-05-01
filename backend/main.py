@@ -23,14 +23,75 @@ import PyPDF2
 
 from structure_agent import structure_resume
 from evaluator_agent import evaluate_resume
+from pydantic import BaseModel
+
+class ColabUrlUpdate(BaseModel):
+    new_url: str
 
 # ─── CONFIG ───────────────────────────────────────────────────
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-if not GROQ_API_KEY:
-    print("WARNING: Missing GROQ_API_KEY environment variable. API calls will fail.", file=sys.stderr)
-    client = None
-else:
-    client = Groq(api_key=GROQ_API_KEY)
+import groq
+
+class RotatingGroqClient:
+    def __init__(self):
+        keys = []
+        for i in range(1, 10):
+            k = os.environ.get(f"GROQ_PRIMARY_KEY_{i}")
+            if k:
+                keys.append(k)
+        
+        if not keys:
+            legacy_key = os.environ.get("GROQ_API_KEY")
+            if legacy_key:
+                keys.append(legacy_key)
+                print("WARNING: Using legacy GROQ_API_KEY. Recommend using GROQ_PRIMARY_KEY_1, _2, etc.", file=sys.stderr)
+            else:
+                print("WARNING: Missing GROQ_PRIMARY_KEY_X environment variables. API calls will fail.", file=sys.stderr)
+        
+        self.clients = [Groq(api_key=k) for k in keys]
+        self.current_idx = 0
+
+    @property
+    def chat(self):
+        return self.Chat(self)
+
+    class Chat:
+        def __init__(self, parent):
+            self.parent = parent
+            self.completions = self.Completions(parent)
+
+        class Completions:
+            def __init__(self, parent):
+                self.parent = parent
+
+            def create(self, **kwargs):
+                if not self.parent.clients:
+                    raise Exception("No Groq API keys configured.")
+                
+                attempts = 0
+                max_attempts = len(self.parent.clients)
+                last_err = None
+                
+                while attempts < max_attempts:
+                    client = self.parent.clients[self.parent.current_idx]
+                    try:
+                        return client.chat.completions.create(**kwargs)
+                    except groq.RateLimitError as e:
+                        print(f"[FairAI] Primary Key {self.parent.current_idx + 1} rate limited. Switching to next key...")
+                        self.parent.current_idx = (self.parent.current_idx + 1) % len(self.parent.clients)
+                        attempts += 1
+                        last_err = e
+                    except Exception as e:
+                        if "429" in str(e) or "rate limit" in str(e).lower():
+                            print(f"[FairAI] Primary Key {self.parent.current_idx + 1} rate limited (generic). Switching to next key...")
+                            self.parent.current_idx = (self.parent.current_idx + 1) % len(self.parent.clients)
+                            attempts += 1
+                            last_err = e
+                        else:
+                            raise e
+                
+                raise Exception(f"All Groq API keys rate limited. Last error: {last_err}")
+
+client = RotatingGroqClient() if os.environ.get("GROQ_PRIMARY_KEY_1") or os.environ.get("GROQ_API_KEY") else None
 
 MODEL  = "llama-3.3-70b-versatile"
 
@@ -422,11 +483,43 @@ _pool = ThreadPoolExecutor(max_workers=4)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://aethelats.vercel.app", 
+        "http://localhost:5173", # Add your local dev port here just in case
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ─── KEEP-AWAKE MECHANISM ─────────────────────────────────────
+def ping_server():
+    """Synchronous function to ping the health endpoint."""
+    try:
+        # RENDER_EXTERNAL_URL is automatically provided by Render
+        # Fallback to localhost:8000 for local testing
+        base_url = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8000")
+        health_url = f"{base_url}/health"
+        
+        response = requests.get(health_url, timeout=10)
+        print(f"[Keep-Alive] Pinged {health_url} - Status: {response.status_code}")
+    except Exception as e:
+        print(f"[Keep-Alive] Ping failed: {e}")
+
+async def keep_awake_task():
+    """Async loop that waits 14 minutes, then runs the ping."""
+    while True:
+        await asyncio.sleep(14 * 60)  # Wait for 14 minutes (14 * 60 seconds)
+        loop = asyncio.get_event_loop()
+        # Run the synchronous ping in the existing thread pool so it doesn't block the server
+        await loop.run_in_executor(_pool, ping_server)
+
+@app.on_event("startup")
+async def startup_event():
+    """Starts the background task when the FastAPI server starts."""
+    print("[FairAI] Starting keep-awake background task...")
+    asyncio.create_task(keep_awake_task())
+# ──────────────────────────────────────────────────────────────
 
 
 # ─── PROMPTS ──────────────────────────────────────────────────
@@ -664,6 +757,12 @@ Platform data:
 
 
 # ─── ROUTES ───────────────────────────────────────────────────
+@app.post("/update-colab-url")
+def update_colab_url(payload: ColabUrlUpdate):
+    """Updates the Colab Cloudflare/Ngrok URL dynamically without restarting the server."""
+    # Update the environment variable in the current running memory
+    os.environ["COLAB_URL"] = payload.new_url.strip()
+    return {"success": True, "message": f"Colab URL instantly updated to {os.environ['COLAB_URL']}"}
 
 @app.get("/health")
 def health():
