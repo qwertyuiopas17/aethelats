@@ -37,27 +37,133 @@ This is not a keyword matcher. It is not a job board. Aethel is a **process-leve
 
 ---
 
-## ❓ Is the Bias Problem Real? (What the Research Says)
+## ❓ Is Hiring Bias Real in India? (What the Data Says)
 
-Before claiming to solve a problem, it must exist. It does — and it is peer-reviewed, legally actionable, and growing.
+Before claiming to solve a problem, it must exist. In India, it does — and it is documented by real placement data, industry reports, and audit studies.
 
-### Academic Evidence
+---
 
-| Study | Finding |
-|---|---|
-| **University of Washington (2024, AAAI/ACM)** | LLMs ranked resumes with "white-sounding" names **85% of the time** vs Black-associated names only **9% of the time** — for identical resumes. |
-| **ACL Anthology / PeerJ (2024)** | LLMs consistently exhibit institution-prestige bias — preferring Ivy League / IIT-equivalent candidates even when skills are identical. |
-| **Bertrand & Mullainathan (2004)** | Resumes with "white-sounding" names received **50% more callbacks** than identical resumes with "Black-sounding" names. LLMs trained on this data replicate the pattern. |
-| **Gaucher et al. (2011)** | Masculine-coded job description language reduces female applications by up to **40%** — the basis for Aethel's JD bias scanner. |
+### 🏫 1. Institution Prestige Bias — The IIT vs. Everyone Else Gap
 
-### Legal Evidence
+This is the bias vector that affects **the largest number of Indian candidates** — the 99%+ of engineers who did not attend an IIT.
 
-- **Mobley v. Workday (2024):** US federal judge ruled Workday's AI hiring tool could be held liable as an "agent" of discrimination. The plaintiff applied to 100+ roles and was rejected by the algorithm every time — without a single human review.
-- **NYC Local Law 144 (2023):** Mandates bias audits for any AI hiring tool used in New York City.
-- **EU AI Act Article 9 (2024):** Requires documented bias testing for high-risk AI systems including hiring tools.
-- **India Maternity Benefit Act (1961, amended 2017):** Makes it unlawful to penalize maternity leave — yet every untreated ATS and LLM flags it as a "reliability risk."
+**Placement salary data (2024, sourced from placement reports and Business Standard):**
 
-> **The bias is real. It is documented. It is in the tools being used right now.**
+| Institution Tier | Typical Average Package (CSE) | Access to "Day 0" Recruiters |
+|---|---|---|
+| Old IITs (Bombay, Delhi, Madras) | ₹20–35 LPA avg · outliers to ₹2+ crore | Yes — HFT firms, FAANG, top consulting |
+| Top NITs (Trichy, Surathkal, Warangal) | ₹10–18 LPA avg | Partial — some top recruiters, mostly Tier-2 |
+| Other NITs / State colleges | ₹4–9 LPA avg | Mostly mass recruiters (AMCAT/CoCubes driven) |
+
+**The ₹1 crore package myth:** In 2024, IIT Bombay initially reported that 85 students received packages above ₹1 crore, then **corrected that figure to 22** — citing a "technical error" (*Business Standard, 2024*). The actual median package was ₹17.92 LPA. The outlier figures get amplified by media, creating a distorted public perception that all IIT graduates are elite and NIT graduates are "second tier" — a narrative baked into LLM training data and which surfaces as scoring bias.
+
+**The "Day 0" gating system:** Top global recruiters exclusively conduct "Day 0" and "Day 1" hiring drives at IIT campuses. An equally skilled NIT candidate is literally never in the same hiring room as an IIT candidate — not because of skill, but because of which campus they attend. This is an institutional access problem, not a skills problem. Aethel's blind evaluation removes `[INSTITUTION]` from the scoring context entirely.
+
+---
+
+### 👩 2. Gender & Maternity Penalty — India-Specific Data
+
+**Gender pay gap in Indian tech (2024, sourced from Business Standard / industry reports):**
+
+| Sector | Overall Gender Pay Gap | Mid-Level Gap | Senior-Level Gap |
+|---|---|---|---|
+| IT Services | 3.55% | 6.12% | 8.34% |
+| Global Capability Centers (GCCs) | 16.1% | — | 22.2% (high-demand tech roles) |
+| Non-tech roles in tech-adjacent sectors | 18–19% at mid-level | — | — |
+
+**The Maternity Benefit Act paradox:** The 2017 amendment extending paid maternity leave to **26 weeks** — the third-longest in the world — was a landmark policy. Research and reporting in *Policy Circle* and *Business Standard* document an unintended consequence: many employers began **actively avoiding hiring women of childbearing age** to sidestep the cost, despite this being illegal under Article 16 of the Constitution.
+
+**What this means in ATS terms:** A 7-month maternity gap is indistinguishable from a 7-month unemployment gap in every mainstream ATS and untreated LLM. Both are scored identically as a "reliability risk." One is a legally protected right. Aethel explicitly prompts: *"NEVER penalise employment gaps — they may be legally protected."*
+
+- **40%** of professional women in India report experiencing bias or discriminatory behavior in hiring (Economic Times)
+- The **"leaky pipeline"**: Women account for large proportions of entry-level hiring but representation drops sharply at every level above — a pattern traced directly to missed promotions during or after maternity breaks
+
+---
+
+### 🗣️ 3. English Language & Accent Bias
+
+India has **22 scheduled languages** and hundreds of dialects. Yet corporate India — especially MNCs and product-based tech companies — uses English as the sole hiring language, creating a proxy filter that is not about job skill:
+
+- English proficiency in India correlates directly with **access to English-medium schools**, which correlates with **urban location and socioeconomic class** — not with technical ability
+- Recruiters use "fluency" and "accent" as a **signaling device** to categorize candidates as "professional" or "unsophisticated" — a documented bias in HR research (*HR Katha*, *ABAC Journals*)
+- Job postings explicitly requiring "native-level English" or "neutral accent" are used in India to filter out candidates from non-metro, vernacular-medium educational backgrounds — the same candidates who often have strong technical skills but non-elite English
+- **LLMs amplify this:** Models trained on English-dominant professional text (LinkedIn, Glassdoor, resume databases) associate formal Western English writing style with candidate quality. A resume written in simple but technically accurate English scores lower than one with polished MBA-speak, even when the underlying skills are identical or superior
+
+Aethel strips communication-style signals from scoring context and focuses purely on **evidenced, contextual skill usage**.
+
+---
+
+### 📍 4. Location & Tier-2 City Bias
+
+India's hiring ecosystem is overwhelmingly concentrated in 5–6 metro cities. Candidates from Tier-2 and Tier-3 cities face compounding disadvantages:
+
+- **Address as a filter:** A Nagpur or Patna address on a resume is statistically associated with "regional" talent by recruiters and ATS systems trained on metro-skewed historical data, even for fully remote roles
+- **Networking gap:** Top-tier job referrals flow through alumni networks of IITs, IIMs, and metro colleges. Candidates from Tier-2 cities are structurally outside these networks regardless of skill
+- **Internet-sourced LLM bias:** LLMs learn from professional content created disproportionately by metro-based, English-literate professionals — meaning the "ideal" resume they've learned to reward reflects metro experience and metro institutions, not actual skill distributions across India's 700+ engineering colleges
+- **Relocation perception:** Candidates from Tier-2 cities are often penalized during screening for "relocation uncertainty" — a proxy bias that has no correlation with job performance
+
+Aethel replaces city/address with `[LOCATION]` before scoring, making location invisible to the evaluation model.
+
+---
+
+### 📋 5. AMCAT, CoCubes & eLitmus — The "Tier-2 Tax"
+
+These platforms were *designed* to level the playing field for non-IIT students. In practice:
+
+- **The halo effect persists:** Even a high AMCAT score doesn't override the IIT brand premium — it's used as a tiebreaker, not a leveller
+- **Low-quality job funnel:** High scores predominantly lead to service-based companies offering ₹3–4 LPA — top product companies don't use AMCAT as a filter; they use campus presence at elite institutions
+- **Aptitude ≠ skill:** These tests measure reasoning shaped by access to coaching (FIITJEE, Allen, etc.) — itself correlated with socioeconomic class and Tier-1 city access
+- **Zero explainability:** AMCAT gives a 3-digit score with no explanation of *why* — unlike Aethel's factor-by-factor, fully explainable scorecard
+
+> **The system is circular:** IIT students enter IIT because they had coaching access. They get top jobs because recruiters visit only IIT campuses. LLMs trained on this historical hiring data learn "IIT = hire." Equally skilled NIT and state college graduates are filtered before any human ever sees them. **Aethel breaks this loop.**
+
+---
+
+> **The bias is not hypothetical. It is documented in placement data, industry reports, and audit studies — and it is embedded in every LLM used for hiring in India today.**
+
+---
+
+
+
+This is the bias vector that affects **the largest number of Indian candidates** — the 99%+ of engineers who did not attend an IIT.
+
+**Placement salary data (2024):**
+
+| Institution Tier | Typical Average Package (CSE) | Access to "Day 0" Recruiters |
+|---|---|---|
+| Old IITs (Bombay, Delhi, Madras) | ₹20–35 LPA avg · outliers to ₹2+ crore | Yes — global HFT, FAANG, consulting |
+| Top NITs (Trichy, Surathkal, Warangal) | ₹10–18 LPA avg | Partial — some top recruiters, mostly Tier-2 |
+| Other NITs / State colleges | ₹4–9 LPA avg | Mostly mass recruiters (AMCAT/CoCubes driven) |
+
+**The ₹1 crore package myth:** In 2024, IIT Bombay initially claimed 85 students received packages above ₹1 crore, then **corrected it to 22** — citing a "technical error." The median IIT Bombay package was ₹17.92 LPA. The outlier figures get amplified by media, creating a distorted perception that all IIT graduates are elite, while NIT graduates are "second tier" — a narrative that is **baked into LLM training data** and surfaces as scoring bias.
+
+**The "Day 0" gating system:** Top recruiters only visit IIT campuses for "Day 0" drives — meaning equally or better-skilled NIT candidates literally never get seen by the same recruiters, regardless of their GitHub contributions, project quality, or technical depth. This is an institutional access problem, not a skills problem. And it is what Aethel's blind evaluation corrects for.
+
+---
+
+### 👩 3. Gender & Maternity Penalty — Documented Indian Evidence
+
+- **40%** of professional women in India report experiencing bias or discriminatory behavior in hiring or the workplace (Economic Times survey)
+- The **2017 Maternity Benefit Act amendment** (extending paid leave to 26 weeks) — a progressive policy — **backfired in practice**: research documents employers actively avoiding hiring women of childbearing age to avoid the perceived cost, a trend documented in studies and reported in Business Standard and Policy Circle
+- Indian corporate career models assume **linear, uninterrupted employment**. A 7-month maternity gap is treated identically to a 7-month unemployment gap in every mainstream ATS — despite the former being a **legally protected right under Indian law**
+- The **"leaky pipeline"**: Women are hired in large numbers at entry level but representation drops sharply at every level above it — often traced to missed promotions and projects during or after maternity breaks
+
+---
+
+### 📋 4. AMCAT, CoCubes & eLitmus — The "Tier-2 Tax"
+
+These platforms were *designed* to level the playing field by letting non-IIT students prove aptitude. In practice, they perpetuate a different form of bias:
+
+- **The halo effect persists:** Even when a Tier-2 student scores well on AMCAT, recruiters still subconsciously favour IIT/BITS resumes — the test score is a tiebreaker, not a leveller
+- **Low-quality job funnel:** High AMCAT scores predominantly lead to service-based companies and mass recruiters offering ₹3–4 LPA. Top product-based companies do not use AMCAT as a primary filter — they rely on campus presence at elite institutions
+- **Aptitude ≠ skill:** These tests measure reasoning and quantitative aptitude — skills shaped by access to coaching (FIITJEE, Allen, etc.), which correlates with socioeconomic class and Tier-1 city access, not raw engineering ability
+- **No contextual evaluation:** AMCAT gives a 3-digit score with zero explanation of *why* a candidate scored what they did — unlike Aethel's fully explainable, factor-by-factor scorecard
+
+> **The system is circular:** IIT students get IIT because they had coaching. They get jobs because recruiters go to IIT campuses. LLMs trained on hiring data learn that IIT = hire. Candidates with identical skills from NITs or state colleges are filtered out before any human ever sees them. **Aethel breaks this loop.**
+
+---
+
+> **The bias is not hypothetical. It is measured. It is active. And it is embedded in every LLM used for hiring in India today.**
 
 ---
 
@@ -89,7 +195,7 @@ Global tools like Textio, Pymetrics, and Workday are built for US/EU compliance 
 
 - AMCAT, CoCubes, and eLitmus use aptitude-test cutoffs heavily correlated with Tier-1 college training pipelines, not actual skill
 - Indian ATS systems trained on historical hire data are dominated by IIT/IIM graduates, systematically underscoring NIT/state-college graduates with equal skills
-- Indian surnames are strong proxies for caste and religion — research shows 20–30% lower callback rates for non-dominant caste names on identical resumes
+- Indian names carry demographic signals (gender, regional origin) that LLMs trained on hiring data use as scoring proxies — even when explicit identity markers are removed
 - The Maternity Benefit Act protects career gaps — but no mainstream ATS respects this
 
 **Aethel tests for all four simultaneously:**
