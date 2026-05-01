@@ -165,7 +165,7 @@ function ModelCard({ model, fairaiScore, isOwnModel }) {
             <div className={`text-sm font-black ${advantage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {deltaSign(advantage)}
             </div>
-            <div className="text-[10px] text-white/80">vs FairAI</div>
+            <div className="text-[10px] text-white/80">vs Aethel</div>
           </div>
         )}
       </div>
@@ -304,10 +304,10 @@ function BiasVerdictTable({ models }) {
 /* ─── Aggregate metrics banner ───────────────────────────────── */
 function AggregateBanner({ data }) {
   const items = [
-    { label: 'FairAI Advantage', value: `+${data.fairai_advantage_avg}`, sub: 'avg vs others', positive: true },
+    { label: 'Aethel Advantage', value: `+${data.fairai_advantage_avg}`, sub: 'avg vs others', positive: true },
     { label: 'Cross-Model σ',   value: data.cross_model_variance,        sub: 'score std dev' },
     { label: 'Systemic Bias',   value: data.systemic_bias_detected ? 'YES' : 'NO', sub: 'all models agree', highlight: data.systemic_bias_detected },
-    { label: 'Bias Reduction',  value: `${data.fairai_bias_reduction}%`, sub: 'FairAI vs avg Δ', positive: true },
+    { label: 'Bias Reduction',  value: `${data.fairai_bias_reduction}%`, sub: 'Aethel vs avg Δ', positive: true },
   ];
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -331,7 +331,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
 
   return (
     <section className="mb-6 animate-fade-in-up stagger-8">
-      <SectionHeading icon={<BarChart3 className="w-3.5 h-3.5" />} label="LLM Comparison — FairAI vs Mainstream Models" />
+      <SectionHeading icon={<BarChart3 className="w-3.5 h-3.5" />} label="LLM Comparison — Aethel vs Mainstream Models" />
 
       {!data ? (
         <div className="glass-card rounded-2xl p-8 text-center">
@@ -340,7 +340,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
           </div>
           <h4 className="text-base font-bold text-white mb-2">Compare Your Model vs Other LLMs</h4>
           <p className="text-sm text-white/80 mb-2 max-w-md mx-auto leading-relaxed">
-            Runs the same resume through your fine-tuned FairAI model <em>and</em> mainstream LLMs (Llama 3.3, Gemma 4, Kimi K2 120B).
+            Runs the same resume through your fine-tuned Aethel model <em>and</em> mainstream LLMs (Llama 3.3, Gemma 4, Kimi K2 120B).
             Shows per-model skill graphs, signals, gaps, and bias sensitivity — side by side.
           </p>
           <p className="text-xs text-white mb-6 max-w-sm mx-auto">
@@ -380,7 +380,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
                 </span>
               )}
               <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 flex items-center gap-1">
-                <Shield className="w-3 h-3" /> FairAI Advantage: +{data.fairai_advantage_avg} pts avg
+                <Shield className="w-3 h-3" /> Aethel Advantage: +{data.fairai_advantage_avg} pts avg
               </span>
               <span className="text-xs text-white/80 ml-auto">σ = {data.cross_model_variance} across models</span>
             </div>

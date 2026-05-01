@@ -41,7 +41,7 @@ export const PLATFORM_ICONS = {
 export const DEMO_RESULT = {
   fit_score: 82,
   fit_level: 'Strong Match',
-  summary: 'Candidate demonstrates strong full-stack engineering capability through production-grade projects including a real-time payment reconciliation engine and a distributed job queue system. Open-source contributions and measurable performance optimizations signal high technical impact. FairAI evaluated purely on skills — institutional and demographic signals were stripped before scoring.',
+  summary: 'Candidate demonstrates strong full-stack engineering capability through production-grade projects including a real-time payment reconciliation engine and a distributed job queue system. Open-source contributions and measurable performance optimizations signal high technical impact. Aethel evaluated purely on skills — institutional and demographic signals were stripped before scoring.',
   radar: { technical_depth:88, problem_solving:85, impact_evidence:78, domain_knowledge:82, project_complexity:90, communication_clarity:74 },
   pii_removed: ['Priya Kumari', 'NIT Trichy', 'Nagpur, Maharashtra', '2020', 'Maternity leave (7 months)', 'priya.kumari94@gmail.com'],
   percentile: 88,
@@ -100,7 +100,7 @@ export const DEMO_CF_RESULT = {
   bias_stability_score: 58,
   interpretation: 'moderate_bias',
   measured: true,
-  summary: 'Measured bias stability score: 58/100. Replacing NIT Trichy with IIT Bombay raised score +11 pts. Removing maternity leave gap raised score +8 pts. Swapping name to Arjun Sharma raised score +3 pts. This is the bias hiding inside every mainstream ATS in India — FairAI\'s blind evaluation prevented it.',
+  summary: 'Measured bias stability score: 58/100. Replacing NIT Trichy with IIT Bombay raised score +11 pts. Removing maternity leave gap raised score +8 pts. Swapping name to Arjun Sharma raised score +3 pts. This is the bias hiding inside every mainstream ATS in India — Aethel\'s blind evaluation prevented it.',
   variants: [
     { label: 'College → IIT Bombay (measured)', simulated_score: 93, delta: +11, reasoning: 'Swapping NIT Trichy to IIT Bombay raised score by +11 pts — confirming severe institution-prestige bias baked into LLMs trained on elite-college-dominated datasets.', measured: true },
     { label: 'Maternity gap removed (measured)', simulated_score: 90, delta: +8, reasoning: 'Removing the 7-month maternity leave raised score +8 pts — confirming employment-continuity bias that disproportionately punishes Indian women.', measured: true },
@@ -178,12 +178,12 @@ export const DEMO_COMPARISON = {
   cross_model_variance: 4.2,
   systemic_bias_detected: true,
   fairai_bias_reduction: 73,
-  summary: 'FairAI scored +11 pts higher on average than mainstream LLMs for this NIT Trichy candidate. All 3 mainstream models raised their score by 9–12 pts when college was swapped to IIT Bombay — confirming institution-prestige bias is SYSTEMIC in LLMs, not a bug in any one model. FairAI\'s blind fine-tuning keeps its institution delta at just 1 pt.',
-  insight: 'Every mainstream LLM penalized Priya Kumari for attending NIT Trichy instead of IIT Bombay (+9 to +12 pts swing). They also penalized her maternity leave (+5 to +8 pts swing). This is the exact bias powering AMCAT and CoCubes shortlisting — FairAI\'s fine-tuning on de-identified Indian resumes breaks this pattern entirely.',
+  summary: 'Aethel scored +11 pts higher on average than mainstream LLMs for this NIT Trichy candidate. All 3 mainstream models raised their score by 9–12 pts when college was swapped to IIT Bombay — confirming institution-prestige bias is SYSTEMIC in LLMs, not a bug in any one model. Aethel\'s blind fine-tuning keeps its institution delta at just 1 pt.',
+  insight: 'Every mainstream LLM penalized Priya Kumari for attending NIT Trichy instead of IIT Bombay (+9 to +12 pts swing). They also penalized her maternity leave (+5 to +8 pts swing). This is the exact bias powering AMCAT and CoCubes shortlisting — Aethel\'s fine-tuning on de-identified Indian resumes breaks this pattern entirely.',
   models: [
     {
       model_id: 'bot4-phi35-resume-evaluator',
-      label: 'FairAI (Bot 4 — Fine-tuned Phi-3.5)',
+      label: 'Aethel (Bot 4 — Fine-tuned Phi-3.5)',
       provider: 'Your Model · HuggingFace / Colab',
       is_own_model: true,
       score: 82,

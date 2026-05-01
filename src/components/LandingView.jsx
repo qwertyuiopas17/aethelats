@@ -40,7 +40,7 @@ function DeltaChip({ label, delta, delay = 0 }) {
 /* ── live model comparison preview ── */
 function BiasPreviewCard() {
   const models = [
-    { name: 'FairAI (Fine-tuned)', score: 82, iit: 1, gap: 2, isOwn: true },
+    { name: 'Aethel (Fine-tuned)', score: 82, iit: 1, gap: 2, isOwn: true },
     { name: 'Llama 3.3 70B',       score: 71, iit: 9, gap: 6, isOwn: false },
     { name: 'Gemma 2 9B',           score: 69, iit: 12, gap: 8, isOwn: false },
     { name: 'Mixtral 8×7B',         score: 72, iit: 7, gap: 5, isOwn: false },
@@ -110,7 +110,7 @@ function BiasPreviewCard() {
           <AlertTriangle className="w-3.5 h-3.5 text-white/60 shrink-0 mt-0.5" />
           <p className="text-[10px] text-white/50 leading-relaxed">
             All mainstream LLMs raised their score 7–12 pts when college changed from NIT Trichy → IIT Bombay.
-            FairAI's delta: <span className="text-white font-bold">+1 pt</span>.
+            Aethel's delta: <span className="text-white font-bold">+1 pt</span>.
           </p>
         </div>
       </div>
@@ -193,7 +193,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
             Every mainstream ATS and LLM quietly penalizes you for your college,
             your name, your career gap, and your city.{' '}
             <span className="text-white/80 font-semibold">
-              FairAI measures exactly how much — then evaluates you on skills alone.
+              Aethel measures exactly how much — then evaluates you on skills alone.
             </span>
           </p>
 
@@ -206,7 +206,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
             <p className="text-xs text-white/60 leading-relaxed">
               Proven in tests: Gemma 2 scored a NIT Trichy candidate{' '}
               <span className="text-white font-bold">12 pts lower</span> than an
-              identical IIT Bombay resume. FairAI's delta:{' '}
+              identical IIT Bombay resume. Aethel's delta:{' '}
               <span className="text-white font-bold">1 pt</span>.
               This is the same bias inside AMCAT and CoCubes — we expose it.
             </p>
@@ -305,7 +305,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
               <thead>
                 <tr className="border-b border-white/[0.06]">
                   <th className="text-left py-2 pr-4 font-bold text-white/40 uppercase tracking-wider">Capability</th>
-                  <th className="text-center py-2 px-3 font-bold text-white uppercase tracking-wider">FairAI</th>
+                  <th className="text-center py-2 px-3 font-bold text-white uppercase tracking-wider">Aethel</th>
                   <th className="text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">AMCAT</th>
                   <th className="text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">CoCubes</th>
                   <th className="text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">Jobscan</th>
