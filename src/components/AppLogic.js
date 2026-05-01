@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { API_URL, SCAN_LOGS, DEMO_RESULT, DEMO_CF_RESULT, DEMO_MULTIMODEL, DEMO_JD_RESULT, DEMO_PROOF_RESULT, DEMO_COMPARISON } from './constants';
 
 export function useAppState() {
-  const [step, setStep] = useState('upload');
+  const [step, setStep] = useState('landing');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [dragOver, setDragOver] = useState(false);
@@ -182,7 +182,7 @@ export function useAppState() {
   }
 
   return {
-    step, progress, logs, dragOver, setDragOver, selectedFile, setSelectedFile, jobRole, setJobRole,
+    step, setStep, progress, logs, dragOver, setDragOver, selectedFile, setSelectedFile, jobRole, setJobRole,
     detectingRole, result, apiError, isDemo, showFairnessGate, setShowFairnessGate,
     fairnessConfirmed, cfResult, runningCF, jdText, setJdText, jdResult, jdAnalyzing,
     jdExpanded, setJdExpanded, mmResult, runningMM, proofResult, proofLoading,

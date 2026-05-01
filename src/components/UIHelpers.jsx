@@ -37,9 +37,9 @@ export function Pill({ children, variant }) {
   return <span className={'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ' + (m[variant] || 'bg-white/[0.05] text-white border-white/10')}>{children}</span>;
 }
 
-export function NavItem({ icon, label, active }) {
+export function NavItem({ icon, label, active, onClick }) {
   return (
-    <button className={'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-400 ease-out ' +
+    <button onClick={onClick} className={'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-400 ease-out ' +
       (active
         ? 'tab-3d-active'
         : 'text-white/90 hover:text-white hover:bg-white/[0.04] border border-transparent hover:border-white/[0.04]')}>

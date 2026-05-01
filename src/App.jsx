@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAppState } from './components/AppLogic';
 import { NavItem, FairnessGateModal, getLogColor, LogIcon } from './components/UIHelpers';
+import LandingView from './components/LandingView';
 import UploadView from './components/UploadView';
 import ResultsView from './components/ResultsView';
 
@@ -30,6 +31,9 @@ export default function App() {
   const s = useAppState();
   const biasProxies = s.result?.bias_proxies || [];
   const recommendation = s.result?.recommendation || 'Schedule Screening Call';
+
+  const goToUpload = () => s.setStep('upload');
+  const loadDemoFromLanding = () => s.loadDemo();
 
   return (
     <ErrorBoundary>
@@ -62,8 +66,9 @@ export default function App() {
             </button>
           </div>
           <nav className="flex-1 px-3 space-y-0.5">
+            <NavItem icon={<Shield className="w-4 h-4" />} label="Home" active={s.step === 'landing'} onClick={() => s.setStep('landing')} />
             <NavItem icon={<Users className="w-4 h-4" />} label="Talent Pool" active={false} />
-            <NavItem icon={<Shield className="w-4 h-4" />} label="Audit Trail" active={true} />
+            <NavItem icon={<Shield className="w-4 h-4" />} label="Audit Trail" active={s.step === 'upload' || s.step === 'scanning'} onClick={goToUpload} />
             <NavItem icon={<FileText className="w-4 h-4" />} label="Templates" active={false} />
             <NavItem icon={<BarChart2 className="w-4 h-4" />} label="Analytics" active={false} />
             <NavItem icon={<Clock className="w-4 h-4" />} label="History" active={false} />
@@ -83,8 +88,9 @@ export default function App() {
             <div className="flex items-center gap-8">
               <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
               <nav className="hidden sm:flex items-center gap-6 text-sm text-white/80">
+                <span className={'nav-link cursor-pointer ' + (s.step === 'landing' ? 'active text-white' : 'hover:text-white')} onClick={() => s.setStep('landing')}>Home</span>
                 <span className="nav-link cursor-pointer hover:text-white">Pipeline</span>
-                <span className={'nav-link cursor-pointer ' + (s.step === 'upload' ? 'active text-white' : 'hover:text-white')}>Compliance</span>
+                <span className={'nav-link cursor-pointer ' + (s.step === 'upload' || s.step === 'scanning' ? 'active text-white' : 'hover:text-white')} onClick={goToUpload}>Compliance</span>
                 <span className={'nav-link cursor-pointer ' + (s.step === 'results' ? 'active text-white' : 'hover:text-white')}>Insights</span>
               </nav>
             </div>
@@ -107,6 +113,9 @@ export default function App() {
           </header>
 
           <main className="flex-1 overflow-y-auto relative z-10">
+
+            {/* ═══ LANDING ═══ */}
+            {s.step === 'landing' && <LandingView onGetStarted={goToUpload} onLoadDemo={loadDemoFromLanding} />}
 
             {/* ═══ UPLOAD ═══ */}
             {s.step === 'upload' && <UploadView s={s} />}
