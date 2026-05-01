@@ -313,22 +313,27 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
                 {[
-                  ['Bias detection (IIT prestige)',    true,  false, false, false],
-                  ['Maternity/career gap audit',       true,  false, false, false],
-                  ['Name / caste-proxy test',          true,  false, false, false],
-                  ['JD bias scanner',                  true,  false, false, false],
-                  ['Skill graph (contextual vs declared)', true, false, false, false],
-                  ['Multi-LLM comparison',             true,  false, false, false],
-                  ['Lateral hire support',             true,  false, false, true],
-                  ['Free for candidates',              true,  false, false, false],
+                  ['Bias detection (IIT prestige swap)',     true,  false, false, false],
+                  ['Maternity / career gap audit',           true,  false, false, false],
+                  ['Name-based demographic test',            true,  false, false, false],
+                  ['JD bias scanner',                        true,  false, false, 'partial'],
+                  ['Skill assessment (aptitude / coding)',   true,  true,  true,  false],
+                  ['Contextual vs declared skill scoring',   true,  false, false, false],
+                  ['Multi-LLM bias comparison',              true,  false, false, false],
+                  ['Resume ↔ JD match scoring',              true,  false, false, true],
+                  ['Lateral hire support',                   true,  true,  true,  false],
+                  ['Explainable score breakdown',            true,  false, false, 'partial'],
+                  ['Free for candidates',                    true,  false, false, false],
                 ].map(([label, ...vals], i) => (
                   <tr key={i} className="hover:bg-white/[0.01] transition-colors">
                     <td className="py-2.5 pr-4 text-white/60 font-medium">{label}</td>
                     {vals.map((v, j) => (
                       <td key={j} className="py-2.5 px-3 text-center">
-                        {v
+                        {v === true
                           ? <Check className="w-3.5 h-3.5 text-white mx-auto" />
-                          : <span className="text-white/20 font-bold mx-auto block text-center">—</span>
+                          : v === 'partial'
+                            ? <span className="text-white/50 font-bold mx-auto block text-center text-[10px]">~</span>
+                            : <span className="text-white/20 font-bold mx-auto block text-center">—</span>
                         }
                       </td>
                     ))}

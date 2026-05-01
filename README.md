@@ -645,21 +645,22 @@ This tool is research-grade. Its limitations should be understood:
 ## 🌟 Feature Comparison
 
 ```
-Feature                          │ AMCAT/CoCubes │ Workday/LinkedIn │ Aethel ★
-─────────────────────────────────┼───────────────┼──────────────────┼──────────
-PII stripped before scoring      │      ✗        │        ✗         │    ✓
-Institution bias test (IIT swap) │      ✗        │        ✗         │    ✓
-Maternity gap audit              │      ✗        │        ✗         │    ✓
-Name / caste-proxy test          │      ✗        │        ✗         │    ✓
-City / Tier-2 bias detection     │      ✗        │        ✗         │    ✓
-Contextual skill scoring         │      ✗        │     Partial      │    ✓
-Measured counterfactual deltas   │      ✗        │        ✗         │    ✓
-Regulatory fairness metrics      │      ✗        │        ✗         │    ✓
-JD language bias audit           │      ✗        │     Partial      │    ✓
-Live proof-of-work scoring       │      ✗        │        ✗         │    ✓
-Compares itself to rival LLMs    │      ✗        │        ✗         │    ✓
-Fully explainable scores         │      ✗        │        ✗         │    ✓
-Free for candidates              │      ✗        │        ✗         │    ✓
+Feature                          │ AMCAT/CoCubes │ Jobscan  │ Aethel ★
+─────────────────────────────────┼───────────────┼──────────┼──────────
+PII stripped before scoring      │      ✗        │    ✗     │    ✓
+Institution bias test (IIT swap) │      ✗        │    ✗     │    ✓
+Maternity gap audit              │      ✗        │    ✗     │    ✓
+Name-based demographic test      │      ✗        │    ✗     │    ✓
+City / Tier-2 bias detection     │      ✗        │    ✗     │    ✓
+Skill assessment (aptitude)      │      ✓        │    ✗     │    ✓
+Contextual skill scoring         │      ✗        │    ✗     │    ✓
+Measured counterfactual deltas   │      ✗        │    ✗     │    ✓
+Resume ↔ JD match scoring        │      ✗        │    ✓     │    ✓
+JD language bias audit           │      ✗        │  Partial │    ✓
+Lateral hire support             │      ✓        │    ✗     │    ✓
+Compares itself to rival LLMs    │      ✗        │    ✗     │    ✓
+Fully explainable scores         │      ✗        │  Partial │    ✓
+Free for candidates              │      ✗        │    ✗     │    ✓
 ```
 
 ---
