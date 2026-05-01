@@ -41,9 +41,9 @@ export const PLATFORM_ICONS = {
 export const DEMO_RESULT = {
   fit_score: 82,
   fit_level: 'Strong Match',
-  summary: 'Candidate demonstrates strong full-stack engineering capability through production-grade projects including a real-time collaborative code editor and a distributed task queue system. Open-source contributions and measurable performance optimizations signal high technical impact.',
+  summary: 'Candidate demonstrates strong full-stack engineering capability through production-grade projects including a real-time payment reconciliation engine and a distributed job queue system. Open-source contributions and measurable performance optimizations signal high technical impact. FairAI evaluated purely on skills — institutional and demographic signals were stripped before scoring.',
   radar: { technical_depth:88, problem_solving:85, impact_evidence:78, domain_knowledge:82, project_complexity:90, communication_clarity:74 },
-  pii_removed: ['Priya Sharma', 'State University of XYZ', 'Mumbai', '2019', 'paternity leave (8 months)', 'priya.sharma@email.com'],
+  pii_removed: ['Priya Kumari', 'NIT Trichy', 'Nagpur, Maharashtra', '2020', 'Maternity leave (7 months)', 'priya.kumari94@gmail.com'],
   percentile: 88,
   pool_size: 47,
   contextual_ratio: 0.71,
@@ -75,12 +75,12 @@ export const DEMO_RESULT = {
     { gap: 'Limited mobile development experience', severity: 'minor' },
   ],
   bias_proxies: [
-    { text: '2019 graduation year', bias_type: 'age', severity: 'medium', explanation: 'Legacy ATS treats non-recent graduation years as an age proxy, unfairly penalizing experienced candidates.' },
-    { text: 'Paternity leave (8 months)', bias_type: 'gap', severity: 'high', explanation: 'Career gaps are biased against caregivers. A biased ATS would flag this as a "reliability risk" despite being a legally protected leave.' },
-    { text: 'State University of XYZ', bias_type: 'institution', severity: 'medium', explanation: 'Systems trained on elite-university employees systematically downrank candidates from non-Tier-1 institutions.' },
-    { text: 'Community volunteer, local food bank', bias_type: 'socioeconomic', severity: 'low', explanation: 'Socioeconomic background proxies can signal lower socioeconomic origin to biased models.' },
+    { text: 'NIT Trichy (non-IIT institution)', bias_type: 'institution', severity: 'high', explanation: 'AMCAT and mainstream ATS systems are trained on historical hire data dominated by IIT/IIM graduates. NIT Trichy graduates are systematically underscored despite equal or superior skills.' },
+    { text: 'Maternity leave (7 months)', bias_type: 'gap', severity: 'high', explanation: 'Legacy ATS flags employment gaps as "reliability risk". Maternity leave is a constitutionally protected right in India — penalizing it is both biased and potentially unlawful.' },
+    { text: 'Nagpur, Maharashtra (Tier-2 city address)', bias_type: 'location', severity: 'medium', explanation: 'Algorithms trained on metro-dominant datasets assign lower cultural-fit scores to candidates from Tier-2/3 cities — a proxy for socioeconomic background.' },
+    { text: 'Priya Kumari (name signals gender + possible caste)', bias_type: 'name', severity: 'medium', explanation: 'Indian surnames are strong caste and religion proxies. Research shows a 20–30% lower callback rate for non-dominant caste names in identical resumes.' },
   ],
-  counterfactual: { legacy_ats_score:54, fairai_score:82, score_delta:28, primary_bias_factor:'Career gap (paternity leave) combined with non-Tier-1 university triggered automatic downgrade' },
+  counterfactual: { legacy_ats_score:51, fairai_score:82, score_delta:31, primary_bias_factor:'NIT Trichy institution penalty + maternity gap flagged as reliability risk = 31-point suppression by legacy ATS' },
   feature_attributions: [
     { factor: 'Distributed task queue (50k jobs/day on AWS ECS)', delta: 14, reasoning: 'Large-scale distributed systems experience is a top signal for senior engineering roles' },
     { factor: 'Open source library maintainer (1.2k stars)', delta: 10, reasoning: 'Maintaining a popular OSS project demonstrates community trust and code quality' },
@@ -97,27 +97,28 @@ export const DEMO_RESULT = {
 
 export const DEMO_CF_RESULT = {
   baseline_score: 82,
-  bias_stability_score: 61,
+  bias_stability_score: 58,
   interpretation: 'moderate_bias',
   measured: true,
-  summary: 'Measured bias stability score: 61/100. University prestige change: +9 pts, gap removal: +6 pts, name swap: +2 pts. Score variance across demographic changes indicates bias sensitivity — FairAI blind evaluation protected this candidate.',
+  summary: 'Measured bias stability score: 58/100. Replacing NIT Trichy with IIT Bombay raised score +11 pts. Removing maternity leave gap raised score +8 pts. Swapping name to Arjun Sharma raised score +3 pts. This is the bias hiding inside every mainstream ATS in India — FairAI\'s blind evaluation prevented it.',
   variants: [
-    { label: 'University → MIT (measured)', simulated_score: 91, delta: +9, reasoning: 'Re-scoring with MIT substituted raised score +9 — confirming institution prestige bias.', measured: true },
-    { label: 'Career gap removed (measured)', simulated_score: 88, delta: +6, reasoning: 'Removing gap language raised score +6 — confirming employment continuity bias.', measured: true },
-    { label: 'Name → Alex Johnson (measured)', simulated_score: 84, delta: +2, reasoning: 'Name neutralization raised score +2 — mild but statistically significant.', measured: true },
-    { label: 'All combined — intersectional (measured)', simulated_score: 96, delta: +14, reasoning: 'Applying ALL demographic changes simultaneously yielded +14 pts.', measured: true },
+    { label: 'College → IIT Bombay (measured)', simulated_score: 93, delta: +11, reasoning: 'Swapping NIT Trichy to IIT Bombay raised score by +11 pts — confirming severe institution-prestige bias baked into LLMs trained on elite-college-dominated datasets.', measured: true },
+    { label: 'Maternity gap removed (measured)', simulated_score: 90, delta: +8, reasoning: 'Removing the 7-month maternity leave raised score +8 pts — confirming employment-continuity bias that disproportionately punishes Indian women.', measured: true },
+    { label: 'Name → Arjun Sharma (measured)', simulated_score: 85, delta: +3, reasoning: 'Changing name from Priya Kumari to Arjun Sharma raised score +3 pts — a statistically significant gender and caste-proxy signal.', measured: true },
+    { label: 'Nagpur → Bengaluru address (measured)', simulated_score: 84, delta: +2, reasoning: 'Changing address from Nagpur to Koramangala, Bengaluru raised score +2 pts — confirming metro-location bias.', measured: true },
+    { label: 'All combined — intersectional (measured)', simulated_score: 97, delta: +15, reasoning: 'Applying ALL four demographic mutations simultaneously yielded +15 pts — this is the compounding penalty faced by women from Tier-2 cities and non-IIT colleges.', measured: true },
   ],
   intersectional: {
-    combined_delta: 14, sum_of_individual_deltas: 17, amplification_detected: false, amplification_factor: 0.82,
-    explanation: 'Combined demographic mutation yielded +14 pts vs sum of individual mutations +17 pts. No intersectional amplification.',
+    combined_delta: 15, sum_of_individual_deltas: 24, amplification_detected: false, amplification_factor: 0.63,
+    explanation: 'Combined mutation yielded +15 pts vs sum of individual mutations +24 pts. Intersectional penalties partially overlap — the system is biased at multiple layers simultaneously.',
   },
   fairness_metrics: {
-    overall_grade: 'C', passing_count: 2, total_count: 4,
+    overall_grade: 'D', passing_count: 1, total_count: 4,
     metrics: [
-      { id: 'disparate_impact_ratio', label: 'Disparate Impact Ratio', regulation: 'EEOC 4/5ths Rule', value: 0.90, threshold: 0.80, passes: true, direction: 'gte', description: 'Ratio of lowest to highest score across demographic variants.', display: '0.90' },
-      { id: 'score_variance', label: 'Score Stability (σ)', regulation: 'Statistical Reliability', value: 6.24, threshold: 5.0, passes: false, direction: 'lte', description: 'Standard deviation of scores across demographic mutations.', display: '6.24' },
-      { id: 'bias_amplification', label: 'Bias Amplification Index', regulation: 'EU AI Act Art. 9', value: 0.110, threshold: 0.15, passes: true, direction: 'lte', description: 'Maximum score deviation as a proportion of baseline score.', display: '0.110' },
-      { id: 'max_score_deviation', label: 'Max Score Deviation', regulation: 'NYC Local Law 144', value: 9, threshold: 5, passes: false, direction: 'lte', description: 'Largest absolute score change from any single demographic mutation.', display: '9' },
+      { id: 'disparate_impact_ratio', label: 'Disparate Impact Ratio', regulation: 'India Equal Opp. Framework', value: 0.84, threshold: 0.80, passes: true, direction: 'gte', description: 'Ratio of lowest to highest score across Indian demographic variants.', display: '0.84' },
+      { id: 'score_variance', label: 'Score Stability (σ)', regulation: 'Statistical Reliability', value: 5.87, threshold: 5.0, passes: false, direction: 'lte', description: 'Standard deviation of scores across demographic mutations.', display: '5.87' },
+      { id: 'bias_amplification', label: 'Bias Amplification Index', regulation: 'EU AI Act Art. 9', value: 0.134, threshold: 0.15, passes: false, direction: 'lte', description: 'Maximum score deviation as a proportion of baseline score.', display: '0.134' },
+      { id: 'max_score_deviation', label: 'Max Score Deviation', regulation: 'NYC Local Law 144', value: 11, threshold: 5, passes: false, direction: 'lte', description: 'Largest absolute score change from any single demographic mutation.', display: '11' },
     ],
   },
 };
@@ -133,19 +134,23 @@ export const DEMO_MULTIMODEL = {
 };
 
 export const DEMO_JD_RESULT = {
-  overall_bias_score: 48, bias_level: 'Moderately Biased',
-  summary: 'This job description contains masculine-coded language and culture-fit framing that research shows reduces applications from women and underrepresented candidates by up to 30%.',
+  overall_bias_score: 41, bias_level: 'Highly Biased',
+  summary: 'This job description contains masculine-coded language, IIT/NIT preference signalling, and "culture fit" framing. Research shows such JDs reduce applications from women and non-metro candidates by up to 40% in the Indian job market.',
   flagged_phrases: [
-    { phrase: 'rockstar engineer', bias_type: 'masculine_coded', severity: 'high', explanation: 'Masculine-coded superlatives statistically deter women from applying.', neutral_alternative: 'skilled engineer' },
-    { phrase: 'culture fit', bias_type: 'culture_fit', severity: 'high', explanation: '"Culture fit" is a documented proxy for demographic homogeneity.', neutral_alternative: 'values alignment' },
-    { phrase: 'competitive environment', bias_type: 'masculine_coded', severity: 'medium', explanation: 'Competitive framing deters candidates prioritizing psychological safety.', neutral_alternative: 'collaborative, results-driven environment' },
-    { phrase: 'move fast', bias_type: 'masculine_coded', severity: 'low', explanation: 'Speed-emphasis signals may discourage caregivers.', neutral_alternative: 'iterate and ship regularly' },
+    { phrase: 'IIT/NIT preferred', bias_type: 'institution_gatekeeping', severity: 'high', explanation: 'Explicitly filtering by institution tier eliminates qualified candidates from 900+ Indian engineering colleges. This is the same bias that AMCAT and CoCubes perpetuate algorithmically.', neutral_alternative: 'Strong engineering fundamentals and demonstrated project experience' },
+    { phrase: 'rockstar developer', bias_type: 'masculine_coded', severity: 'high', explanation: 'Masculine-coded superlatives statistically deter women from applying. Studies show 40% fewer female applicants on JDs with such language.', neutral_alternative: 'skilled developer' },
+    { phrase: 'culture fit', bias_type: 'culture_fit', severity: 'high', explanation: '"Culture fit" in India frequently becomes a proxy for caste, religion, and language homogeneity within teams.', neutral_alternative: 'values and working-style alignment' },
+    { phrase: 'no career gaps', bias_type: 'continuity_bias', severity: 'high', explanation: 'Penalizes women returning from maternity leave and candidates who took breaks for family care — disproportionately affects Indian women.', neutral_alternative: 'Consistent track record of delivering results' },
+    { phrase: 'fluent English required', bias_type: 'language_bias', severity: 'medium', explanation: 'Conflates communication skill with English fluency, systematically disadvantaging candidates from vernacular-medium educational backgrounds.', neutral_alternative: 'Clear written and verbal communication skills' },
+    { phrase: 'fast-paced startup grind', bias_type: 'masculine_coded', severity: 'low', explanation: 'Speed-and-grind framing discourages caregivers and signals exclusion of candidates with family responsibilities.', neutral_alternative: 'iterative, high-ownership work environment' },
   ],
-  inclusive_elements: ['Equal opportunity employer statement', 'Flexible working mentioned'],
+  inclusive_elements: ['Remote-friendly mentioned', 'Skills-based requirements partially listed'],
   rewrite_suggestions: [
-    'Replace "rockstar" with "skilled" or "experienced"',
-    'Replace "culture fit" with specific values and working principles',
-    'Add explicit mention of parental leave and caregiver accommodation',
+    'Remove "IIT/NIT preferred" — list the specific skills you actually need instead',
+    'Replace "culture fit" with 3–4 specific team values (e.g., ownership, transparency)',
+    'Add explicit maternity/paternity leave policy and returnship program mention',
+    'Replace "fluent English" with "clear communication" to open the talent pool',
+    'Add a "We welcome candidates from all institutions and backgrounds" statement',
   ],
 };
 
@@ -167,14 +172,14 @@ export const DEMO_PROOF_RESULT = {
   ats_override_recommendation: 'Strong',
 };
 
-// ─── LLM Comparison Demo ──────────────────────────────────────
+// ─── LLM Comparison Demo (India-specific bias vectors) ───────
 export const DEMO_COMPARISON = {
   fairai_advantage_avg: 11,
   cross_model_variance: 4.2,
   systemic_bias_detected: true,
   fairai_bias_reduction: 73,
-  summary: 'FairAI scored +11 pts higher on average than mainstream LLMs and exhibited near-zero bias amplification across all 3 demographic mutations. Generic LLMs show consistent institution-prestige bias (+9–12 pts), confirming the bias is systemic — not model-specific. FairAI\'s fine-tuning for blind evaluation demonstrably reduces unfair score variance.',
-  insight: 'Every mainstream LLM raised its score when the university was swapped to MIT, proving institution-prestige bias is baked into their training corpora. FairAI\'s fine-tuning on de-identified resumes breaks this pattern — its max demographic delta is only 2 pts vs 7–12 pts for generic models.',
+  summary: 'FairAI scored +11 pts higher on average than mainstream LLMs for this NIT Trichy candidate. All 3 mainstream models raised their score by 9–12 pts when college was swapped to IIT Bombay — confirming institution-prestige bias is SYSTEMIC in LLMs, not a bug in any one model. FairAI\'s blind fine-tuning keeps its institution delta at just 1 pt.',
+  insight: 'Every mainstream LLM penalized Priya Kumari for attending NIT Trichy instead of IIT Bombay (+9 to +12 pts swing). They also penalized her maternity leave (+5 to +8 pts swing). This is the exact bias powering AMCAT and CoCubes shortlisting — FairAI\'s fine-tuning on de-identified Indian resumes breaks this pattern entirely.',
   models: [
     {
       model_id: 'bot4-phi35-resume-evaluator',
@@ -186,11 +191,11 @@ export const DEMO_COMPARISON = {
       max_delta: 2,
       radar: { technical_depth: 88, problem_solving: 85, impact_evidence: 78, domain_knowledge: 82, project_complexity: 90, communication_clarity: 74 },
       bias_deltas: [
-        { key: 'institution_delta', label: 'Inst.', delta: 1 },
-        { key: 'gap_delta',         label: 'Gap',  delta: 2 },
-        { key: 'name_delta',        label: 'Name', delta: 0 },
+        { key: 'institution_delta', label: 'IIT swap', delta: 1 },
+        { key: 'gap_delta',         label: 'Maternity', delta: 2 },
+        { key: 'name_delta',        label: 'Name/Caste', delta: 0 },
       ],
-      reasoning: 'Strong distributed systems experience with measurable production impact. Fine-tuned to evaluate skills contextually, ignoring institutional markers.',
+      reasoning: 'Strong distributed systems experience with measurable production impact. Fine-tuned to evaluate skills contextually, ignoring IIT/NIT prestige, city tier, and name signals.',
     },
     {
       model_id: 'llama-3.3-70b-versatile',
@@ -202,11 +207,11 @@ export const DEMO_COMPARISON = {
       max_delta: 9,
       radar: { technical_depth: 74, problem_solving: 70, impact_evidence: 65, domain_knowledge: 68, project_complexity: 76, communication_clarity: 62 },
       bias_deltas: [
-        { key: 'institution_delta', label: 'Inst.', delta: 9 },
-        { key: 'gap_delta',         label: 'Gap',  delta: 6 },
-        { key: 'name_delta',        label: 'Name', delta: 2 },
+        { key: 'institution_delta', label: 'IIT swap', delta: 9 },
+        { key: 'gap_delta',         label: 'Maternity', delta: 6 },
+        { key: 'name_delta',        label: 'Name/Caste', delta: 2 },
       ],
-      reasoning: 'Solid engineering profile with strong OSS contributions, but career gap and non-Tier-1 university lowered initial score.',
+      reasoning: 'Solid engineering profile with strong OSS contributions, but NIT Trichy institution and 7-month maternity leave heavily suppressed initial score — confirming systemic college-prestige and continuity bias.',
     },
     {
       model_id: 'gemma2-9b-it',
@@ -218,11 +223,11 @@ export const DEMO_COMPARISON = {
       max_delta: 12,
       radar: { technical_depth: 71, problem_solving: 66, impact_evidence: 60, domain_knowledge: 63, project_complexity: 73, communication_clarity: 58 },
       bias_deltas: [
-        { key: 'institution_delta', label: 'Inst.', delta: 12 },
-        { key: 'gap_delta',         label: 'Gap',  delta: 8 },
-        { key: 'name_delta',        label: 'Name', delta: 4 },
+        { key: 'institution_delta', label: 'IIT swap', delta: 12 },
+        { key: 'gap_delta',         label: 'Maternity', delta: 8 },
+        { key: 'name_delta',        label: 'Name/Caste', delta: 4 },
       ],
-      reasoning: 'Reasonable technical depth but penalised by employment gap and state university. High institution-prestige bias detected.',
+      reasoning: 'Reasonable technical depth but heavily penalised by NIT Trichy institution bias and maternity leave gap. Highest institution-prestige delta of all tested models — most biased against Indian Tier-2 college graduates.',
     },
     {
       model_id: 'mixtral-8x7b-32768',
@@ -234,11 +239,11 @@ export const DEMO_COMPARISON = {
       max_delta: 7,
       radar: { technical_depth: 75, problem_solving: 68, impact_evidence: 66, domain_knowledge: 70, project_complexity: 74, communication_clarity: 60 },
       bias_deltas: [
-        { key: 'institution_delta', label: 'Inst.', delta: 7 },
-        { key: 'gap_delta',         label: 'Gap',  delta: 5 },
-        { key: 'name_delta',        label: 'Name', delta: 1 },
+        { key: 'institution_delta', label: 'IIT swap', delta: 7 },
+        { key: 'gap_delta',         label: 'Maternity', delta: 5 },
+        { key: 'name_delta',        label: 'Name/Caste', delta: 1 },
       ],
-      reasoning: 'Experienced backend engineer with good technical breadth. Score suppressed by non-continuous employment history.',
+      reasoning: 'Experienced backend engineer with good technical breadth. Score suppressed by NIT Trichy institution penalty and maternity leave continuity bias — less severe than Llama/Gemma but still statistically significant.',
     },
   ],
 };
