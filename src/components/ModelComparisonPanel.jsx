@@ -140,9 +140,9 @@ function ModelCard({ model, fairaiScore, isOwnModel }) {
   ].filter(t => t.show);
 
   return (
-    <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${isOwnModel
-      ? 'border-emerald-400/30 bg-emerald-400/[0.04] shadow-[0_0_24px_rgba(52,211,153,0.07)]'
-      : 'border-white/[0.08] bg-white/[0.02]'}`}>
+    <div className={`rounded-2xl border transition-all duration-300 overflow-hidden hover-lift ${isOwnModel
+      ? 'border-emerald-400/30 bg-emerald-400/[0.04] shadow-[0_0_24px_rgba(52,211,153,0.07)] hover:border-emerald-400/50'
+      : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]'}`}>
 
       {/* Header */}
       <div className="px-5 py-4 flex items-center gap-4">
@@ -334,7 +334,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
       <SectionHeading icon={<BarChart3 className="w-3.5 h-3.5" />} label="LLM Comparison — FairAI vs Mainstream Models" />
 
       {!data ? (
-        <div className="glass-card glass-card-hover rounded-2xl p-8 text-center">
+        <div className="glass-card rounded-2xl p-8 text-center">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
             <BarChart3 className="w-7 h-7 text-white/80" />
           </div>
@@ -360,7 +360,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
           </button>
         </div>
       ) : isRunning ? (
-        <div className="glass-card glass-card-hover rounded-2xl p-10 flex flex-col items-center gap-4">
+        <div className="glass-card rounded-2xl p-10 flex flex-col items-center gap-4">
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full bg-emerald-400/10 animate-ping" style={{ animationDuration: '2s' }} />
             <div className="relative w-full h-full bg-black border-2 border-emerald-400/20 rounded-full flex items-center justify-center">
@@ -370,7 +370,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
           <p className="text-sm text-white/90 text-center">Scoring across {data?.models?.length ?? 4} models with demographic mutations…</p>
         </div>
       ) : (
-        <div className="glass-card glass-card-hover rounded-2xl overflow-hidden">
+        <div className="glass-card rounded-2xl overflow-hidden">
           {/* Summary header */}
           <div className="px-5 py-4 border-b border-white/[0.06]">
             <div className="flex items-center gap-3 flex-wrap mb-2">
