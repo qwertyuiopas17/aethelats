@@ -3,36 +3,36 @@
 .horse-loader polygon {
   opacity: 0;
   fill: #ffffff; 
+  will-change: opacity; /* Hardware acceleration hint */
   animation: whiteCascadePulse 2s infinite ease-in-out;
 }
 
 /* ADD THIS: Animate the entire SVG container for a radiating shield effect */
 .horse-loader {
   animation: shieldRadiate 3s ease-in-out infinite;
+  will-change: filter, transform;
+  transform: translateZ(0); /* Hardware acceleration hint */
 }
 
 @keyframes shieldRadiate {
   0%, 100% {
-    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+    /* Slightly stronger global glow to make up for individual path glows */
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.8));
   }
 }
 
 @keyframes whiteCascadePulse {
   0% {
     opacity: 0;
-    filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
   }
   20% {
     opacity: 1;
-    /* Slightly smaller glow so 2500 paths don't blind the user */
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
   }
   40% {
     opacity: 0.1;
-    filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
   }
   100% {
     opacity: 0;
