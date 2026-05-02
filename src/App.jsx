@@ -131,7 +131,7 @@ export default function App() {
       <HorseLoader />
     </div>
 
-    <h2 className="text-2xl font-bold text-white mb-1">Compliance Engine Running</h2>
+    
     {/* ... rest of your code ... */}
 
                 <h2 className="text-2xl font-bold text-white mb-1">Compliance Engine Running</h2>
