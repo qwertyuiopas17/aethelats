@@ -81,7 +81,7 @@ function BiasPreviewCard() {
           >
             <div className="flex items-center gap-2 min-w-0">
               {m.isOwn
-                ? <Shield className="w-3 h-3 text-white shrink-0" />
+                ? <img src="/assets/shield_logo.png" alt="Aethel" className="w-3.5 h-3.5 object-contain shrink-0 drop-shadow-sm" />
                 : <Cpu className="w-3 h-3 text-white/40 shrink-0" />}
               <span className={`text-[11px] font-semibold truncate ${m.isOwn ? 'text-white' : 'text-white/60'}`}>
                 {m.name}

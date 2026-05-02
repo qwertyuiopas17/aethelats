@@ -50,10 +50,12 @@ export default function App() {
         {/* ═══ SIDEBAR ═══ */}
         <aside className="w-56 shrink-0 glass-sidebar hidden md:flex flex-col min-h-screen z-20">
           <div className="px-5 py-6 border-b border-white/[0.06]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.12] flex items-center justify-center">
-                <Shield className="w-4 h-4 text-white" />
-              </div>
+            <div className="flex items-center gap-2">
+              <img
+                src="/assets/shield_logo.png"
+                alt="Aethel Logo"
+                style={{ width: 44, height: 44, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }}
+              />
               <div>
                 <div className="text-lg font-bold text-white tracking-tight">Aethel</div>
                 <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white">Precision Recruitment</div>
@@ -66,7 +68,7 @@ export default function App() {
             </button>
           </div>
           <nav className="flex-1 px-3 space-y-0.5">
-            <NavItem icon={<Shield className="w-4 h-4" />} label="Home" active={s.step === 'landing'} onClick={() => s.setStep('landing')} />
+            <NavItem icon={<img src="/assets/shield_logo.png" alt="" className="w-4 h-4 object-contain" />} label="Home" active={s.step === 'landing'} onClick={() => s.setStep('landing')} />
             <NavItem icon={<Users className="w-4 h-4" />} label="Talent Pool" active={false} />
             <NavItem icon={<Shield className="w-4 h-4" />} label="Audit Trail" active={s.step === 'upload' || s.step === 'scanning'} onClick={goToUpload} />
             <NavItem icon={<FileText className="w-4 h-4" />} label="Templates" active={false} />
