@@ -131,7 +131,7 @@ export default function ResultsView({ s }) {
         <section className="mb-6 animate-fade-in-up stagger-6">
           <SectionHeading icon={<Eye className="w-3.5 h-3.5" />} label={'Bias Proxies — ' + biasProxies.length + ' Found'} />
           <div className="glass-card glass-card-hover rounded-2xl overflow-hidden">
-            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+            <div className="hidden lg:grid grid-cols-12 gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
               <div className="col-span-3 text-xs font-bold uppercase tracking-widest text-white">Proxy</div>
               <div className="col-span-2 text-xs font-bold uppercase tracking-widest text-white">Type</div>
               <div className="col-span-1 text-xs font-bold uppercase tracking-widest text-white text-center">Risk</div>
@@ -141,11 +141,23 @@ export default function ResultsView({ s }) {
               const sev = SEVERITY_STYLE[proxy.severity] || SEVERITY_STYLE.low;
               const bt = BIAS_TYPE_LABELS[proxy.bias_type] || BIAS_TYPE_LABELS.gender;
               return (
-                <div key={idx} className="grid grid-cols-12 gap-3 px-5 py-4 items-start hover:bg-white/[0.02] transition-colors animate-table-row" style={{ animationDelay: (idx * 0.1) + 's' }}>
-                  <div className="col-span-3"><code className={'text-xs px-2.5 py-1 rounded-lg border font-mono font-semibold ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>"{proxy.text}"</code></div>
-                  <div className="col-span-2 flex items-center"><span className={'text-xs font-semibold px-2 py-0.5 rounded-md border ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>{bt.label}</span></div>
-                  <div className="col-span-1 flex justify-center pt-0.5"><span className={'px-2 py-0.5 rounded-md text-xs font-bold uppercase border ' + sev.bg + ' ' + sev.text + ' ' + sev.border}>{proxy.severity}</span></div>
-                  <div className="col-span-6 text-xs text-white/90 leading-relaxed"><Shield className="w-3 h-3 text-white inline mr-1.5" />{proxy.explanation}</div>
+                <div key={idx} className="flex flex-col lg:grid lg:grid-cols-12 gap-2 lg:gap-3 px-4 lg:px-5 py-4 items-start hover:bg-white/[0.02] transition-colors animate-table-row" style={{ animationDelay: (idx * 0.1) + 's' }}>
+                  <div className="lg:col-span-3 flex items-center gap-2">
+                    <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Proxy</span>
+                    <code className={'text-[11px] px-2 py-1 rounded-lg border font-mono font-semibold break-words max-w-[200px] sm:max-w-none ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>"{proxy.text}"</code>
+                  </div>
+                  <div className="lg:col-span-2 flex items-center gap-2">
+                    <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Type</span>
+                    <span className={'text-[11px] font-semibold px-2 py-0.5 rounded-md border ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>{bt.label}</span>
+                  </div>
+                  <div className="lg:col-span-1 flex lg:justify-center items-center gap-2 lg:pt-0.5">
+                    <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Risk</span>
+                    <span className={'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ' + sev.bg + ' ' + sev.text + ' ' + sev.border}>{proxy.severity}</span>
+                  </div>
+                  <div className="lg:col-span-6 text-xs text-white/90 leading-relaxed mt-2 lg:mt-0 flex items-start gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
+                    <span>{proxy.explanation}</span>
+                  </div>
                 </div>
               );
             })}</div>

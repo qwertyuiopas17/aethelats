@@ -7,7 +7,7 @@ import { DEMO_JD_RESULT } from './constants';
 
 export default function UploadView({ s }) {
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="p-4 sm:p-8 animate-fade-in">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div>
           <div className="mb-1 flex items-center gap-2"><span className="text-white/80 text-xs">◈</span><span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Compliance Engine</span></div>
@@ -25,27 +25,34 @@ export default function UploadView({ s }) {
           {!s.selectedFile ? (
             <div onClick={() => s.fileInputRef.current.click()} onDragOver={e => { e.preventDefault(); s.setDragOver(true); }} onDragLeave={() => s.setDragOver(false)}
               onDrop={e => { e.preventDefault(); s.setDragOver(false); s.handleFileSelect(e.dataTransfer.files[0]); }}
-              className={'relative rounded-2xl border border-dashed cursor-pointer transition-all duration-500 var(--bezier-smooth) flex flex-col items-center justify-center py-20 group ' + (s.dragOver ? 'border-white/40 bg-white/[0.04]' : 'border-white/10 bg-black hover:border-white/30 hover:bg-white/[0.02]')}
+              className={'relative rounded-2xl border border-dashed cursor-pointer transition-all duration-500 var(--bezier-smooth) flex flex-col items-center justify-center py-10 sm:py-20 group overflow-hidden ' + (s.dragOver ? 'border-white/40 bg-white/[0.04]' : 'border-white/10 bg-black hover:border-white/30 hover:bg-white/[0.02]')}
               style={{ boxShadow: s.dragOver ? 'inset 0 0 40px rgba(255,255,255,0.05)' : 'none' }}>
               <div className={'w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all duration-500 border ' + (s.dragOver ? 'bg-white/10 border-white/20 scale-110 shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'bg-white/[0.02] border-white/[0.05] group-hover:border-white/20 group-hover:bg-white/[0.05] group-hover:scale-105')}>
                 <UploadCloud className="w-8 h-8 text-white group-hover:text-white transition-colors duration-500" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2 tracking-tight">Drag & Drop Resumes</h3>
-              <p className="text-white/90 text-sm mb-1">Supported formats: PDF, DOCX, TXT. System automatically</p>
-              <p className="text-white/90 text-sm mb-5">redacts Personally Identifiable Information (PII) prior to analysis.</p>
-              <button className="px-6 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase btn-premium">Select Files</button>
+              <h3 className="text-lg font-bold text-white mb-2 tracking-tight text-center">Drag & Drop Resumes</h3>
+              <p className="text-white/90 text-sm mb-5 text-center max-w-sm px-4">
+                Supported formats: PDF, DOCX, TXT. System automatically redacts Personally Identifiable Information (PII) prior to analysis.
+              </p>
+              <button className="px-6 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase btn-premium shrink-0">Select Files</button>
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 glass-card glass-card-hover p-6 flex items-center gap-5">
-              <div className="w-14 h-14 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center"><FileText className="w-7 h-7 text-white/90" /></div>
-              <div className="flex-1">
-                <div className="font-semibold text-white mb-0.5">{s.selectedFile.name}</div>
-                <div className="text-xs text-white/80">{(s.selectedFile.size / 1024).toFixed(1)} KB · Ready for analysis</div>
+            <div className="rounded-2xl border border-white/10 glass-card glass-card-hover p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+              <div className="flex items-center gap-4 w-full min-w-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+                  <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-white/90" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-white mb-0.5 truncate">{s.selectedFile.name}</div>
+                  <div className="text-xs text-white/80 truncate">{(s.selectedFile.size / 1024).toFixed(1)} KB · Ready</div>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => { s.setSelectedFile(null); if (s.fileInputRef.current) s.fileInputRef.current.value = ''; }} className="p-2 text-white/80 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"><XCircle className="w-5 h-5" /></button>
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0">
+                <button onClick={() => { s.setSelectedFile(null); if (s.fileInputRef.current) s.fileInputRef.current.value = ''; }} className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors bg-white/[0.02] border border-white/[0.05]">
+                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
                 <button onClick={s.startScan} disabled={s.detectingRole || !s.jobRole}
-                  className={'px-6 py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-white/90 transition-all active:scale-95 flex items-center gap-2 ' + (s.detectingRole || !s.jobRole ? 'opacity-40 cursor-not-allowed' : '')}>
+                  className={'flex-1 sm:flex-none justify-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-white/90 transition-all active:scale-95 flex items-center gap-2 ' + (s.detectingRole || !s.jobRole ? 'opacity-40 cursor-not-allowed' : '')}>
                   <Zap className="w-4 h-4" />Analyze
                 </button>
               </div>

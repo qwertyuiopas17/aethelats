@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import {
   AlertTriangle, Shield, Users, Activity, BarChart2, Settings,
   ChevronRight, RefreshCw, XCircle, Cpu, Play, Bell, HelpCircle,
-  FileText, Clock, CheckCircle
+  FileText, Clock, CheckCircle, Menu, X
 } from 'lucide-react';
 import { useAppState } from './components/AppLogic';
 import { NavItem, FairnessGateModal, getLogColor, LogIcon } from './components/UIHelpers';
@@ -29,15 +29,17 @@ class ErrorBoundary extends Component {
 
 export default function App() {
   const s = useAppState();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const biasProxies = s.result?.bias_proxies || [];
   const recommendation = s.result?.recommendation || 'Schedule Screening Call';
 
-  const goToUpload = () => s.setStep('upload');
-  const loadDemoFromLanding = () => s.loadDemo();
+  const goToUpload = () => { s.setStep('upload'); setMobileMenuOpen(false); };
+  const loadDemoFromLanding = () => { s.loadDemo(); setMobileMenuOpen(false); };
+  const goToLanding = () => { s.setStep('landing'); setMobileMenuOpen(false); };
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen text-white flex relative overflow-hidden bg-[#000000]">
+      <div className="min-h-screen text-white flex relative overflow-hidden bg-[#000000] w-full">
         {/* Premium Geometric Backgrounds */}
         <div className="bg-grid-pattern fixed z-0" />
         <div className="bg-scan-line fixed z-0" />
@@ -47,9 +49,14 @@ export default function App() {
             onConfirm={s.handleFairnessConfirm} onCancel={() => s.setShowFairnessGate(false)} />
         )}
 
+        {/* ═══ MOBILE OVERLAY ═══ */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileMenuOpen(false)} />
+        )}
+
         {/* ═══ SIDEBAR ═══ */}
-        <aside className="w-56 shrink-0 glass-sidebar hidden md:flex flex-col min-h-screen z-20">
-          <div className="px-5 py-6 border-b border-white/[0.06]">
+        <aside className={`w-64 md:w-56 shrink-0 glass-sidebar flex flex-col min-h-screen z-50 !fixed md:!relative transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+          <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img
                 src="/assets/shield_logo.png"
@@ -61,6 +68,9 @@ export default function App() {
                 <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white">Precision Recruitment</div>
               </div>
             </div>
+            <button className="md:hidden p-1 text-white/50 hover:text-white" onClick={() => setMobileMenuOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
           </div>
           <div className="px-3 py-4">
             <button onClick={s.reset} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/15 text-white text-sm font-semibold hover:bg-white/[0.06] transition-all mb-4">
@@ -68,7 +78,7 @@ export default function App() {
             </button>
           </div>
           <nav className="flex-1 px-3 space-y-0.5">
-            <NavItem icon={<img src="/assets/shield_logo.png" alt="" className="w-4 h-4 object-contain" />} label="Home" active={s.step === 'landing'} onClick={() => s.setStep('landing')} />
+            <NavItem icon={<img src="/assets/shield_logo.png" alt="" className="w-4 h-4 object-contain" />} label="Home" active={s.step === 'landing'} onClick={goToLanding} />
             <NavItem icon={<Users className="w-4 h-4" />} label="Talent Pool" active={false} />
             <NavItem icon={<Shield className="w-4 h-4" />} label="Audit Trail" active={s.step === 'upload' || s.step === 'scanning'} onClick={goToUpload} />
             <NavItem icon={<FileText className="w-4 h-4" />} label="Templates" active={false} />
@@ -83,12 +93,23 @@ export default function App() {
         </aside>
 
         {/* ═══ MAIN ═══ */}
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div className="flex-1 flex flex-col min-h-screen min-w-0 w-full">
 
           {/* ═══ TOPBAR ═══ */}
-          <header className="h-14 shrink-0 border-b border-white/[0.06] backdrop-blur-md z-20 flex items-center justify-between px-6" style={{ background: 'rgba(0,0,0,0.6)' }}>
-            <div className="flex items-center gap-8">
-              <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
+          <header className="h-14 shrink-0 border-b border-white/[0.06] backdrop-blur-md z-20 flex items-center justify-between px-4 sm:px-6" style={{ background: 'rgba(0,0,0,0.6)' }}>
+            <div className="flex items-center gap-4 sm:gap-8">
+              <button className="md:hidden p-1 -ml-1 text-white/80 hover:text-white" onClick={() => setMobileMenuOpen(true)}>
+                <Menu className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/assets/shield_logo.png"
+                  alt="Aethel Logo"
+                  className="w-8 h-8 object-contain md:hidden"
+                  style={{ filter: 'drop-shadow(0 2px 6px rgba(255,255,255,0.2))' }}
+                />
+                <span className="text-sm font-bold text-white tracking-tight mt-0.5">Aethel ATS</span>
+              </div>
               <nav className="hidden sm:flex items-center gap-6 text-sm text-white/80">
                 <span className={'nav-link cursor-pointer ' + (s.step === 'landing' ? 'active text-white' : 'hover:text-white')} onClick={() => s.setStep('landing')}>Home</span>
                 <span className="nav-link cursor-pointer hover:text-white">Pipeline</span>
@@ -114,7 +135,7 @@ export default function App() {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto relative z-10">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full">
 
             {/* ═══ LANDING ═══ */}
             {s.step === 'landing' && <LandingView onGetStarted={goToUpload} onLoadDemo={loadDemoFromLanding} />}
@@ -131,7 +152,6 @@ export default function App() {
       <HorseLoader />
     </div>
 
-    
     {/* ... rest of your code ... */}
 
                 <h2 className="text-2xl font-bold text-white mb-1">Compliance Engine Running</h2>

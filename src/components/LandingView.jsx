@@ -47,56 +47,56 @@ function BiasPreviewCard() {
   ];
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden border border-white/[0.08]">
+    <div className="glass-card rounded-2xl overflow-hidden border border-white/[0.08] w-full">
       {/* header */}
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
-        <BarChart3 className="w-3.5 h-3.5 text-white/60" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-          Live Bias Audit — Priya Kumari, NIT Trichy
+      <div className="px-3 sm:px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+        <BarChart3 className="w-3.5 h-3.5 text-white/60 shrink-0" />
+        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-white/60 truncate">
+          Live Bias Audit
         </span>
-        <span className="ml-auto px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[9px] font-bold text-white/60 uppercase tracking-wider">
+        <span className="ml-auto px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[8px] sm:text-[9px] font-bold text-white/60 uppercase tracking-wider shrink-0">
           Demo
         </span>
       </div>
 
       {/* column headers */}
-      <div className="px-4 pt-3 pb-1 grid grid-cols-4 gap-2 text-[9px] font-bold uppercase tracking-widest text-white/30">
+      <div className="px-2 sm:px-4 pt-3 pb-1 grid grid-cols-4 gap-1 sm:gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/30">
         <span>Model</span>
         <span className="text-center">Score</span>
-        <span className="text-center">IIT swap Δ</span>
-        <span className="text-center">Maternity Δ</span>
+        <span className="text-center">IIT Δ</span>
+        <span className="text-center">Gap Δ</span>
       </div>
 
       {/* rows */}
-      <div className="px-4 pb-4 space-y-2">
+      <div className="px-2 sm:px-4 pb-4 space-y-2">
         {models.map((m, i) => (
           <div
             key={i}
-            className={`grid grid-cols-4 gap-2 items-center py-2.5 px-3 rounded-xl border transition-all animate-fade-in-up ${
+            className={`grid grid-cols-4 gap-1 sm:gap-2 items-center py-2 px-2 sm:px-3 rounded-xl border transition-all animate-fade-in-up ${
               m.isOwn
                 ? 'bg-white/[0.04] border-white/[0.12]'
                 : 'bg-white/[0.01] border-white/[0.04]'
             }`}
             style={{ animationDelay: `${i * 0.1}s` }}
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               {m.isOwn
                 ? <img src="/assets/shield_logo.png" alt="Aethel" className="w-3.5 h-3.5 object-contain shrink-0 drop-shadow-sm" />
                 : <Cpu className="w-3 h-3 text-white/40 shrink-0" />}
-              <span className={`text-[11px] font-semibold truncate ${m.isOwn ? 'text-white' : 'text-white/60'}`}>
+              <span className={`text-[10px] sm:text-[11px] font-semibold truncate ${m.isOwn ? 'text-white' : 'text-white/60'}`}>
                 {m.name}
               </span>
             </div>
             <div className="text-center">
-              <span className={`text-sm font-black ${m.isOwn ? 'text-white' : 'text-white/70'}`}>{m.score}</span>
+              <span className={`text-xs sm:text-sm font-black ${m.isOwn ? 'text-white' : 'text-white/70'}`}>{m.score}</span>
             </div>
             <div className="text-center">
-              <span className={`text-xs font-black ${m.iit >= 8 ? 'text-white' : 'text-white/40'}`}>
+              <span className={`text-[10px] sm:text-xs font-black ${m.iit >= 8 ? 'text-white' : 'text-white/40'}`}>
                 +{m.iit}
               </span>
             </div>
             <div className="text-center">
-              <span className={`text-xs font-black ${m.gap >= 6 ? 'text-white' : 'text-white/40'}`}>
+              <span className={`text-[10px] sm:text-xs font-black ${m.gap >= 6 ? 'text-white' : 'text-white/40'}`}>
                 +{m.gap}
               </span>
             </div>
@@ -105,10 +105,10 @@ function BiasPreviewCard() {
       </div>
 
       {/* insight footer */}
-      <div className="px-4 pb-4">
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-2">
+      <div className="px-3 sm:px-4 pb-4">
+        <div className="p-2 sm:p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 text-white/60 shrink-0 mt-0.5" />
-          <p className="text-[10px] text-white/50 leading-relaxed">
+          <p className="text-[9px] sm:text-[10px] text-white/50 leading-relaxed">
             All mainstream LLMs raised their score 7–12 pts when college changed from NIT Trichy → IIT Bombay.
             Aethel's delta: <span className="text-white font-bold">+1 pt</span>.
           </p>
@@ -122,13 +122,13 @@ function BiasPreviewCard() {
 function StatCard({ value, suffix, label, delay }) {
   return (
     <div
-      className="glass-card rounded-xl p-4 text-center animate-fade-in-up"
+      className="glass-card rounded-xl p-3 sm:p-4 text-center animate-fade-in-up"
       style={{ animationDelay: `${delay}s` }}
     >
-      <div className="text-2xl font-black text-white tracking-tight">
+      <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
         <CountUp target={value} suffix={suffix} />
       </div>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1">{label}</div>
+      <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1">{label}</div>
     </div>
   );
 }
@@ -162,10 +162,10 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
     <div className="min-h-full flex flex-col animate-fade-in">
 
       {/* ── HERO ── */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-10 p-8 items-start">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 lg:gap-10 p-4 sm:p-8 items-start w-full overflow-hidden">
 
         {/* left col */}
-        <div className="flex-1 max-w-xl">
+        <div className="flex-1 w-full max-w-xl">
 
           {/* eyebrow */}
           <div className="flex items-center gap-2 mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
@@ -177,7 +177,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
 
           {/* headline */}
           <h1
-            className="text-4xl sm:text-5xl font-black text-white leading-[1.08] tracking-tight mb-5 animate-fade-in-up"
+            className="text-3xl sm:text-5xl font-black text-white leading-[1.08] tracking-tight mb-5 animate-fade-in-up"
             style={{ animationDelay: '0.1s' }}
           >
             Your resume deserves
@@ -213,11 +213,11 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
           </div>
 
           {/* CTAs */}
-          <div className="flex flex-wrap items-center gap-3 mb-10 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
             <button
               id="landing-audit-btn"
               onClick={onGetStarted}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
             >
               <Zap className="w-4 h-4" />
               Audit My Resume — Free
@@ -226,7 +226,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
             <button
               id="landing-demo-btn"
               onClick={onLoadDemo}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.12] text-white/80 text-sm font-semibold hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.12] text-white/80 text-sm font-semibold hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all"
             >
               <Play className="w-4 h-4" />
               View Sample Demo
@@ -266,7 +266,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
       </div>
 
       {/* ── FEATURES ── */}
-      <div className="px-8 pb-8">
+      <div className="px-4 sm:px-8 pb-8">
         <div className="border-t border-white/[0.05] pt-8">
           <div className="flex items-center gap-2 mb-6">
             <span className="text-white/30 text-xs">◈</span>
@@ -293,8 +293,8 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
       </div>
 
       {/* ── vs AMCAT strip ── */}
-      <div className="px-8 pb-8">
-        <div className="glass-card rounded-2xl p-6 border border-white/[0.06]">
+      <div className="px-4 sm:px-8 pb-8 w-full max-w-full">
+        <div className="glass-card rounded-2xl p-4 sm:p-6 border border-white/[0.06] overflow-hidden">
           <div className="flex items-center gap-2 mb-5">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
               How we compare
@@ -346,14 +346,14 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
       </div>
 
       {/* ── final CTA ── */}
-      <div className="px-8 pb-10 text-center animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+      <div className="px-4 sm:px-8 pb-10 text-center animate-fade-in-up w-full" style={{ animationDelay: '0.5s' }}>
         <p className="text-white/30 text-xs mb-4 uppercase tracking-widest font-bold">
           Ready to see the bias in your resume's evaluations?
         </p>
-        <div className="flex justify-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3">
           <button
             onClick={onGetStarted}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
+            className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
           >
             <Zap className="w-4 h-4" />
             Start Free Audit
@@ -361,7 +361,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
           </button>
           <button
             onClick={onLoadDemo}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.10] text-white/70 text-sm font-semibold hover:bg-white/[0.04] hover:text-white transition-all"
+            className="w-full sm:w-auto justify-center flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.10] text-white/70 text-sm font-semibold hover:bg-white/[0.04] hover:text-white transition-all"
           >
             <Play className="w-4 h-4" />
             Try Demo First
