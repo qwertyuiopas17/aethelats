@@ -9,7 +9,7 @@ import { NavItem, FairnessGateModal, getLogColor, LogIcon } from './components/U
 import LandingView from './components/LandingView';
 import UploadView from './components/UploadView';
 import ResultsView from './components/ResultsView';
-
+import HorseLoader from './components/HorseLoader';
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(e) { return { error: e }; }
@@ -123,15 +123,17 @@ export default function App() {
             {s.step === 'upload' && <UploadView s={s} />}
 
             {/* ═══ SCANNING ═══ */}
-            {s.step === 'scanning' && (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
-                <div className="relative w-28 h-28 mb-10">
-                  <div className="absolute inset-0 rounded-full bg-white/10 animate-ping" style={{ animationDuration: '2s' }} />
-                  <div className="absolute inset-3 rounded-full bg-white/[0.06] animate-ping" style={{ animationDuration: '2.8s', animationDelay: '0.4s' }} />
-                  <div className="relative w-full h-full bg-black border-2 border-white/20 rounded-full flex items-center justify-center" style={{ animation: 'pulseGlow 2s ease-in-out infinite' }}>
-                    <Cpu className="w-11 h-11 text-white/90 animate-pulse" />
-                  </div>
-                </div>
+{s.step === 'scanning' && (
+  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
+    
+    {/* Your new Horse Loader replaces the old Cpu loader block */}
+    <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
+      <HorseLoader />
+    </div>
+
+    <h2 className="text-2xl font-bold text-white mb-1">Compliance Engine Running</h2>
+    {/* ... rest of your code ... */}
+
                 <h2 className="text-2xl font-bold text-white mb-1">Compliance Engine Running</h2>
                 <p className="text-white/90 text-sm mb-2 text-center max-w-md">Scanning <span className="text-white font-medium">{s.selectedFile?.name}</span> for <span className="text-white font-semibold">{s.jobRole}</span></p>
                 <p className="text-white text-xs mb-10">PII stripping + bias-free scoring · 15–40 seconds</p>

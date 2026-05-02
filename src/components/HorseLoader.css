@@ -1,0 +1,40 @@
+/* Keep your existing animation for the horse triangles */
+.horse-loader path,
+.horse-loader polygon {
+  opacity: 0;
+  fill: #ffffff; 
+  animation: whiteCascadePulse 2s infinite ease-in-out;
+}
+
+/* ADD THIS: Animate the entire SVG container for a radiating shield effect */
+.horse-loader {
+  animation: shieldRadiate 3s ease-in-out infinite;
+}
+
+@keyframes shieldRadiate {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+  }
+}
+
+@keyframes whiteCascadePulse {
+  0% {
+    opacity: 0;
+    filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+  }
+  20% {
+    opacity: 1;
+    /* Slightly smaller glow so 2500 paths don't blind the user */
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+  }
+  40% {
+    opacity: 0.1;
+    filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+  }
+  100% {
+    opacity: 0;
+  }
+}
