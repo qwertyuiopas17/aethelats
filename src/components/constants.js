@@ -1,4 +1,4 @@
-export const API_URL = 'https://aethelats.onrender.com';
+export const API_URL = 'https://unded-17-aethel-backend.hf.space';
 export const MODEL_NAME = 'Llama 3.3 70B via Groq';
 
 export const SCAN_LOGS = [
