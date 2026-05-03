@@ -98,6 +98,57 @@ _SUBJECTIVE_RE = re.compile(
     re.IGNORECASE,
 )
 
+
+# ── JSON repair helper ─────────────────────────────────────────────────────────
+def _repair_json(text: str) -> Optional[dict]:
+    """
+    Attempt to repair common T5 output malformations:
+      - Parentheses used instead of square brackets: (  ) → [  ]
+      - Single quotes instead of double quotes: '...' → "..."
+      - Trailing commas before closing braces/brackets
+      - Missing outer braces
+    Returns parsed dict or None.
+    """
+    if not text or not text.strip():
+        return None
+    s = text.strip()
+
+    # Wrap in braces if the model dropped them
+    if not s.startswith("{"):
+        s = "{" + s
+    if not s.endswith("}"):
+        s = s + "}"
+
+    # Fix parentheses → brackets  (only when they follow a colon, i.e. value position)
+    # e.g.  "job_history": ("title": ...] → "job_history": [{"title": ...}]
+    s = re.sub(r':\s*\(', ': [', s)
+    s = s.replace('])', ']')  # leftover closing parens
+    # Replace remaining unmatched ( ) that look like array boundaries
+    # Count brackets to see if we're short
+    if s.count('[') > s.count(']'):
+        s = s + ']' * (s.count('[') - s.count(']'))
+
+    # Fix single quotes → double quotes (careful not to break apostrophes in words)
+    s = re.sub(r"(?<=[\[{,:\s])'([^']*)'(?=[\]},:\s])", r'"\1"', s)
+
+    # Remove trailing commas: , } or , ]
+    s = re.sub(r',\s*([}\]])', r'\1', s)
+
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+
+    # One more attempt: find the outermost { ... }
+    match = re.search(r'\{.*\}', s, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    return None
+
 # ── Section-header normalisation ───────────────────────────────────────────────
 _SECTION_ALIASES: list[tuple[re.Pattern, str]] = [
     (re.compile(
@@ -280,6 +331,13 @@ def _run_t5(formatted_text: str) -> Optional[dict]:
         except json.JSONDecodeError:
             pass
 
+
+    # Last resort: try JSON repair on the raw output
+    repaired = _repair_json(raw_clean)
+    if repaired:
+        print("[Bot3] ✓ T5 output repaired into valid JSON.")
+        return repaired
+
     return None  # Model output was not usable JSON
 
 
@@ -383,7 +441,14 @@ def _run_t5_via_hf_api(formatted_text: str) -> Optional[dict]:
                 except json.JSONDecodeError:
                     pass
 
-            print("[Bot3] HF API T5 output was not valid JSON.")
+            print("[Bot3] HF API T5 output was not valid JSON. Attempting repair...")
+
+            # Try JSON repair on malformed T5 output
+            repaired = _repair_json(text_clean)
+            if repaired:
+                print("[Bot3] ✓ HF API T5 output repaired into valid JSON.")
+                return repaired
+
             return None
 
         except requests.exceptions.Timeout:
@@ -882,11 +947,25 @@ def _validate_and_fill(data: dict) -> dict:
         data["highest_degree"] = "None stated"
 
     # Filter out fake skills (long sentences, tips, or template text)
+    # Real skills are short (e.g. "Python", "React.js", "Project Management")
+    # Sentences like "Customer service ability demonstrated when..." are NOT skills
     cleaned_skills = []
     for skill in data["technical_skills"]:
         s = str(skill).strip()
-        if not s: continue
-        if "tip:" in s.lower(): break
+        if not s:
+            continue
+        if "tip:" in s.lower():
+            break
+        # Reject full sentences (contain periods, or are very long, or have >4 words)
+        if len(s) > 50:
+            continue
+        if s.endswith('.') or s.endswith('!') or s.endswith('?'):
+            continue
+        # Reject strings that look like bullet-point descriptions
+        if any(kw in s.lower() for kw in ['demonstrated', 'proven', 'shown by', 'developed through',
+                                           'ability to', 'as a result', 'receiving', 'achieving',
+                                           'completing', 'participating', 'since the age']):
+            continue
         cleaned_skills.append(s)
 
     data["technical_skills"] = cleaned_skills

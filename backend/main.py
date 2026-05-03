@@ -1150,9 +1150,17 @@ async def analyze_resume(
                 and not any(ch in s for ch in '.!?')
                 and len(s.split()) <= 5
             ]
-            # If Bot 3 extracted no usable skills, use the JD skills as graph nodes
-            if not short_skills and jd_skills_list:
-                short_skills = jd_skills_list[:8]
+            # If Bot 3 extracted no usable skills, derive from strengths (what the candidate HAS)
+            # NOT from jd_skills (which duplicates the gaps section)
+            if not short_skills and raw_strengths:
+                short_skills = [
+                    s for s in raw_strengths
+                    if s and len(s) < 40 and len(s.split()) <= 5
+                    and s.lower().strip() not in JUNK_SKILLS
+                ][:8]
+            # Final fallback: combine JD skills the candidate matched + a few strengths
+            if not short_skills:
+                short_skills = (jd_skills_list or [])[:4]
             skill_match_score = evaluation.get("skill_match_score", 50)
             skill_usage_breakdown = [
                 {
