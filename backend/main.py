@@ -1169,7 +1169,7 @@ async def analyze_resume(
                 "skill_usage_breakdown": skill_usage_breakdown,
                 "contextual_ratio": 0.5,
                 "keyword_stuffing_detected": False,
-                "skill_matches": [],
+                "skill_matches": [{"found_in_resume": s, "canonical_name": s, "match_type": "exact"} for s in short_skills[:8]],
                 "strong_signals": [{"signal": s, "weight": "high"} for s in raw_strengths],
                 "gaps": [{"gap": g, "severity": "minor"} for g in raw_gaps],
                 "recommendation": evaluation.get("recommendation", "Schedule Screening Call"),
@@ -1732,6 +1732,7 @@ async def compare_models(
     baseline_score: int = Form(default=70),
     fairai_signals: str = Form(default="[]"),
     fairai_gaps: str = Form(default="[]"),
+    fairai_skills: str = Form(default="[]"),
     fairai_recommendation: str = Form(default="Hire"),
     fairai_summary: str = Form(default="Bias-free evaluation via Bot 4."),
 ):
@@ -1786,7 +1787,10 @@ async def compare_models(
             fairai_gaps_list = json.loads(fairai_gaps) if fairai_gaps else []
         except Exception:
             fairai_gaps_list = []
-        fairai_skills = []
+        try:
+            fairai_skills_list = json.loads(fairai_skills) if fairai_skills else []
+        except Exception:
+            fairai_skills_list = []
 
         fairai_radar = {
             "technical_depth":       fairai_score,
@@ -1830,7 +1834,7 @@ async def compare_models(
                 "reasoning":      fairai_summary,
                 "strong_signals": fairai_strengths,
                 "gaps":           fairai_gaps_list,
-                "skill_matches":  fairai_skills,
+                "skill_matches":  fairai_skills_list,
                 "bias_deltas": [
                     {"key": "institution_delta", "label": "Inst.", "delta": fairai_i_delta},
                     {"key": "gap_delta",          "label": "Gap",   "delta": fairai_g_delta},

@@ -164,6 +164,7 @@ export function useAppState() {
     // row in the comparison panel shows real data without re-running any models
     fd.append('fairai_signals', JSON.stringify(result.strong_signals || []));
     fd.append('fairai_gaps',    JSON.stringify(result.gaps || []));
+    fd.append('fairai_skills',  JSON.stringify(result.skill_matches || []));
     fd.append('fairai_recommendation', result.recommendation || 'Hire');
     fd.append('fairai_summary', result.summary || 'Bias-free evaluation via Bot 4.');
     try {
