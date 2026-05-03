@@ -1,33 +1,39 @@
+"""
+Bot 4 — Resume Evaluator (Phi-3.5 + LoRA)
+==========================================
+Calls the fine-tuned Phi-3.5 model via the HuggingFace Serverless
+Inference API (free shared GPUs).
+
+Priority order:
+  1. COLAB_URL          — Google Colab with Cloudflare tunnel (if set)
+  2. HF_ENDPOINT_URL    — dedicated HF endpoint (~$0.06/hr, always-on)
+  3. HF Inference API   — FREE, shared GPU, auto-retry on cold starts
+
+The free HF API may return 503 while the model is loading onto shared
+hardware.  This module handles that automatically with exponential
+back-off, retrying up to 4 times (~90s total) so the user never sees
+a raw "model is loading" error.
+"""
+
 import json
 import os
 import re
+import time
 from pathlib import Path
 import requests
 
-# ── Paths ────────────────────────────────────────────────────────────────────
-# backend/ → resume_scanner/ → project_root/ → bot4/
-_BACKEND_DIR  = Path(__file__).resolve().parent
-_PROJECT_ROOT = _BACKEND_DIR.parent.parent
-BOT4_PATH     = _PROJECT_ROOT / "bot4"
-
-# ── HuggingFace config ───────────────────────────────────────────────────────
-# Step 1: Run  scripts/upload_bot4_to_hf.py  to upload your model.
-# Step 2: Paste your HF repo id and token below (or use env vars).
-#
-# Option A — HuggingFace Inference API (free, rate-limited, shared hardware)
-#   HF_REPO_ID = "your-username/bot4-phi35-resume-evaluator"
-#   Uses URL:  https://api-inference.huggingface.co/models/<HF_REPO_ID>
-#
-# Option B — HuggingFace Dedicated Endpoint (~$0.06/hr, always-on, fastest)
-#   Deploy at: https://ui.endpoints.huggingface.co
-#   Then set HF_ENDPOINT_URL to the endpoint URL shown there.
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 HF_REPO_ID      = os.environ.get("HF_REPO_ID", "Unded-17/bot4-phi35-resume-evaluator")
-HF_TOKEN        = os.environ.get("HF_TOKEN", "")  # Set HF_TOKEN env var — never hardcode tokens!
-HF_ENDPOINT_URL = os.environ.get("HF_ENDPOINT_URL", "")  # optional dedicated endpoint
-COLAB_URL       = os.environ.get("COLAB_URL", "https://pose-voted-joint-barriers.trycloudflare.com")        # Paste your trycloudflare.com URL here!
+HF_TOKEN        = os.environ.get("HF_TOKEN", "")
+HF_ENDPOINT_URL = os.environ.get("HF_ENDPOINT_URL", "")
+COLAB_URL       = os.environ.get("COLAB_URL", "")
 
-# ── Prompt template (must match what was used during fine-tuning) ─────────────
+# Retry config for HF Serverless Inference API cold starts
+_MAX_RETRIES    = 4       # max retry attempts on 503
+_RETRY_DELAYS   = [20, 25, 30, 30]  # seconds to wait between retries (~105s total max)
+_REQUEST_TIMEOUT = 180    # seconds per individual request
+
+# ── Prompt template (must match fine-tuning format) ───────────────────────────
 _SYSTEM_PROMPT = (
     "You are an objective resume scoring assistant. "
     "Score the candidate's structured JSON resume against the provided "
@@ -59,14 +65,13 @@ def _build_hf_payload(structured_json: dict, jd_skills: list[str], job_title: st
             "max_new_tokens": max_new_tokens,
             "temperature": 0.1,
             "do_sample": False,
-            "return_full_text": False,   # only return the generated part, not the prompt
+            "return_full_text": False,
         },
     }
 
 
 def _parse_hf_response(raw: list | dict) -> dict:
     """Extract and parse the JSON scorecard from the HF API response."""
-    # HF text-generation returns a list of dicts: [{"generated_text": "..."}]
     if isinstance(raw, list) and raw:
         text = raw[0].get("generated_text", "")
     elif isinstance(raw, dict):
@@ -74,7 +79,6 @@ def _parse_hf_response(raw: list | dict) -> dict:
     else:
         text = str(raw)
 
-    # Try to extract the first JSON object from the generated text
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
@@ -85,6 +89,73 @@ def _parse_hf_response(raw: list | dict) -> dict:
     return {"error": f"Could not parse JSON from model output: {text[:300]}"}
 
 
+def _call_hf_inference_api(payload: dict) -> dict:
+    """
+    Call the HF Serverless Inference API with automatic retry on 503 cold starts.
+
+    When the model is not loaded on shared hardware, HF returns a 503 with
+    {"error": "Model is currently loading", "estimated_time": 45.2}.
+    We wait and retry automatically so the user doesn't have to.
+    """
+    api_url = f"https://api-inference.huggingface.co/models/{HF_REPO_ID}"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            print(f"[Bot4] HF Inference API attempt {attempt + 1}/{_MAX_RETRIES + 1} ...")
+            resp = requests.post(api_url, headers=headers, json=payload, timeout=_REQUEST_TIMEOUT)
+
+            # 503 = model is loading on shared GPU
+            if resp.status_code == 503:
+                try:
+                    error_data = resp.json()
+                    estimated = error_data.get("estimated_time", "unknown")
+                except:
+                    estimated = "unknown"
+
+                if attempt < _MAX_RETRIES:
+                    wait = _RETRY_DELAYS[attempt] if attempt < len(_RETRY_DELAYS) else 30
+                    print(f"[Bot4] Model loading (estimated {estimated}s). Waiting {wait}s before retry ...")
+                    time.sleep(wait)
+                    continue
+                else:
+                    return {
+                        "error": (
+                            f"Model is still loading after {_MAX_RETRIES} retries. "
+                            f"Estimated time: {estimated}s. Please try again in ~60 seconds."
+                        )
+                    }
+
+            # 429 = rate limited
+            if resp.status_code == 429:
+                if attempt < _MAX_RETRIES:
+                    wait = 15
+                    print(f"[Bot4] Rate limited. Waiting {wait}s ...")
+                    time.sleep(wait)
+                    continue
+                return {"error": "HuggingFace rate limit exceeded. Please try again later."}
+
+            resp.raise_for_status()
+            return _parse_hf_response(resp.json())
+
+        except requests.exceptions.Timeout:
+            if attempt < _MAX_RETRIES:
+                print(f"[Bot4] Request timed out. Retrying ...")
+                continue
+            return {"error": "HuggingFace request timed out after multiple attempts."}
+        except requests.exceptions.HTTPError as e:
+            error_detail = e.response.text if e.response else str(e)
+            try:
+                error_detail = e.response.json().get("detail", error_detail)
+            except:
+                pass
+            return {"error": f"HF Inference API error: {error_detail}"}
+        except Exception as e:
+            return {"error": f"HF Inference API failed: {e}"}
+
+    return {"error": "HF Inference API failed after all retries."}
+
+
 def evaluate_resume(
     structured_data: dict,
     jd_skills: list[str],
@@ -92,17 +163,18 @@ def evaluate_resume(
     max_new_tokens: int = 1024,
 ) -> dict:
     """
-    Run Bot 4 inference via HuggingFace.
+    Run Bot 4 inference.
 
     Priority order:
-      1. HF_ENDPOINT_URL  — dedicated endpoint (fastest, ~$0.06/hr)
-      2. HF Inference API — free, rate-limited, shared hardware
+      1. COLAB_URL        — Google Colab GPU via Cloudflare tunnel
+      2. HF_ENDPOINT_URL  — dedicated HF endpoint (fastest, ~$0.06/hr)
+      3. HF Inference API — free, shared GPU, auto-retry on cold starts
 
     Args:
         structured_data: The JSON produced by Bot 3 (structure_agent).
         jd_skills:       List of required skills from the JD Builder.
         job_title:       The target job title string.
-        max_new_tokens:  Max tokens to generate (default 512).
+        max_new_tokens:  Max tokens to generate.
 
     Returns:
         A dict with keys: overall_score, skill_match_score,
@@ -115,64 +187,48 @@ def evaluate_resume(
             "error": (
                 "HF_TOKEN is not set. "
                 "1) Get a free token at https://huggingface.co/settings/tokens  "
-                "2) Set HF_TOKEN env var or paste it into evaluator_agent.py  "
+                "2) Set HF_TOKEN env var  "
                 "3) Run scripts/upload_bot4_to_hf.py to upload your model first."
             )
         }
 
-    if "YOUR_HF_USERNAME" in HF_REPO_ID and not HF_ENDPOINT_URL:
-        return {
-            "error": (
-                "HF_REPO_ID is not configured. "
-                "Run scripts/upload_bot4_to_hf.py, then set HF_REPO_ID to your "
-                "HuggingFace repo id (e.g. 'johndoe/bot4-phi35-resume-evaluator')."
-            )
-        }
-
-    # ── Pick the API URL ──────────────────────────────────────────────────────
-    if COLAB_URL:
-        api_url = f"{COLAB_URL.rstrip('/')}/generate"
-        print(f"[Bot4] Using FREE Google Colab GPU at: {api_url}")
-    elif HF_ENDPOINT_URL:
-        # Dedicated endpoint — no cold-start delay, always on
-        api_url = HF_ENDPOINT_URL.rstrip("/")
-        print(f"[Bot4] Using HuggingFace Dedicated Endpoint: {api_url}")
-    else:
-        # Free shared Inference API
-        api_url = f"https://api-inference.huggingface.co/models/{HF_REPO_ID}"
-        print(f"[Bot4] Using HuggingFace Inference API: {api_url}")
-        print("       Tip: first request may take 20-60s while model loads on shared hardware.")
-
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
     payload = _build_hf_payload(structured_data, jd_skills, job_title, max_new_tokens)
 
-    try:
-        resp = requests.post(api_url, headers=headers, json=payload, timeout=180)
-
-        # HF returns 503 while the model is warming up on shared hardware
-        if resp.status_code == 503:
-            estimated = resp.json().get("estimated_time", "unknown")
-            return {
-                "error": (
-                    f"HuggingFace model is still loading (estimated {estimated}s). "
-                    "Please wait ~30-60s and try again. This only happens on the first request."
-                )
-            }
-
-        resp.raise_for_status()
-        return _parse_hf_response(resp.json())
-
-    except requests.exceptions.HTTPError as e:
-        # Colab/FastAPI usually returns {"detail": "Error message"} on 500
-        error_detail = e.response.text
+    # ── Priority 1: Google Colab GPU ──────────────────────────────────────────
+    colab_url = os.environ.get("COLAB_URL", COLAB_URL)
+    if colab_url:
         try:
-            error_detail = e.response.json().get("detail", error_detail)
-        except:
-            pass
-        print(f"[Bot4][ERROR] HTTP {e.response.status_code}: {error_detail}")
-        return {"error": f"Cloud inference failed: {error_detail}"}
-    except requests.exceptions.Timeout:
-        return {"error": "HuggingFace request timed out after 180s. Try again or use a Dedicated Endpoint for faster responses."}
-    except Exception as e:
-        print(f"[Bot4][ERROR] HuggingFace inference failed: {e}")
-        return {"error": f"HuggingFace inference failed: {e}"}
+            api_url = f"{colab_url.rstrip('/')}/generate"
+            print(f"[Bot4] Trying Colab GPU at: {api_url}")
+            resp = requests.post(api_url, headers={"Authorization": f"Bearer {HF_TOKEN}"},
+                                 json=payload, timeout=_REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            result = _parse_hf_response(resp.json())
+            if "error" not in result:
+                print("[Bot4] ✓ Colab GPU succeeded.")
+                return result
+            print(f"[Bot4] Colab returned error: {result['error']}. Falling through ...")
+        except Exception as e:
+            print(f"[Bot4] Colab unavailable ({e}). Falling through ...")
+
+    # ── Priority 2: HF Dedicated Endpoint ─────────────────────────────────────
+    hf_endpoint = os.environ.get("HF_ENDPOINT_URL", HF_ENDPOINT_URL)
+    if hf_endpoint:
+        try:
+            api_url = hf_endpoint.rstrip("/")
+            print(f"[Bot4] Trying HF Dedicated Endpoint at: {api_url}")
+            resp = requests.post(api_url, headers={"Authorization": f"Bearer {HF_TOKEN}"},
+                                 json=payload, timeout=_REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            result = _parse_hf_response(resp.json())
+            if "error" not in result:
+                print("[Bot4] ✓ HF Dedicated Endpoint succeeded.")
+                return result
+            print(f"[Bot4] Dedicated endpoint returned error. Falling through ...")
+        except Exception as e:
+            print(f"[Bot4] Dedicated endpoint failed ({e}). Falling through ...")
+
+    # ── Priority 3: HF Free Inference API (with auto-retry) ───────────────────
+    print(f"[Bot4] Using HF Free Inference API: {HF_REPO_ID}")
+    print("[Bot4] Note: first request may take 30-90s while model loads on shared GPU.")
+    return _call_hf_inference_api(payload)

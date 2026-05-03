@@ -769,13 +769,19 @@ def health():
     return {
         "status": "ok",
         "model": MODEL,
-        "version": "4.0",
+        "version": "5.0",
         "pool_size": len(score_history),
         "features": [
-            "pii_stripping", "context_scoring", "real_counterfactual_mutations",
+            "gliner_ner_pii_stripping", "llm_pii_fallback",
+            "context_scoring", "real_counterfactual_mutations",
             "percentile_benchmarking_seeded", "skill_knowledge_graph",
             "jd_bias_detection", "multi_platform_proof_of_work"
-        ]
+        ],
+        "bot_pipeline": {
+            "bot1": "GLiNER NER (Colab GPU) → LLM fallback (Groq)",
+            "bot3": "Fine-tuned T5-base (Colab GPU) → rule-based fallback",
+            "bot4": "Fine-tuned Phi-3.5 + LoRA (Colab GPU) → Groq fallback",
+        }
     }
 
 @app.get("/stats")
@@ -856,8 +862,112 @@ def _generate_skills_for_role(role: str) -> list[str]:
 
 # ─── SYNC HELPERS (run in thread executor) ────────────────────
 
-def _strip_pii(text: str) -> dict:
-    """Feature 1: Strip all PII from resume text before analysis."""
+# ── Bot 1: GLiNER NER Model (loaded locally — ~1.5GB RAM) ──────
+_gliner_model = None
+_GLINER_LABELS = [
+    "Person", "Location", "Email", "Phone",
+    "Address", "Organization", "Nationality", "Gender", "University"
+]
+_GLINER_THRESHOLD = 0.45
+_GLINER_PLACEHOLDER_MAP = {
+    "Person":       "[CANDIDATE]",
+    "Location":     "[LOCATION]",
+    "Email":        "[EMAIL]",
+    "Phone":        "[PHONE]",
+    "Address":      "[LOCATION]",
+    "Organization": "[INSTITUTION]",
+    "Nationality":  "[NATIONALITY]",
+    "Gender":       "[GENDER]",
+    "University":   "[INSTITUTION]",
+}
+
+def _load_gliner():
+    """Lazy-load GLiNER model. Only ~1.5GB RAM — runs fine on HF Spaces free tier."""
+    global _gliner_model
+    if _gliner_model is not None:
+        return _gliner_model
+    try:
+        from gliner import GLiNER
+        print("[Bot1] Loading GLiNER model (urchade/gliner_medium-v2.1) ...")
+        _gliner_model = GLiNER.from_pretrained("urchade/gliner_medium-v2.1")
+        print("[Bot1] GLiNER ready.")
+        return _gliner_model
+    except ImportError:
+        print("[Bot1] GLiNER library not installed. Install with: pip install gliner")
+        return None
+    except Exception as e:
+        print(f"[Bot1] GLiNER load failed: {e}")
+        return None
+
+
+def _strip_pii_via_gliner(text: str) -> dict:
+    """Bot 1 (PRIMARY): GLiNER NER-based PII stripping.
+    Deterministic, fast (~200ms on CPU), auditable, zero API cost.
+    Runs locally in-process — no Colab or external API needed."""
+    model = _load_gliner()
+    if model is None:
+        return None  # Signal to use fallback
+
+    items_removed = []
+    sanitized_lines = []
+
+    for line in text.split('\n'):
+        if not line.strip():
+            sanitized_lines.append(line)
+            continue
+
+        try:
+            entities = model.predict_entities(line, _GLINER_LABELS, threshold=_GLINER_THRESHOLD)
+        except Exception:
+            sanitized_lines.append(line)
+            continue
+
+        if not entities:
+            sanitized_lines.append(line)
+            continue
+
+        # Sort spans by start position; drop overlapping spans (keep longest)
+        entities_sorted = sorted(entities, key=lambda e: (e["start"], -(e["end"] - e["start"])))
+        non_overlapping = []
+        last_end = -1
+        for ent in entities_sorted:
+            if ent["start"] >= last_end:
+                non_overlapping.append(ent)
+                last_end = ent["end"]
+
+        # Rebuild line by substituting spans with placeholders
+        result_chars = []
+        cursor = 0
+        for ent in non_overlapping:
+            result_chars.append(line[cursor:ent["start"]])
+            placeholder = _GLINER_PLACEHOLDER_MAP.get(ent["label"], f"[{ent['label'].upper()}]")
+            result_chars.append(placeholder)
+            original_text = line[ent["start"]:ent["end"]]
+            items_removed.append(original_text)
+            cursor = ent["end"]
+        result_chars.append(line[cursor:])
+        sanitized_lines.append("".join(result_chars))
+
+    # Post-process: replace gendered pronouns
+    sanitized_text = "\n".join(sanitized_lines)
+    sanitized_text = re.sub(r'\b[Hh]e\b', 'they', sanitized_text)
+    sanitized_text = re.sub(r'\b[Ss]he\b', 'they', sanitized_text)
+    sanitized_text = re.sub(r'\b[Hh]is\b', 'their', sanitized_text)
+    sanitized_text = re.sub(r'\b[Hh]er\b', 'their', sanitized_text)
+    sanitized_text = re.sub(r'\b[Hh]im\b', 'them', sanitized_text)
+
+    unique_items = list(set(items_removed))
+    print(f"[Bot1] GLiNER stripped {len(unique_items)} PII items deterministically")
+    return {
+        "sanitized_text": sanitized_text,
+        "items_removed": unique_items,
+        "method": "gliner_ner"
+    }
+
+
+def _strip_pii_via_llm(text: str) -> dict:
+    """Bot 1 (FALLBACK): LLM-based PII stripping via Groq API.
+    Probabilistic, slower, costs API credits, but works without GLiNER."""
     try:
         resp = client.chat.completions.create(
             model=MODEL,
@@ -866,13 +976,26 @@ def _strip_pii(text: str) -> dict:
             response_format={"type": "json_object"}
         )
         data = parse_json_response(resp.choices[0].message.content)
+        print(f"[Bot1] LLM fallback: {len(data.get('items_removed', []))} PII items stripped")
         return {
             "sanitized_text": data.get("sanitized_text", text),
-            "items_removed": data.get("items_removed", [])
+            "items_removed": data.get("items_removed", []),
+            "method": "llm_fallback"
         }
     except Exception as e:
-        print(f"[FairAI] PII strip failed (using original): {e}")
-        return {"sanitized_text": text, "items_removed": []}
+        print(f"[Bot1] PII strip failed entirely (using original): {e}")
+        return {"sanitized_text": text, "items_removed": [], "method": "none"}
+
+def _strip_pii(text: str) -> dict:
+    """Feature 1: Strip all PII from resume text before analysis.
+    Priority: GLiNER NER local (deterministic) → LLM fallback (probabilistic) → raw text."""
+    # Try local GLiNER first (deterministic, free, fast)
+    result = _strip_pii_via_gliner(text)
+    if result is not None:
+        return result
+    # Fallback to LLM-based stripping
+    return _strip_pii_via_llm(text)
+
 
 def _analyze(text: str, role: str) -> dict:
     """Run the full bias-free analysis on sanitized text."""
@@ -957,55 +1080,36 @@ async def analyze_resume(
 
         loop = asyncio.get_event_loop()
 
-        # Stage 1: PII Stripping
-        print("[FairAI] Stage 1/2 — Stripping PII...")
+        # Stage 1: PII Stripping (Bot 1: GLiNER local → LLM fallback)
+        print("[FairAI] Stage 1/3 — Stripping PII (Bot 1)...")
         pii_result = await loop.run_in_executor(_pool, _strip_pii, resume_text)
         sanitized  = pii_result["sanitized_text"]
         pii_items  = pii_result["items_removed"]
-        print(f"[FairAI] PII stripped: {len(pii_items)} items removed")
+        pii_method = pii_result.get("method", "unknown")
+        print(f"[FairAI] PII stripped: {len(pii_items)} items removed (method: {pii_method})")
 
-        # Stage 2: Try Primary AI System (Bot 3 + Colab Bot 4)
-        print("[FairAI] Stage 2/2 — Trying Primary AI System (Bot 3 + Colab Bot 4)...")
+        # Stage 2: Structure resume (Bot 3: HF API → Colab → local T5 → rule-based)
+        print("[FairAI] Stage 2/3 — Structuring resume (Bot 3)...")
+        # Use JD skills passed from frontend, or fallback to auto-generating based on role
+        if jd_skills.strip():
+            jd_skills_list = [s.strip() for s in jd_skills.split(",") if s.strip()]
+        else:
+            print(f"[FairAI] No JD skills provided. Auto-generating skills for role: {role}...")
+            jd_skills_list = await loop.run_in_executor(_pool, _generate_skills_for_role, role)
+        print(f"[FairAI] Using JD skills: {jd_skills_list}")
+
         result = None
         try:
-            # 1. Try hitting the full pipeline on Colab first
-            import os
-            from evaluator_agent import COLAB_URL
-            colab_url = os.environ.get("COLAB_URL", COLAB_URL).rstrip("/")
-            
-            # Use JD skills passed from frontend, or fallback to auto-generating based on role
-            if jd_skills.strip():
-                jd_skills_list = [s.strip() for s in jd_skills.split(",") if s.strip()]
-            else:
-                print(f"[FairAI] No JD skills provided. Auto-generating skills for role: {role}...")
-                jd_skills_list = await loop.run_in_executor(_pool, _generate_skills_for_role, role)
+            structured_data = await loop.run_in_executor(_pool, structure_resume, sanitized)
+            print(f"[FairAI] Resume structured. Running Bot 4 evaluator...")
 
-            print(f"[FairAI] Using JD skills: {jd_skills_list}")
-            
-            print(f"[FairAI] Calling Colab Full Pipeline at {colab_url}/analyze ...")
-            colab_resp = requests.post(
-                f"{colab_url}/analyze",
-                json={
-                    "sanitized_text": sanitized,
-                    "jd_skills": jd_skills_list,
-                    "job_title": role
-                },
-                timeout=180
-            )
-            colab_resp.raise_for_status()
-            data = colab_resp.json()
-            
-            if "evaluation" in data and "error" not in data["evaluation"]:
-                evaluation = data["evaluation"]
-            else:
-                # If Colab didn't do full pipeline, try local Bot 3 + Colab Bot 4 as fallback
-                print("[FairAI] Colab full pipeline not available. Running Bot 3 locally...")
-                structured_data = await loop.run_in_executor(_pool, structure_resume, sanitized)
-                print("[FairAI] Resume structured locally. Running Bot 4 evaluator via Colab...")
-                evaluation = await loop.run_in_executor(_pool, evaluate_resume, structured_data, jd_skills_list, role)
-                if "error" in evaluation:
-                    raise Exception(evaluation["error"])
-                
+            # Stage 3: Evaluate (Bot 4: Colab → HF Dedicated → HF Free API)
+            print("[FairAI] Stage 3/3 — Evaluating (Bot 4)...")
+            evaluation = await loop.run_in_executor(_pool, evaluate_resume, structured_data, jd_skills_list, role)
+
+            if "error" in evaluation:
+                raise Exception(evaluation["error"])
+
             # Map Bot 4 output to frontend schema
             result = {
                 "fit_score": evaluation.get("overall_score", 50),
@@ -1030,7 +1134,7 @@ async def analyze_resume(
                 "bias_proxies": [],
                 "feature_attributions": []
             }
-            print("[FairAI] Primary system success.")
+            print("[FairAI] Primary system (Bot 3 + Bot 4) success.")
         except Exception as e:
             print(f"[FairAI] Primary system failed ({e}). Falling back to Groq API...")
             result = await loop.run_in_executor(_pool, _analyze, sanitized, role)
@@ -1065,6 +1169,7 @@ async def analyze_resume(
         percentile = round((below / len(score_history)) * 100)
 
         result["pii_removed"]  = pii_items
+        result["pii_method"]   = pii_method  # "gliner_ner" | "llm_fallback" | "none"
         result["percentile"]   = percentile
         result["pool_size"]    = len(score_history)
 

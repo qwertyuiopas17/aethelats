@@ -59,21 +59,26 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import Optional
 
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
+import requests
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 _HERE = Path(__file__).parent
 _CHECKPOINT_PATH = Path(r"C:\Users\gtrip\OneDrive\Desktop\1_ai-model - Copy (2)\bot3.1\best_checkpoint.ckpt")
 _BASE_MODEL_NAME  = "t5-base"
 
-# ── Generation hyper-parameters ────────────────────────────────────────────────
-_MAX_INPUT_TOKENS  = 768
-_MAX_OUTPUT_TOKENS = 384
-_NUM_BEAMS         = 4
+# ── HuggingFace Serverless Inference API config ────────────────────────────────
+_T5_HF_REPO  = os.environ.get("T5_HF_REPO", "Unded-17/bot3-t5-resume-structurer")
+_HF_TOKEN    = os.environ.get("HF_TOKEN", "")
+_COLAB_URL   = os.environ.get("COLAB_URL", "")
+_HF_MAX_RETRIES = 3
+_HF_RETRY_DELAYS = [15, 20, 25]  # seconds between retries on 503
+
 
 # ── Subjective-phrase filter ───────────────────────────────────────────────────
 _SUBJECTIVE_RE = re.compile(
@@ -183,15 +188,21 @@ def preformat_resume(text: str) -> str:
 #  STEP 2 — T5 inference
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ── Generation hyper-parameters ────────────────────────────────────────────────
+_MAX_INPUT_TOKENS  = 768
+_MAX_OUTPUT_TOKENS = 384
+_NUM_BEAMS         = 4
+
+
 def _run_t5(formatted_text: str) -> Optional[dict]:
     """
-    Feed pre-formatted resume text into the fine-tuned T5 model.
+    Feed pre-formatted resume text into the fine-tuned T5 model (LOCAL).
     Returns a parsed dict if the output is valid JSON, else None.
     """
     try:
         model, tokenizer = _load_model()
-    except FileNotFoundError as e:
-        print(f"[WARN] Model not available: {e}")
+    except (FileNotFoundError, RuntimeError) as e:
+        print(f"[Bot3] Local T5 model not available: {e}")
         return None
 
     device = next(model.parameters()).device
@@ -213,7 +224,7 @@ def _run_t5(formatted_text: str) -> Optional[dict]:
         )
 
     raw = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    print(f"[INFO] T5 raw output: {raw[:200]}")
+    print(f"[Bot3] T5 raw output: {raw[:200]}")
 
     # Truncate at 'Tip:' — discard anything the model adds after the JSON
     tip_match = re.search(r"tip:", raw, re.IGNORECASE)
@@ -236,6 +247,122 @@ def _run_t5(formatted_text: str) -> Optional[dict]:
             pass
 
     return None  # Model output was not usable JSON
+
+
+def _run_t5_via_hf_api(formatted_text: str) -> Optional[dict]:
+    """
+    Call Bot 3 (T5) via the HuggingFace Serverless Inference API (free shared GPU).
+    Automatically retries on 503 cold starts.
+    Returns parsed dict or None.
+    """
+    if not _HF_TOKEN:
+        print("[Bot3] HF_TOKEN not set — skipping HF Inference API.")
+        return None
+
+    # Try Colab first if available
+    colab_url = os.environ.get("COLAB_URL", _COLAB_URL)
+    if colab_url:
+        try:
+            print(f"[Bot3] Trying Colab GPU at {colab_url}/structure ...")
+            resp = requests.post(
+                f"{colab_url.rstrip('/')}/structure",
+                json={"sanitized_text": formatted_text},
+                timeout=60
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("structured_data"):
+                print("[Bot3] ✓ Colab GPU succeeded.")
+                return data["structured_data"]
+        except Exception as e:
+            print(f"[Bot3] Colab unavailable ({e}). Trying HF API ...")
+
+    # HuggingFace Serverless Inference API
+    api_url = f"https://api-inference.huggingface.co/models/{_T5_HF_REPO}"
+    headers = {"Authorization": f"Bearer {_HF_TOKEN}"}
+    payload = {
+        "inputs": f"Extract JSON from this resume:\n{formatted_text}",
+        "parameters": {
+            "max_new_tokens": _MAX_OUTPUT_TOKENS,
+            "num_beams": _NUM_BEAMS,
+            "early_stopping": True,
+        },
+    }
+
+    for attempt in range(_HF_MAX_RETRIES + 1):
+        try:
+            print(f"[Bot3] HF Inference API attempt {attempt + 1}/{_HF_MAX_RETRIES + 1} ...")
+            resp = requests.post(api_url, headers=headers, json=payload, timeout=120)
+
+            if resp.status_code == 503:
+                try:
+                    estimated = resp.json().get("estimated_time", "unknown")
+                except:
+                    estimated = "unknown"
+                if attempt < _HF_MAX_RETRIES:
+                    wait = _HF_RETRY_DELAYS[attempt] if attempt < len(_HF_RETRY_DELAYS) else 20
+                    print(f"[Bot3] Model loading (est. {estimated}s). Waiting {wait}s ...")
+                    time.sleep(wait)
+                    continue
+                print(f"[Bot3] Model still loading after {_HF_MAX_RETRIES} retries.")
+                return None
+
+            if resp.status_code == 429:
+                if attempt < _HF_MAX_RETRIES:
+                    print("[Bot3] Rate limited. Waiting 10s ...")
+                    time.sleep(10)
+                    continue
+                return None
+
+            resp.raise_for_status()
+            raw_response = resp.json()
+
+            # HF text2text returns [{"generated_text": "..."}]
+            if isinstance(raw_response, list) and raw_response:
+                text = raw_response[0].get("generated_text", "")
+            elif isinstance(raw_response, dict):
+                text = raw_response.get("generated_text", str(raw_response))
+            else:
+                text = str(raw_response)
+
+            print(f"[Bot3] HF API T5 output: {text[:200]}")
+
+            # Parse JSON from output
+            tip_match = re.search(r"tip:", text, re.IGNORECASE)
+            if tip_match:
+                text = text[:tip_match.start()]
+
+            text_clean = text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+            try:
+                result = json.loads(text_clean)
+                print("[Bot3] ✓ HF API T5 produced valid JSON.")
+                return result
+            except json.JSONDecodeError:
+                pass
+
+            match = re.search(r"\{.*\}", text_clean, re.DOTALL)
+            if match:
+                try:
+                    result = json.loads(match.group())
+                    print("[Bot3] ✓ HF API T5 produced valid JSON (extracted from text).")
+                    return result
+                except json.JSONDecodeError:
+                    pass
+
+            print("[Bot3] HF API T5 output was not valid JSON.")
+            return None
+
+        except requests.exceptions.Timeout:
+            print(f"[Bot3] HF API timed out on attempt {attempt + 1}.")
+            if attempt < _HF_MAX_RETRIES:
+                continue
+            return None
+        except Exception as e:
+            print(f"[Bot3] HF API failed: {e}")
+            return None
+
+    return None
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -676,31 +803,40 @@ def structure_resume(sanitized_text: str) -> dict:
     Main entry point.
 
     Takes GLiNER-sanitised resume text and returns a structured JSON dict.
-    Uses the fine-tuned T5 model when it produces valid JSON; falls back to
-    deterministic rule-based extraction otherwise.
+
+    Priority order:
+      1. HF Serverless Inference API (free shared GPU, or Colab)
+      2. Local fine-tuned T5 model (if checkpoint exists)
+      3. Deterministic rule-based extraction (always works)
 
     Args:
         sanitized_text: GLiNER-anonymised resume text.
-                        Names → [PERSON], dates → [DATE], orgs → [ORGANIZATION].
+                        Names → [CANDIDATE], orgs → [INSTITUTION].
 
     Returns:
         Dict conforming to the StructuredResume schema.
     """
     # 1. Pre-format to match training-data style
     formatted = preformat_resume(sanitized_text)
-    print(f"[INFO] Pre-formatted resume ({len(formatted)} chars):\n"
+    print(f"[Bot3] Pre-formatted resume ({len(formatted)} chars):\n"
           f"{formatted[:400]}{'…' if len(formatted) > 400 else ''}\n")
 
-    # 2. Try fine-tuned T5 model
-    print("[INFO] Running fine-tuned T5 model …")
-    t5_result = _run_t5(formatted)
+    # 2. Try HF Serverless Inference API (free shared GPU)
+    print("[Bot3] Trying HF Inference API / Colab for T5 ...")
+    hf_result = _run_t5_via_hf_api(formatted)
+    if hf_result is not None:
+        print("[Bot3] ✓ HF API T5 produced valid JSON — using it.")
+        return _validate_and_fill(hf_result)
 
+    # 3. Try local fine-tuned T5 model
+    print("[Bot3] HF API unavailable. Trying local T5 model ...")
+    t5_result = _run_t5(formatted)
     if t5_result is not None:
-        print("[INFO] T5 produced valid JSON — using model output.")
+        print("[Bot3] ✓ Local T5 produced valid JSON — using model output.")
         return _validate_and_fill(t5_result)
 
-    # 3. Fallback to rule-based extraction
-    print("[INFO] T5 output was not valid JSON — using rule-based fallback.")
+    # 4. Fallback to rule-based extraction (always works, no model needed)
+    print("[Bot3] T5 unavailable — using rule-based fallback.")
     fallback = _rule_based_fallback(formatted, sanitized_text)
     return _validate_and_fill(fallback)
 
