@@ -1175,7 +1175,8 @@ async def analyze_resume(
                 "recommendation": evaluation.get("recommendation", "Schedule Screening Call"),
                 "legacy_ats_verdict": "Flagged for Review",
                 "bias_proxies": [],
-                "feature_attributions": []
+                "feature_attributions": [],
+                "structured_data": structured_data or {}
             }
             print("[FairAI] Primary system (Bot 3 + Bot 4) success.")
         except Exception as e:

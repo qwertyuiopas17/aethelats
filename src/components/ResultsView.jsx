@@ -95,6 +95,66 @@ export default function ResultsView({ s }) {
         </div>
       </section>
 
+      {/* Reasoning (Bot 4 Analysis Paragraph) */}
+      {result.summary && (
+        <section className="mb-6 animate-fade-in-up stagger-4">
+          <div className="glass-card glass-card-hover rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10"><Target className="w-24 h-24 text-white" /></div>
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+              <span className="text-sm font-bold text-white">REASONING</span>
+            </div>
+            <p className="text-sm text-white/90 leading-relaxed relative z-10">{result.summary}</p>
+          </div>
+        </section>
+      )}
+
+      {/* Structured Analysis (Bot 3 Data) */}
+      {result.structured_data && (
+        <section className="mb-6 animate-fade-in-up stagger-5">
+          <SectionHeading icon={<FileText className="w-3.5 h-3.5" />} label="Structured Analysis" rightBadge={<span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold uppercase tracking-wider">BIAS-FREE</span>} />
+          <div className="glass-card glass-card-hover rounded-2xl p-6">
+            
+            {/* Experience */}
+            <div className="mb-6">
+              <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Work Experience Summary</h4>
+              {result.structured_data.job_history && result.structured_data.job_history.length > 0 ? (
+                <div className="space-y-3">
+                  {result.structured_data.job_history.map((job, idx) => (
+                    <div key={idx} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-4 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-white text-sm"># {job.title || 'Role'}</span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-white border border-white/20">💼 Job</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-white/50 italic">No experience data extracted.</div>
+              )}
+            </div>
+
+            {/* Education */}
+            <div className="mb-6 bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">
+              <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Highest Degree</h4>
+              <div className="text-lg font-bold text-white">{result.structured_data.highest_degree || 'None'}</div>
+            </div>
+
+            {/* Technical Skills */}
+            <div>
+              <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Wrench className="w-3.5 h-3.5" /> Technical Skills ({result.structured_data.technical_skills?.length || 0})</h4>
+              <div className="flex flex-wrap gap-2">
+                {(result.structured_data.technical_skills || []).map((skill, idx) => (
+                  <span key={idx} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-500/10 text-cyan-200 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                    # {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </section>
+      )}
+
       {/* Skill Analysis with Knowledge Graph */}
       <section className="mb-6 animate-fade-in-up stagger-5">
         <SectionHeading icon={<Target className="w-3.5 h-3.5" />} label="Skill Analysis — Insights" />
