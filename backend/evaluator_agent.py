@@ -27,6 +27,8 @@ HF_REPO_ID      = os.environ.get("HF_REPO_ID", "Unded-17/bot4-phi35-resume-evalu
 HF_TOKEN        = os.environ.get("HF_TOKEN", "")
 HF_ENDPOINT_URL = os.environ.get("HF_ENDPOINT_URL", "")
 COLAB_URL       = os.environ.get("COLAB_URL", "")
+# Set this in your HF Space secrets after running: modal deploy backend/modal_bot4.py
+MODAL_BOT4_URL  = os.environ.get("MODAL_BOT4_URL", "")
 
 # Retry config for HF Serverless Inference API cold starts
 _MAX_RETRIES    = 4       # max retry attempts on 503
@@ -194,22 +196,30 @@ def evaluate_resume(
 
     payload = _build_hf_payload(structured_data, jd_skills, job_title, max_new_tokens)
 
-    # ── Priority 1: Google Colab GPU ──────────────────────────────────────────
-    colab_url = os.environ.get("COLAB_URL", COLAB_URL)
-    if colab_url:
+    # ── Priority 1: Modal.com GPU endpoint (free $5 credit, serverless) ────────
+    modal_url = os.environ.get("MODAL_BOT4_URL", MODAL_BOT4_URL)
+    if modal_url:
         try:
-            api_url = f"{colab_url.rstrip('/')}/generate"
-            print(f"[Bot4] Trying Colab GPU at: {api_url}")
-            resp = requests.post(api_url, headers={"Authorization": f"Bearer {HF_TOKEN}"},
-                                 json=payload, timeout=_REQUEST_TIMEOUT)
+            api_url = modal_url.rstrip("/")
+            print(f"[Bot4] Trying Modal endpoint: {api_url}")
+            resp = requests.post(
+                api_url,
+                json={
+                    "structured_data": structured_data,
+                    "jd_skills": jd_skills,
+                    "job_title": job_title,
+                    "max_new_tokens": max_new_tokens,
+                },
+                timeout=300,   # Phi-3.5 cold start can take up to 3 min on first request
+            )
             resp.raise_for_status()
-            result = _parse_hf_response(resp.json())
+            result = resp.json()
             if "error" not in result:
-                print("[Bot4] ✓ Colab GPU succeeded.")
+                print("[Bot4] ✓ Modal GPU succeeded.")
                 return result
-            print(f"[Bot4] Colab returned error: {result['error']}. Falling through ...")
+            print(f"[Bot4] Modal returned error: {result['error']}. Falling through ...")
         except Exception as e:
-            print(f"[Bot4] Colab unavailable ({e}). Falling through ...")
+            print(f"[Bot4] Modal unavailable ({e}). Falling through ...")
 
     # ── Priority 2: HF Dedicated Endpoint ─────────────────────────────────────
     hf_endpoint = os.environ.get("HF_ENDPOINT_URL", HF_ENDPOINT_URL)
@@ -228,7 +238,7 @@ def evaluate_resume(
         except Exception as e:
             print(f"[Bot4] Dedicated endpoint failed ({e}). Falling through ...")
 
-    # ── Priority 3: HF Free Inference API (with auto-retry) ───────────────────
+    # ── Priority 3: HF Free Inference API (likely 404 for custom models) ───────
     print(f"[Bot4] Using HF Free Inference API: {HF_REPO_ID}")
     print("[Bot4] Note: first request may take 30-90s while model loads on shared GPU.")
     return _call_hf_inference_api(payload)

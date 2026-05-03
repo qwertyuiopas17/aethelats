@@ -63,13 +63,17 @@ import time
 from pathlib import Path
 from typing import Optional
 
-import torch
-from transformers import T5ForConditionalGeneration, T5Tokenizer
 import requests
+# NOTE: torch and transformers are imported lazily inside _load_model()
+# to avoid slow import time crashing HF Spaces health checks at startup.
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 _HERE = Path(__file__).parent
-_CHECKPOINT_PATH = Path(r"C:\Users\gtrip\OneDrive\Desktop\1_ai-model - Copy (2)\bot3.1\best_checkpoint.ckpt")
+# Local checkpoint path — only used as final fallback. Will not exist on HF Spaces (that's OK).
+_CHECKPOINT_PATH = Path(os.environ.get(
+    "T5_CHECKPOINT_PATH",
+    r"C:\Users\gtrip\OneDrive\Desktop\1_ai-model - Copy (2)\bot3.1\best_checkpoint.ckpt"
+))
 _BASE_MODEL_NAME  = "t5-base"
 
 # ── HuggingFace Serverless Inference API config ────────────────────────────────
@@ -115,40 +119,68 @@ _SECTION_ALIASES: list[tuple[re.Pattern, str]] = [
 ]
 
 # ── Lazy model singleton ────────────────────────────────────────────────────────
-_model:     Optional[T5ForConditionalGeneration] = None
-_tokenizer: Optional[T5Tokenizer] = None
+_model     = None
+_tokenizer = None
 
 
-def _load_model() -> tuple[T5ForConditionalGeneration, T5Tokenizer]:
+def _load_model():
+    """Lazy-load the fine-tuned T5 model.
+
+    Priority:
+      1. HuggingFace Hub (from_pretrained) — works everywhere, downloads model weights
+      2. Local checkpoint file — fallback for local development on Windows
+
+    On first call this takes ~20-30s to download the model. After that it's
+    cached in memory and subsequent calls return instantly.
+    """
     global _model, _tokenizer
     if _model is not None and _tokenizer is not None:
         return _model, _tokenizer
 
-    if not _CHECKPOINT_PATH.exists():
-        raise FileNotFoundError(
-            f"Fine-tuned checkpoint not found:\n  {_CHECKPOINT_PATH}"
+    # Defer heavy imports until actually needed
+    import torch
+    from transformers import T5ForConditionalGeneration, T5Tokenizer
+
+    # ── Strategy 1: Load from HuggingFace Hub ──────────────────────────────
+    hf_token = os.environ.get("HF_TOKEN", _HF_TOKEN)
+    try:
+        print(f"[Bot3] Loading T5 model from HF Hub: {_T5_HF_REPO} ...")
+        _tokenizer = T5Tokenizer.from_pretrained(
+            _T5_HF_REPO, token=hf_token or None
         )
+        _model = T5ForConditionalGeneration.from_pretrained(
+            _T5_HF_REPO, token=hf_token or None
+        )
+        _model.eval()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _model = _model.to(device)
+        print(f"[Bot3] ✓ T5 model loaded from HF Hub on {device.upper()}.")
+        return _model, _tokenizer
+    except Exception as e:
+        print(f"[Bot3] HF Hub load failed: {e}")
 
-    print(f"[INFO] Loading tokeniser from '{_BASE_MODEL_NAME}' …")
-    _tokenizer = T5Tokenizer.from_pretrained(_BASE_MODEL_NAME)
+    # ── Strategy 2: Load from local checkpoint (dev only) ──────────────────
+    if _CHECKPOINT_PATH.exists():
+        print(f"[Bot3] Loading from local checkpoint: {_CHECKPOINT_PATH}")
+        _tokenizer = T5Tokenizer.from_pretrained(_BASE_MODEL_NAME)
+        ck = torch.load(str(_CHECKPOINT_PATH), map_location="cpu")
+        cleaned_sd = {
+            k[len("model."):] if k.startswith("model.") else k: v
+            for k, v in ck["state_dict"].items()
+        }
+        _model = T5ForConditionalGeneration.from_pretrained(
+            _BASE_MODEL_NAME, ignore_mismatched_sizes=True
+        )
+        _model.load_state_dict(cleaned_sd, strict=False)
+        _model.eval()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _model = _model.to(device)
+        print(f"[Bot3] ✓ Local T5 model ready on {device.upper()}.")
+        return _model, _tokenizer
 
-    print(f"[INFO] Loading fine-tuned model from:\n  {_CHECKPOINT_PATH}")
-    ck = torch.load(str(_CHECKPOINT_PATH), map_location="cpu")
-    # PyTorch-Lightning prefixes every key with 'model.' — strip it
-    cleaned_sd = {
-        k[len("model."):] if k.startswith("model.") else k: v
-        for k, v in ck["state_dict"].items()
-    }
-    _model = T5ForConditionalGeneration.from_pretrained(
-        _BASE_MODEL_NAME, ignore_mismatched_sizes=True
+    raise RuntimeError(
+        f"Could not load T5 model from HF Hub ({_T5_HF_REPO}) or local checkpoint ({_CHECKPOINT_PATH})."
     )
-    _model.load_state_dict(cleaned_sd, strict=False)
-    _model.eval()
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    _model = _model.to(device)
-    print(f"[INFO] Model ready on {device.upper()}.")
-    return _model, _tokenizer
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -204,6 +236,8 @@ def _run_t5(formatted_text: str) -> Optional[dict]:
     except (FileNotFoundError, RuntimeError) as e:
         print(f"[Bot3] Local T5 model not available: {e}")
         return None
+
+    import torch  # guaranteed available after _load_model() succeeds
 
     device = next(model.parameters()).device
     inputs = tokenizer(
@@ -821,21 +855,14 @@ def structure_resume(sanitized_text: str) -> dict:
     print(f"[Bot3] Pre-formatted resume ({len(formatted)} chars):\n"
           f"{formatted[:400]}{'…' if len(formatted) > 400 else ''}\n")
 
-    # 2. Try HF Serverless Inference API (free shared GPU)
-    print("[Bot3] Trying HF Inference API / Colab for T5 ...")
-    hf_result = _run_t5_via_hf_api(formatted)
-    if hf_result is not None:
-        print("[Bot3] ✓ HF API T5 produced valid JSON — using it.")
-        return _validate_and_fill(hf_result)
-
-    # 3. Try local fine-tuned T5 model
-    print("[Bot3] HF API unavailable. Trying local T5 model ...")
+    # 2. Try the fine-tuned T5 model (loads from HF Hub on first call, then cached)
+    print("[Bot3] Loading fine-tuned T5 model ...")
     t5_result = _run_t5(formatted)
     if t5_result is not None:
-        print("[Bot3] ✓ Local T5 produced valid JSON — using model output.")
+        print("[Bot3] ✓ T5 model produced valid JSON — using model output.")
         return _validate_and_fill(t5_result)
 
-    # 4. Fallback to rule-based extraction (always works, no model needed)
+    # 3. Fallback to rule-based extraction (always works, no model needed)
     print("[Bot3] T5 unavailable — using rule-based fallback.")
     fallback = _rule_based_fallback(formatted, sanitized_text)
     return _validate_and_fill(fallback)

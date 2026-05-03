@@ -309,6 +309,36 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
 
 ## 🏗️ System Architecture — The 4-Bot Pipeline
 
+### Infrastructure Overview
+
+```
+                     ┌──────────────────────────────────┐
+                     │   User Browser (React / Vite)     │
+                     │   Hosted on Vercel / GitHub Pages │
+                     └────────────────┬─────────────────┘
+                                      │ HTTP POST /analyze
+                                      ▼
+                     ┌──────────────────────────────────┐
+                     │   HuggingFace Space (Free CPU)    │
+                     │   FastAPI Backend · Always On     │
+                     │   Bot 1 (GLiNER) · Bot 3 (T5)    │
+                     │   Groq API · Counterfactual Engine│
+                     └────────────────┬─────────────────┘
+                                      │ POST /evaluate (Bot 4)
+                          ┌───────────┼───────────┐
+                          ▼           ▼           ▼
+                  ┌──────────┐ ┌──────────┐ ┌──────────┐
+                  │ Modal.com│ │ Groq API │ │Rule-Based│
+                  │ T4 GPU   │ │ Llama 70B│ │ Fallback │
+                  │ (Primary)│ │(Secondary│ │ (Always  │
+                  │ ~16s/req │ │  ~3s/req)│ │  works)  │
+                  └──────────┘ └──────────┘ └──────────┘
+                   Serverless    Free tier   Deterministic
+                   $0.001/eval   No GPU req  Zero latency
+```
+
+### The Evaluation Pipeline
+
 ```
                           ┌─────────────────────────────────────┐
                           │         RESUME  (PDF / Image)        │
@@ -316,6 +346,7 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
                                              │
                           ╔══════════════════▼══════════════════╗
                           ║  BOT 1  ·  GLiNER NER Anonymiser   ║
+                          ║  Runs on: HF Space CPU              ║
                           ║  ─────────────────────────────────  ║
                           ║  Named Entity Recognition model     ║
                           ║  Names      →  [CANDIDATE]          ║
@@ -327,6 +358,7 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
                                              │  sanitised_text
                           ╔══════════════════▼══════════════════╗
                           ║  BOT 3  ·  Fine-tuned T5-base       ║
+                          ║  Runs on: HF Space CPU              ║
                           ║  ─────────────────────────────────  ║
                           ║  Seq2Seq model fine-tuned on        ║
                           ║  de-identified resume→JSON pairs    ║
@@ -342,7 +374,8 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
                                              │  structured_json
                           ╔══════════════════▼══════════════════╗
                           ║  BOT 4  ·  Fine-tuned Phi-3.5       ║
-                          ║  (LoRA Adapter · HuggingFace/Colab) ║
+                          ║  Runs on: Modal.com T4 GPU           ║
+                          ║  (LoRA Adapter · Serverless GPU)    ║
                           ║  ─────────────────────────────────  ║
                           ║  Chat-format model fine-tuned on    ║
                           ║  bias-free resume→scorecard pairs   ║
@@ -354,16 +387,18 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
                           ║  • missing_skills[]                 ║
                           ║  • strengths[]                      ║
                           ║  • recommendation                   ║
+                          ║                                     ║
+                          ║  Fallback: Groq API → Rule-based    ║
                           ╚══════════════════╦══════════════════╝
                                              │
                           ╔══════════════════▼══════════════════╗
                           ║  LLaMA 3.3 70B  ·  Groq/LPU        ║
-                          ║  (Main Analysis Backbone)           ║
+                          ║  (Comparison + Counterfactual)      ║
                           ║  ─────────────────────────────────  ║
-                          ║  • Full bias-audit analysis         ║
+                          ║  • Counterfactual mutation scoring  ║
+                          ║  • Multi-model bias comparison      ║
                           ║  • Radar scoring (6 dimensions)     ║
                           ║  • Skill Knowledge Graph matching   ║
-                          ║  • Counterfactual mutation scoring  ║
                           ║  • JD bias detection                ║
                           ║  • Proof-of-work link synthesis     ║
                           ╚══════════════════╦══════════════════╝
@@ -375,6 +410,17 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
                           ║  skill_graph · proof_of_work        ║
                           ╚═════════════════════════════════════╝
 ```
+
+### Bot 4 — Cold Start vs Warm Request
+
+| Scenario | Response Time | What happens |
+|---|---|---|
+| **Cold start** (first request after 5 min idle) | ~75–90s | Modal allocates a T4 GPU, loads 7GB of weights into VRAM, compiles CUDA kernels |
+| **Warm request** (GPU already loaded) | **~15–16s** | Pure inference only — model is already in GPU memory |
+| **Fallback via Groq** (if Modal unavailable) | ~3–5s | LLaMA 3.3 70B on Groq's LPU hardware, no GPU needed |
+| **Rule-based fallback** (if all APIs fail) | <1s | Deterministic scoring, always available |
+
+The GPU stays warm for 5 minutes after the last request (`scaledown_window=300`). For demos, ping the endpoint once beforehand to pre-warm.
 
 ---
 
@@ -406,10 +452,14 @@ Pre-formatter → T5 Inference → JSON validator → Rule-based fallback (if ne
 - LoRA enables efficient fine-tuning: only adapter weights are trained (~1% of total parameters)
 - Fine-tuned on `(structured_JSON + JD_rubric) → scorecard_JSON` pairs with explicit bias-neutrality constraints
 - Training uses **Phi-3 chat template** for alignment with instruction-following behaviour
-- Runs on **Google Colab** (free T4/A100 GPU) via Cloudflare Tunnel — zero cloud cost
-- Falls back to HuggingFace Inference API if Colab is offline
+- Deployed on **Modal.com** as a serverless GPU endpoint (NVIDIA T4) — model weights are baked into the container image for fast cold starts
+- 3-tier fallback chain: **Modal GPU → Groq API (LLaMA 70B) → Rule-based scorer**
+- Permanent endpoint URL — no manual tunnel management or session babysitting
 
 ```
+  Deployment: modal deploy backend/modal_bot4.py
+  Endpoint:   https://<your-id>--aethel-bot4-evaluator-...modal.run
+
   Input:  {structured_resume_json} + {job_description_rubric}
   Output: {overall_score, skill_match_score, experience_score,
            education_score, missing_skills[], strengths[], recommendation}
@@ -598,14 +648,17 @@ Resumes where >60% of skills are declarative are flagged as **keyword stuffing**
 ┌─────────────────────────────────────────────────────────────────┐
 │  LAYER          │  TECHNOLOGY                                    │
 ├─────────────────┼────────────────────────────────────────────────┤
-│  Frontend       │  React 18 + Vite, Tailwind CSS                │
+│  Frontend       │  React 18 + Vite                              │
+│  Frontend Host  │  Vercel / GitHub Pages (static deploy)        │
 │  Backend        │  FastAPI (Python 3.11+), async/await           │
+│  Backend Host   │  HuggingFace Spaces (Docker, free CPU)        │
 │  Primary LLM    │  LLaMA 3.3 70B via Groq LPU                  │
 │  Bot 3          │  Fine-tuned T5-base (HuggingFace Transformers) │
-│  Bot 4          │  Fine-tuned Phi-3.5 + LoRA (HuggingFace)      │
+│  Bot 4          │  Fine-tuned Phi-3.5 + LoRA (Modal.com T4 GPU) │
 │  NER (Bot 1)    │  GLiNER (zero-shot NER)                       │
 │  Comparison LLMs│  Gemma 2 9B, Mixtral 8x7B (Groq)             │
-│  GPU Inference  │  Google Colab + Cloudflare Tunnel              │
+│  GPU Inference  │  Modal.com Serverless T4 GPU ($5 free credit) │
+│  Containerisation│  Docker (HF Spaces) + Modal Image Builder    │
 └─────────────────┴────────────────────────────────────────────────┘
 ```
 
@@ -674,31 +727,69 @@ Free for candidates              │      ✗        │    ✗     │    ✓
 
 ---
 
-## 🚀 Running Locally
+## 🚀 Deployment Architecture
 
-### Prerequisites
+Aethel runs on a **zero-cost, zero-maintenance** infrastructure stack:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  COMPONENT        │  HOST              │  COST    │  ROLE        │
+├───────────────────┼────────────────────┼──────────┼──────────────┤
+│  React Frontend   │  Vercel / GH Pages │  Free    │  Static UI   │
+│  FastAPI Backend  │  HuggingFace Spaces│  Free    │  CPU workers │
+│  Bot 4 GPU        │  Modal.com (T4)    │  $5 free │  Phi-3.5 inf.│
+│  Comparison LLMs  │  Groq (LPU)       │  Free    │  Bias tests  │
+└───────────────────┴────────────────────┴──────────┴──────────────┘
+```
+
+### Deploying the Backend (HF Spaces)
+
+```bash
+# One-command deploy — uploads only backend files to HF Space
+python backend/deploy_hf.py <YOUR_HF_WRITE_TOKEN>
+```
+
+### Deploying Bot 4 (Modal GPU)
+
+```bash
+# One-time setup
+pip install modal
+modal setup                              # links your Modal account
+modal secret create hf-secret HF_TOKEN=<your_hf_token>
+
+# Deploy (creates permanent endpoint URL)
+modal deploy backend/modal_bot4.py
+```
+
+### HF Space Secrets Required
+
+Add these in **Settings → Variables and secrets** on your HF Space:
+
+| Secret | Purpose |
+|---|---|
+| `HF_TOKEN` | HuggingFace read token for model access |
+| `GROQ_PRIMARY_KEY_1` | Groq API key for LLM backbone + comparisons |
+| `MODAL_BOT4_URL` | Modal endpoint URL (printed after `modal deploy`) |
+
+### Running Locally (Development)
 
 ```bash
 # Python 3.11+
-pip install fastapi uvicorn groq PyPDF2 requests transformers torch
+pip install -r backend/requirements.txt
 
 # Node 18+
 npm install
 ```
 
-### Environment Variables
-
 ```env
+# .env
 GROQ_API_KEY=your_groq_key_here
 GROQ_API_KEY_2=your_second_groq_key_here     # for comparison LLMs
-OPENROUTER_API_KEY=your_openrouter_key_here  # optional — for additional models
-HF_TOKEN=your_huggingface_token_here         # for Bot 4 inference
-COLAB_URL=https://your-tunnel.trycloudflare.com  # for Colab GPU
+HF_TOKEN=your_huggingface_token_here         # for Bot 3/4 model access
+MODAL_BOT4_URL=https://your--endpoint.modal.run  # Modal GPU endpoint
 ```
 
 > ⚠️ **Never hardcode API keys.** Always use environment variables.
-
-### Start the Stack
 
 ```powershell
 # One-command restart (kills old processes, starts fresh)
@@ -724,7 +815,9 @@ aethelats/
 ├── backend/
 │   ├── main.py              ← FastAPI app, all endpoints, prompts, LLM dispatch
 │   ├── structure_agent.py   ← Bot 3: T5-base fine-tuned resume structurer
-│   ├── evaluator_agent.py   ← Bot 4: Phi-3.5+LoRA HuggingFace/Colab evaluator
+│   ├── evaluator_agent.py   ← Bot 4: Phi-3.5+LoRA client (calls Modal endpoint)
+│   ├── modal_bot4.py        ← Bot 4: Modal.com serverless GPU deployment script
+│   ├── deploy_hf.py         ← One-command HF Spaces deployment script
 │   ├── skill_graph.json     ← Skill synonym + adjacency knowledge graph
 │   └── requirements.txt     ← Python dependencies
 │
@@ -745,6 +838,7 @@ aethelats/
 │   ├── index.css            ← Global design system + tokens
 │   └── main.jsx             ← React entry point
 │
+├── Dockerfile               ← HF Spaces Docker build config
 ├── restart.ps1              ← PowerShell dev environment manager
 └── README.md                ← You are here
 ```

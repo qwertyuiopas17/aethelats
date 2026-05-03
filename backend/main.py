@@ -1110,6 +1110,31 @@ async def analyze_resume(
             if "error" in evaluation:
                 raise Exception(evaluation["error"])
 
+            # Derive strengths/gaps from structured data when model returns empty arrays
+            raw_strengths = evaluation.get("strengths", [])
+            raw_gaps = evaluation.get("missing_skills", [])
+
+            if not raw_strengths and structured_data:
+                # Pull strengths from skills the candidate actually has
+                resume_skills = [s for s in structured_data.get("technical_skills", []) if s]
+                job_history = structured_data.get("job_history", structured_data.get("experience", []))
+                if isinstance(job_history, list):
+                    for job in job_history:
+                        title = job.get("title", "") if isinstance(job, dict) else ""
+                        if title and title not in ("[CANDIDATE]", ""):
+                            raw_strengths.append(title)
+                for skill in resume_skills[:5]:
+                    raw_strengths.append(skill)
+                if structured_data.get("highest_degree") and structured_data["highest_degree"] != "None":
+                    raw_strengths.append(f"{structured_data['highest_degree']} degree")
+
+            if not raw_gaps and jd_skills_list and structured_data:
+                # Gaps = JD skills not found in resume
+                resume_skills_lower = {s.lower() for s in structured_data.get("technical_skills", []) if s}
+                for jd_skill in jd_skills_list:
+                    if jd_skill.lower() not in resume_skills_lower:
+                        raw_gaps.append(jd_skill)
+
             # Map Bot 4 output to frontend schema
             result = {
                 "fit_score": evaluation.get("overall_score", 50),
@@ -1127,8 +1152,8 @@ async def analyze_resume(
                 "contextual_ratio": 0.5,
                 "keyword_stuffing_detected": False,
                 "skill_matches": [],
-                "strong_signals": [{"signal": s, "evidence": s, "weight": "high"} for s in evaluation.get("strengths", [])],
-                "gaps": [{"gap": g, "severity": "minor"} for g in evaluation.get("missing_skills", [])],
+                "strong_signals": [{"signal": s, "evidence": "Identified in resume", "weight": "high"} for s in raw_strengths],
+                "gaps": [{"gap": g, "severity": "minor"} for g in raw_gaps],
                 "recommendation": evaluation.get("recommendation", "Schedule Screening Call"),
                 "legacy_ats_verdict": "Flagged for Review",
                 "bias_proxies": [],

@@ -1,0 +1,80 @@
+Built image im-vQu09OiWxCYBf9nAIueDWR in 2.89s
+
+
+[Bot4/Modal] Loading tokenizer from /model-cache ...
+[transformers] This model config has set a `rope_parameters['original_max_position_embeddings']` field, to be used together with `max_position_embeddings` to determine a scaling factor. Please set the `factor` field of `rope_parameters`with this ratio instead -- we recommend the use of this field over `original_max_position_embeddings`, as it is compatible with most model architectures.
+[Bot4/Modal] Loading model onto GPU ...
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+
+[1A
+Loading weights:   0%|          | 0/195 [00:00<?, ?it/s]
+[1A
+Loading weights:   1%|          | 2/195 [00:00<00:18, 10.35it/s]
+[1A
+Loading weights:   5%|Γûì         | 9/195 [00:00<00:05, 33.67it/s]
+[1A
+Loading weights:   8%|Γûè         | 16/195 [00:00<00:03, 45.68it/s]
+[1A
+Loading weights:  11%|ΓûêΓûÅ        | 22/195 [00:00<00:03, 48.69it/s]
+[1A
+Loading weights:  14%|ΓûêΓûì        | 28/195 [00:00<00:03, 45.82it/s]
+[1A
+Loading weights:  18%|ΓûêΓûè        | 36/195 [00:00<00:02, 53.28it/s]
+[1A
+Loading weights:  23%|ΓûêΓûêΓûÄ       | 44/195 [00:00<00:02, 58.18it/s]
+[1A
+Loading weights:  27%|ΓûêΓûêΓûï       | 52/195 [00:01<00:02, 61.38it/s]
+[1A
+Loading weights:  30%|ΓûêΓûêΓûê       | 59/195 [00:01<00:02, 58.70it/s]
+[1A
+Loading weights:  33%|ΓûêΓûêΓûêΓûÄ      | 65/195 [00:01<00:02, 57.01it/s]
+[1A
+Loading weights:  37%|ΓûêΓûêΓûêΓûï      | 72/195 [00:01<00:02, 58.34it/s]
+[1A
+Loading weights:  40%|ΓûêΓûêΓûêΓûê      | 78/195 [00:01<00:02, 58.06it/s]
+[1A
+Loading weights:  43%|ΓûêΓûêΓûêΓûêΓûÄ     | 84/195 [00:01<00:01, 58.55it/s]
+[1A
+Loading weights:  47%|ΓûêΓûêΓûêΓûêΓûï     | 92/195 [00:01<00:01, 62.27it/s]
+[1A
+Loading weights:  51%|ΓûêΓûêΓûêΓûêΓûê     | 99/195 [00:01<00:01, 61.62it/s]
+[1A
+Loading weights:  54%|ΓûêΓûêΓûêΓûêΓûêΓûì    | 106/195 [00:01<00:01, 62.71it/s]
+[1A
+Loading weights:  58%|ΓûêΓûêΓûêΓûêΓûêΓûè    | 113/195 [00:02<00:01, 57.13it/s]
+[1A
+Loading weights:  62%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûÅ   | 121/195 [00:02<00:01, 62.41it/s]
+[1A
+Loading weights:  66%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûî   | 128/195 [00:02<00:01, 62.40it/s]
+[1A
+Loading weights:  70%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûë   | 136/195 [00:02<00:00, 65.65it/s]
+[1A
+Loading weights:  73%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûÄ  | 143/195 [00:02<00:00, 60.52it/s]
+[1A
+Loading weights:  77%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûï  | 151/195 [00:02<00:00, 63.89it/s]
+[1A
+Loading weights:  81%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûê  | 158/195 [00:02<00:00, 60.39it/s]
+[1A
+Loading weights:  85%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûî | 166/195 [00:02<00:00, 58.30it/s]
+[1A
+Loading weights:  88%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûè | 172/195 [00:03<00:00, 57.56it/s]
+[1A
+Loading weights:  92%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûÅ| 179/195 [00:03<00:00, 59.45it/s]
+[1A
+Loading weights:  96%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûï| 188/195 [00:03<00:00, 64.74it/s]
+[1A
+Loading weights: 100%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûê| 195/195 [00:03<00:00, 58.55it/s]
+[Bot4/Modal] Γ£ô Phi-3.5 ready on GPU.
+[transformers] The following generation flags are not valid and may be ignored: ['temperature']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[Bot4/Modal] Raw output: {"scorecard": {"overall_score":
+   POST / -> 200 OK  (duration: 21.3 s, execution: 2.37 s)
+[Bot4/Modal] Raw output: {
+  "overall_score": 65,
+  "skill_match_score": 80,
+  "experience_score": 40,
+  "education_score": 90,
+  "missing_skills": [],
+  "strengths": [],
+  "recommendation": "Maybe",
+  "reasoning": "The candi
+   POST / -> 200 OK  (duration: 77.3 s, execution: 77.3 s)
