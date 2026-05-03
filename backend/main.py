@@ -1102,38 +1102,90 @@ async def analyze_resume(
         try:
             structured_data = await loop.run_in_executor(_pool, structure_resume, sanitized)
             
-            # If Bot 3 + rule-based fallback completely failed to extract anything, use a fast LLM to structure it
+            # ── Check if Bot 3 actually extracted useful data ──────────────
+            # Bot 3 may return sentence-length "skills" that get stripped later.
+            # Check for REAL skills (short, keyword-like) and real jobs.
+            raw_tech = structured_data.get("technical_skills", [])
+            usable_skills = [s for s in raw_tech if s and len(s) < 40 and len(s.split()) <= 5
+                             and not s.endswith('.') and s.lower().strip() not in
+                             {"key skills", "skills", "experience", "education", "summary",
+                              "objective", "profile", "career objective", "references"}]
             has_jobs = bool(structured_data.get("job_history") or structured_data.get("experience"))
-            has_skills = bool(structured_data.get("technical_skills"))
-            if not has_jobs and not has_skills:
+            
+            # If we have sentence-style "skills" but no real keywords, try to extract keywords from them
+            if not usable_skills and raw_tech:
+                # Extract skill keywords from descriptive bullets:
+                # "Customer service ability demonstrated when..." → "Customer Service"
+                # "Numeracy skills for cash handling..." → "Numeracy", "Cash Handling"
+                import re as _re
+                _skill_kw_patterns = [
+                    _re.compile(r'^(\w[\w\s]{2,25}?)\s+(?:skills?|ability|abilities)\b', _re.I),
+                    _re.compile(r'\b(?:skills?\s+(?:in|for|with)\s+)([\w\s]{3,25}?)(?:\s+(?:proven|demonstrated|shown|developed))', _re.I),
+                    _re.compile(r'^(?:Strong|Highly developed|Demonstrated|Excellent)\s+([\w\s]{3,25}?)\s+(?:skills?|ability)', _re.I),
+                ]
+                extracted_kw = []
+                for s in raw_tech:
+                    for pat in _skill_kw_patterns:
+                        m = pat.search(s)
+                        if m:
+                            kw = m.group(1).strip().title()
+                            if kw.lower() not in {"key", "skills", "key skills"} and len(kw) > 2:
+                                extracted_kw.append(kw)
+                            break
+                if extracted_kw:
+                    usable_skills = extracted_kw
+                    structured_data["technical_skills"] = extracted_kw
+                    print(f"[FairAI] Extracted {len(extracted_kw)} skill keywords from descriptive bullets: {extracted_kw}")
+            
+            # If still nothing useful, use Groq to properly structure the resume
+            if not usable_skills or not has_jobs:
                 print(f"[FairAI] Bot 3 extracted empty structure. Using Groq fallback for structuring...")
-                prompt = f"""
-You are an expert resume parser. Extract the structure of this resume into JSON.
+                groq_prompt = f"""You are an expert resume parser. Extract the structure of this resume into JSON.
 Return ONLY valid JSON matching this schema:
 {{
   "total_years_experience": number or null,
   "technical_skills": ["skill1", "skill2"],
   "highest_degree": "High School" | "Associate" | "Bachelor" | "Master" | "PhD" | "None stated",
   "job_history": [{{"title": "Job Title", "duration_months": 24}}],
-  "experience": [{{"title": "Job Title", "company": "Company", "duration_months": 24, "type": "Job"}}]
+  "experience": [{{"title": "Job Title", "company": "Company", "duration_months": 24, "date_range": "Jun 2016 - Feb 2017", "type": "Job"}}]
 }}
 Do NOT wrap in ```json. Just return the JSON object.
+For technical_skills, extract SHORT skill keywords (e.g. "Customer Service", "Cash Handling", "Communication") not full sentences.
 
 Resume:
-{sanitized}
-"""
+{sanitized[:3000]}"""
                 try:
-                    client = _groq_client
                     resp = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=[{"role": "user", "content": groq_prompt}],
                         temperature=0,
                         max_tokens=1024
                     )
-                    raw_json = resp.choices[0].message.content.strip().lstrip("```json").rstrip("```").strip()
-                    groq_data = __import__('json').loads(raw_json)
-                    structured_data.update(groq_data)
-                    print("[FairAI] ✓ Groq structure fallback succeeded.")
+                    raw_json = resp.choices[0].message.content.strip()
+                    # Strip markdown code fences if present
+                    if raw_json.startswith("```"):
+                        raw_json = raw_json.split("\n", 1)[1] if "\n" in raw_json else raw_json[3:]
+                    if raw_json.endswith("```"):
+                        raw_json = raw_json[:-3]
+                    raw_json = raw_json.strip()
+                    groq_data = json.loads(raw_json)
+                    # Merge Groq data into structured_data (Groq overwrites empty fields)
+                    for key, val in groq_data.items():
+                        if val and (not structured_data.get(key) or structured_data.get(key) == "None stated"):
+                            structured_data[key] = val
+                            
+                    # ── Type checking: Ensure arrays are actually arrays ──
+                    if isinstance(structured_data.get("technical_skills"), str):
+                        structured_data["technical_skills"] = [s.strip() for s in structured_data["technical_skills"].split(",") if s.strip()]
+                    elif not isinstance(structured_data.get("technical_skills"), list):
+                        structured_data["technical_skills"] = []
+                        
+                    if not isinstance(structured_data.get("job_history"), list):
+                        structured_data["job_history"] = []
+                    if not isinstance(structured_data.get("experience"), list):
+                        structured_data["experience"] = []
+                        
+                    print(f"[FairAI] ✓ Groq structure fallback succeeded: {len(structured_data.get('technical_skills', []))} skills, {len(structured_data.get('job_history', []))} jobs")
                 except Exception as e:
                     print(f"[FairAI] Groq structure fallback failed: {e}")
 
