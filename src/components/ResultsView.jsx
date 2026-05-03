@@ -171,7 +171,7 @@ export default function ResultsView({ s }) {
           <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow">
             <div className="flex items-center gap-2 mb-4"><TrendingUp className="w-4 h-4 text-white/90" /><h4 className="font-semibold text-white text-sm">Strong Signals ({(result.strong_signals || []).length})</h4></div>
             <div className="space-y-3">{(result.strong_signals || []).map((sig, i) => (
-              <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/40" /><div><div className="text-sm font-semibold text-white">{sig.signal}</div><div className="text-xs text-white/80 italic mt-0.5">"{sig.evidence}"</div></div></div>
+              <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/40" /><div><div className="text-sm font-semibold text-white">{sig.signal}</div></div></div>
             ))}</div>
           </div>
           <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow">
