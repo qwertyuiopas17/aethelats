@@ -1101,6 +1101,42 @@ async def analyze_resume(
         result = None
         try:
             structured_data = await loop.run_in_executor(_pool, structure_resume, sanitized)
+            
+            # If Bot 3 + rule-based fallback completely failed to extract anything, use a fast LLM to structure it
+            has_jobs = bool(structured_data.get("job_history") or structured_data.get("experience"))
+            has_skills = bool(structured_data.get("technical_skills"))
+            if not has_jobs and not has_skills:
+                print(f"[FairAI] Bot 3 extracted empty structure. Using Groq fallback for structuring...")
+                prompt = f"""
+You are an expert resume parser. Extract the structure of this resume into JSON.
+Return ONLY valid JSON matching this schema:
+{{
+  "total_years_experience": number or null,
+  "technical_skills": ["skill1", "skill2"],
+  "highest_degree": "High School" | "Associate" | "Bachelor" | "Master" | "PhD" | "None stated",
+  "job_history": [{{"title": "Job Title", "duration_months": 24}}],
+  "experience": [{{"title": "Job Title", "company": "Company", "duration_months": 24, "type": "Job"}}]
+}}
+Do NOT wrap in ```json. Just return the JSON object.
+
+Resume:
+{sanitized}
+"""
+                try:
+                    client = _groq_client
+                    resp = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0,
+                        max_tokens=1024
+                    )
+                    raw_json = resp.choices[0].message.content.strip().lstrip("```json").rstrip("```").strip()
+                    groq_data = __import__('json').loads(raw_json)
+                    structured_data.update(groq_data)
+                    print("[FairAI] ✓ Groq structure fallback succeeded.")
+                except Exception as e:
+                    print(f"[FairAI] Groq structure fallback failed: {e}")
+
             print(f"[FairAI] Resume structured. Running Bot 4 evaluator...")
 
             # Stage 3: Evaluate (Bot 4: Colab → HF Dedicated → HF Free API)

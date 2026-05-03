@@ -121,12 +121,15 @@ def _repair_json(text: str) -> Optional[dict]:
 
     # Fix parentheses → brackets  (only when they follow a colon, i.e. value position)
     # e.g.  "job_history": ("title": ...] → "job_history": [{"title": ...}]
-    s = re.sub(r':\s*\(', ': [', s)
-    s = s.replace('])', ']')  # leftover closing parens
+    s = re.sub(r':\s*\(', ': [{', s)
+    s = s.replace('])', '}]')  # leftover closing parens
     # Replace remaining unmatched ( ) that look like array boundaries
     # Count brackets to see if we're short
     if s.count('[') > s.count(']'):
         s = s + ']' * (s.count('[') - s.count(']'))
+        
+    # Fix curly quotes
+    s = s.replace('”', '"').replace('“', '"').replace('‘', '"').replace('’', '"')
 
     # Fix single quotes → double quotes (careful not to break apostrophes in words)
     s = re.sub(r"(?<=[\[{,:\s])'([^']*)'(?=[\]},:\s])", r'"\1"', s)
