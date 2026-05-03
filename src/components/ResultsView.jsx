@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench } from 'lucide-react';
 import { SectionHeading, Pill, ScoreMeter, AnimatedBar, useCountUp, getFitVariant } from './UIHelpers';
 import { PercentileBadge, PIIStripPanel, SkillDepthSection, SkillMatchSection } from './FeatureSections';
 import { ProofOfWorkSection, BiasStabilitySection } from './AnalysisPanels';
