@@ -115,23 +115,41 @@ export default function ResultsView({ s }) {
           <div className="glass-card glass-card-hover rounded-2xl p-6">
             
             {/* Experience */}
-            <div className="mb-6">
-              <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Work Experience Summary</h4>
-              {result.structured_data.job_history && result.structured_data.job_history.length > 0 ? (
-                <div className="space-y-3">
-                  {result.structured_data.job_history.map((job, idx) => (
-                    <div key={idx} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-4 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-white text-sm"># {job.title || 'Role'}</span>
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-white border border-white/20">💼 Job</span>
-                      </div>
+            {(() => {
+              const sd = result.structured_data;
+              const roles = (sd.experience && sd.experience.length > 0) ? sd.experience
+                : (sd.work_experience_summary?.roles?.length > 0) ? sd.work_experience_summary.roles
+                : (sd.job_history && sd.job_history.length > 0) ? sd.job_history
+                : [];
+              return (
+                <div className="mb-6">
+                  <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Work Experience ({roles.length} {roles.length === 1 ? 'role' : 'roles'}{sd.work_experience_summary ? ` · ${sd.work_experience_summary.total_years || 0} yrs total` : ''})</h4>
+                  {roles.length > 0 ? (
+                    <div className="space-y-3">
+                      {roles.map((job, idx) => (
+                        <div key={idx} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-white text-sm">{job.title || 'Role'}</span>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${(job.type || 'Job') === 'Internship' ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' : 'bg-white/10 text-white border-white/20'}`}>{(job.type || 'Job') === 'Internship' ? '🎓 Internship' : '💼 Job'}</span>
+                            </div>
+                            {job.duration_months > 0 && <span className="text-xs text-white/60">{job.duration_months >= 12 ? `${Math.floor(job.duration_months/12)}y ${job.duration_months%12}m` : `${job.duration_months}m`}</span>}
+                          </div>
+                          {(job.company || job.date_range) && (
+                            <div className="text-xs text-white/50 mt-1.5 flex gap-3">
+                              {job.company && <span>{job.company}</span>}
+                              {job.date_range && <span>{job.date_range}</span>}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="text-sm text-white/50 italic">No experience data extracted.</div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-sm text-white/50 italic">No experience data extracted.</div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Education */}
             <div className="mb-6 bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">

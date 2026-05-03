@@ -1142,7 +1142,17 @@ async def analyze_resume(
             # Build skill_usage_breakdown for Expertise Distribution tile
             # Only use short skill names (not long sentence strings from strengths)
             technical_skills = structured_data.get("technical_skills", []) if structured_data else []
-            short_skills = [s for s in technical_skills if s and len(s) < 40]
+            # Filter junk tokens that leak from T5 output (section headers, sentence fragments)
+            JUNK_SKILLS = JUNK_SIGNALS | {"key skills", "identifies in resume", "career objective", "references"}
+            short_skills = [
+                s for s in technical_skills
+                if s and len(s) < 40 and s.lower().strip() not in JUNK_SKILLS
+                and not any(ch in s for ch in '.!?')
+                and len(s.split()) <= 5
+            ]
+            # If Bot 3 extracted no usable skills, use the JD skills as graph nodes
+            if not short_skills and jd_skills_list:
+                short_skills = jd_skills_list[:8]
             skill_match_score = evaluation.get("skill_match_score", 50)
             skill_usage_breakdown = [
                 {

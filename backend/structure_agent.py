@@ -80,8 +80,8 @@ _BASE_MODEL_NAME  = "t5-base"
 _T5_HF_REPO  = os.environ.get("T5_HF_REPO", "Unded-17/bot3-t5-resume-structurer")
 _HF_TOKEN    = os.environ.get("HF_TOKEN", "")
 _COLAB_URL   = os.environ.get("COLAB_URL", "")
-_HF_MAX_RETRIES = 3
-_HF_RETRY_DELAYS = [15, 20, 25]  # seconds between retries on 503
+_HF_MAX_RETRIES = 2
+_HF_RETRY_DELAYS = [8, 12]  # seconds between retries on 503 — shorter to reduce cold-start wait
 
 
 # ── Subjective-phrase filter ───────────────────────────────────────────────────
