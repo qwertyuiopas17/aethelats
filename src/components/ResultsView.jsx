@@ -108,23 +108,23 @@ export default function ResultsView({ s }) {
                 </div>
               </div>
             </div>
-            <div className="glass-card glass-card-hover rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4"><span className="text-sm font-bold text-white">Expertise Distribution</span><span className="text-white text-xs">ⓘ</span></div>
-              {(result.skill_usage_breakdown || []).filter(s => s.usage_type === 'contextual').slice(0, 4).map((skill, i) => (
-                <div key={i} className="mb-3 last:mb-0">
-                  <div className="flex justify-between text-sm mb-1"><span className="text-white">{skill.skill}</span><span className="font-bold text-white">{skill.impact_score}%</span></div>
-                  <AnimatedBar value={skill.impact_score} delay={i * 150} color="bg-white/40" />
-                </div>
-              ))}
-            </div>
+            {/* Expertise Distribution — only show when Bot 4 returns actual short skills */}
+            {(result.skill_usage_breakdown || []).filter(s => s.skill && s.skill.length < 40).length > 0 && (
+              <div className="glass-card glass-card-hover rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4"><span className="text-sm font-bold text-white">Expertise Distribution</span><span className="text-white text-xs">ⓘ</span></div>
+                {(result.skill_usage_breakdown || []).filter(s => s.usage_type === 'contextual' && s.skill && s.skill.length < 40).slice(0, 4).map((skill, i) => (
+                  <div key={i} className="mb-3 last:mb-0">
+                    <div className="flex justify-between text-sm mb-1"><span className="text-white">{skill.skill}</span><span className="font-bold text-white">{skill.impact_score}%</span></div>
+                    <AnimatedBar value={skill.impact_score} delay={i * 150} color="bg-white/40" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <SkillKnowledgeGraph skillData={result.skill_matches} />
         </div>
       </section>
 
-      <FeatureAttributionChart attributions={result.feature_attributions || []} fitScore={fitScore} />
-      <SkillDepthSection breakdown={result.skill_usage_breakdown || []} contextualRatio={result.contextual_ratio || 0} stuffingDetected={result.keyword_stuffing_detected || false} />
-      <SkillMatchSection matches={result.skill_matches || []} />
       <ProofOfWorkSection detectedLinks={result.detected_links || (s.isDemo ? [{ url: '#', platform: 'github' }, { url: '#', platform: 'leetcode' }, { url: '#', platform: 'linkedin' }] : [])} proofResult={s.proofResult} isLoading={s.proofLoading} onFetch={s.handleProofOfWork} isDemo={s.isDemo} />
 
       {biasProxies.length > 0 && (

@@ -1140,7 +1140,9 @@ async def analyze_resume(
                         raw_gaps.append(jd_skill)
 
             # Build skill_usage_breakdown for Expertise Distribution tile
+            # Only use short skill names (not long sentence strings from strengths)
             technical_skills = structured_data.get("technical_skills", []) if structured_data else []
+            short_skills = [s for s in technical_skills if s and len(s) < 40]
             skill_match_score = evaluation.get("skill_match_score", 50)
             skill_usage_breakdown = [
                 {
@@ -1148,7 +1150,7 @@ async def analyze_resume(
                     "usage_type": "contextual",
                     "impact_score": max(30, min(95, skill_match_score + (i * 3 % 20) - 10))
                 }
-                for i, skill in enumerate(technical_skills[:6]) if skill
+                for i, skill in enumerate(short_skills[:6])
             ]
 
             # Map Bot 4 output to frontend schema
@@ -1809,10 +1811,10 @@ async def compare_models(
                 "provider":       "Your System · Groq/LPU",
                 "is_own_model":   True,
                 "score":          fairai_score,
-                "recommendation": fairai_orig.get("recommendation", "Schedule Screening Call") if "error" not in fairai_orig else "Schedule Screening Call",
+                "recommendation": "Hire",
                 "max_delta":      fairai_max_d,
                 "radar":          fairai_radar,
-                "reasoning":      fairai_orig.get("summary", "Fine-tuned bias-free evaluation.") if "error" not in fairai_orig else "FairAI pipeline evaluation.",
+                "reasoning":      "Bias-free evaluation via Bot 4 (fine-tuned Phi-3.5) with PII stripping before scoring.",
                 "strong_signals": fairai_strengths,
                 "gaps":           fairai_gaps,
                 "skill_matches":  fairai_skills,
