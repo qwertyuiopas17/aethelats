@@ -1729,6 +1729,10 @@ async def compare_models(
     file: UploadFile = File(...),
     role: str = Form(default="Software Engineer"),
     baseline_score: int = Form(default=70),
+    fairai_signals: str = Form(default="[]"),
+    fairai_gaps: str = Form(default="[]"),
+    fairai_recommendation: str = Form(default="Hire"),
+    fairai_summary: str = Form(default="Bias-free evaluation via Bot 4."),
 ):
     """
     Full LLM comparison:
@@ -1772,6 +1776,17 @@ async def compare_models(
         fairai_n_delta = 0
         fairai_max_d   = 0
 
+        # Parse signals/gaps passed from the frontend's existing Bot 4 result
+        try:
+            fairai_strengths = json.loads(fairai_signals) if fairai_signals else []
+        except Exception:
+            fairai_strengths = []
+        try:
+            fairai_gaps_list = json.loads(fairai_gaps) if fairai_gaps else []
+        except Exception:
+            fairai_gaps_list = []
+        fairai_skills = []
+
         fairai_radar = {
             "technical_depth":       fairai_score,
             "problem_solving":       fairai_score,
@@ -1780,9 +1795,6 @@ async def compare_models(
             "project_complexity":    fairai_score,
             "communication_clarity": 70,
         }
-        fairai_strengths = []
-        fairai_gaps      = []
-        fairai_skills    = []
 
         # ── Step 3: score all mainstream LLMs on original + 3 mutations ─────
         print(f"[FairAI][compare] Scoring {len(COMPARISON_LLM_MODELS)} LLMs...")
@@ -1808,15 +1820,15 @@ async def compare_models(
             {
                 "model_id":       "fairai-llama-3.3-pipeline",
                 "label":          "FairAI (Bias-Blind Pipeline)",
-                "provider":       "Your System · Groq/LPU",
+                "provider":       "Your System · Bot 4 (Phi-3.5)",
                 "is_own_model":   True,
                 "score":          fairai_score,
-                "recommendation": "Hire",
+                "recommendation": fairai_recommendation,
                 "max_delta":      fairai_max_d,
                 "radar":          fairai_radar,
-                "reasoning":      "Bias-free evaluation via Bot 4 (fine-tuned Phi-3.5) with PII stripping before scoring.",
+                "reasoning":      fairai_summary,
                 "strong_signals": fairai_strengths,
-                "gaps":           fairai_gaps,
+                "gaps":           fairai_gaps_list,
                 "skill_matches":  fairai_skills,
                 "bias_deltas": [
                     {"key": "institution_delta", "label": "Inst.", "delta": fairai_i_delta},

@@ -160,6 +160,12 @@ export function useAppState() {
     fd.append('file', selectedFile);
     fd.append('role', jobRole || 'Software Engineer');
     fd.append('baseline_score', String(result.fit_score || 70));
+    // Pass signals/gaps from the already-computed Bot 4 result so the FairAI
+    // row in the comparison panel shows real data without re-running any models
+    fd.append('fairai_signals', JSON.stringify(result.strong_signals || []));
+    fd.append('fairai_gaps',    JSON.stringify(result.gaps || []));
+    fd.append('fairai_recommendation', result.recommendation || 'Hire');
+    fd.append('fairai_summary', result.summary || 'Bias-free evaluation via Bot 4.');
     try {
       const resp = await fetch(API_URL + '/compare-models', { method: 'POST', body: fd });
       const data = await (resp.ok ? resp.json() : resp.json().then(e => { throw new Error(e.detail); }));
