@@ -1110,7 +1110,13 @@ async def analyze_resume(
                              and not s.endswith('.') and s.lower().strip() not in
                              {"key skills", "skills", "experience", "education", "summary",
                               "objective", "profile", "career objective", "references"}]
-            has_jobs = bool(structured_data.get("job_history") or structured_data.get("experience"))
+            
+            has_jobs = False
+            for j in (structured_data.get("job_history") or []):
+                t = str(j.get("title", "")).strip().lower()
+                if t and t not in ("[candidate]", "[institution]", "[location]", "canteen", "date") and len(t) > 2:
+                    has_jobs = True
+                    break
             
             # If we have sentence-style "skills" but no real keywords, try to extract keywords from them
             if not usable_skills and raw_tech:
@@ -1169,9 +1175,14 @@ Resume:
                         raw_json = raw_json[:-3]
                     raw_json = raw_json.strip()
                     groq_data = json.loads(raw_json)
-                    # Merge Groq data into structured_data (Groq overwrites empty fields)
+                    # Merge Groq data into structured_data 
+                    # Overwrite jobs and skills since we called Groq specifically because the existing ones were garbage
                     for key, val in groq_data.items():
-                        if val and (not structured_data.get(key) or structured_data.get(key) == "None stated"):
+                        if not val:
+                            continue
+                        if key in ("technical_skills", "job_history", "experience"):
+                            structured_data[key] = val
+                        elif not structured_data.get(key) or structured_data.get(key) == "None stated":
                             structured_data[key] = val
                             
                     # ── Type checking: Ensure arrays are actually arrays ──
