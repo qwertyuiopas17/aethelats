@@ -11,6 +11,7 @@ export function useAppState() {
   const [detectingRole, setDetectingRole] = useState(false);
   const [result, setResult] = useState(null);
   const [apiError, setApiError] = useState(null);
+  const [fileUploadError, setFileUploadError] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
   const [showFairnessGate, setShowFairnessGate] = useState(false);
   const [fairnessConfirmed, setFairnessConfirmed] = useState(false);
@@ -87,7 +88,7 @@ export function useAppState() {
 
   function reset() {
     setStep('upload'); setSelectedFile(null); setResult(null);
-    setApiError(null); setProgress(0); setLogs([]);
+    setApiError(null); setFileUploadError(null); setProgress(0); setLogs([]);
     setJobRole(''); setDetectingRole(false); setIsDemo(false);
     setFairnessConfirmed(false); setShowFairnessGate(false);
     setCfResult(null); setRunningCF(false);
@@ -179,8 +180,9 @@ export function useAppState() {
   function handleFileSelect(f) {
     if (!f) return;
     const ok = ACCEPTED_TYPES.includes(f.type) || ACCEPTED_EXTS.some(e => f.name.toLowerCase().endsWith(e));
-    if (!ok) { alert('Please upload a PDF or image file.'); return; }
+    if (!ok) { setFileUploadError('Please upload a PDF or image file (.pdf, .jpg, .png, .webp, .gif).'); return; }
     
+    setFileUploadError(null);
     setSelectedFile(f); 
     setIsDemo(false);
 
@@ -188,21 +190,23 @@ export function useAppState() {
     // Only detect the role if the box is currently completely empty.
     if (!jobRole || jobRole.trim() === '') {
       setDetectingRole(true);
+      setFileUploadError(null);
       const fd = new FormData(); fd.append('file', f);
       fetch(API_URL + '/detect-role', { method: 'POST', body: fd })
         .then(async r => {
           if (!r.ok) {
-            const errData = await r.json();
-            throw new Error(errData.detail || 'Failed to detect role.');
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || 'This file does not appear to be a valid resume or CV.');
           }
           return r.json();
         })
         .then(d => setJobRole(d.role || ''))
         .catch(e => {
+          // Stay on the upload page — show an inline error instead of the full error step
           setJobRole('');
           setSelectedFile(null);
-          setApiError(e.message);
-          setStep('error');
+          setFileUploadError(e.message);
+          if (fileInputRef.current) fileInputRef.current.value = '';
         })
         .finally(() => setDetectingRole(false));
     }
@@ -210,7 +214,7 @@ export function useAppState() {
 
   return {
     step, setStep, progress, logs, dragOver, setDragOver, selectedFile, setSelectedFile, jobRole, setJobRole,
-    detectingRole, result, apiError, isDemo, showFairnessGate, setShowFairnessGate,
+    detectingRole, result, apiError, fileUploadError, setFileUploadError, isDemo, showFairnessGate, setShowFairnessGate,
     fairnessConfirmed, cfResult, runningCF, jdText, setJdText, jdResult, jdAnalyzing,
     jdExpanded, setJdExpanded, mmResult, runningMM, proofResult, proofLoading,
     piiRedaction, setPiiRedaction, instMasking, setInstMasking, genderedLang, setGenderedLang,

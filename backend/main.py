@@ -256,36 +256,58 @@ def _is_valid_resume(text: str) -> bool:
     Two-tier architecture:
       Tier 1 — Instant rejects (no API cost):
         - Text too short
-        - ZERO resume signals (obviously a book, menu, invoice etc.)
+        - Fewer than 2 resume-specific signals (catches research papers, flight
+          studies, manuals etc. that contain isolated words like "engineer")
       Tier 2 — LLM is ALWAYS the final authority:
-        - Keywords NEVER accept a doc on their own (prevents textbook false positives)
-        - Everything with >= 1 signal goes to LLM for the definitive call
+        - Keywords alone NEVER accept a document (prevents textbook false positives)
+        - Anything with >= 2 signals goes to LLM for the definitive call
     """
-    # ── Tier 1: Instant rejects ────────────────────────────────────────────
+    # ── Tier 1a: Instant reject — text too short ───────────────────────────
     if not text or len(text.strip()) < 50:
         return False
 
-    _resume_signals = {
-        # Standard English resume sections
+    # ── Tier 1b: Multi-signal keyword gate ────────────────────────────────
+    # We intentionally split signals into two tiers of specificity:
+    #   STRONG signals  — unambiguously resume-only sections/fields
+    #   WEAK signals    — words that appear in many doc types (e.g. "engineer")
+    # A document needs either:
+    #   • 1 STRONG signal, OR
+    #   • 2+ WEAK/any signals
+    # This prevents a research paper about "aeronautical engineers" slipping through
+    # just because it mentions the word "engineer" once.
+    _strong_resume_signals = {
+        "work experience", "technical skills", "employment history",
+        "career objective", "professional summary", "internship",
+        "cgpa", "sgpa", "btech", "mtech", "bca", "mca",
+        "10th", "12th", "ssc", "hsc",
+        "fresher", "passout", "aggregate", "percentile",
+        "curriculum vitae", "résumé", "resume",
+        "references available", "hobbies and interests",
+    }
+    _weak_resume_signals = {
         "experience", "education", "skills", "project", "university",
         "college", "school", "worked", "developer", "manager", "engineer",
-        "summary", "profile", "employment", "qualification", "internship",
+        "summary", "profile", "employment", "qualification",
         "certification", "objective", "achievement", "career", "position",
-        # Indian-specific resume keywords
-        "technical skills", "work experience", "academic", "cgpa", "sgpa",
-        "10th", "12th", "ssc", "hsc", "btech", "mtech", "bca", "mca",
-        "fresher", "passout", "percentile", "aggregate",
+        "academic",
     }
     text_lower = text.lower()
-    signal_count = sum(1 for k in _resume_signals if k in text_lower)
 
-    if signal_count == 0:
-        # Not a single resume-adjacent word — instant reject, no LLM call needed
-        print("[Guardrail] Zero resume signals. Rejected without LLM call.")
+    strong_hits = sum(1 for k in _strong_resume_signals if k in text_lower)
+    weak_hits   = sum(1 for k in _weak_resume_signals   if k in text_lower)
+    total_hits  = strong_hits + weak_hits
+
+    if strong_hits == 0 and total_hits < 2:
+        print(
+            f"[Guardrail] Insufficient resume signals "
+            f"(strong={strong_hits}, weak={weak_hits}). Rejected without LLM call."
+        )
         return False
 
     # ── Tier 2: LLM is the definitive judge ───────────────────────────────
-    # Even if keywords matched (could still be a textbook!), LLM must confirm.
+    # Even if keywords matched, the LLM makes the final call.
+    # The prompt is deliberately strict: research papers, technical reports,
+    # and scientific studies must be rejected even if they mention job titles.
     try:
         resp = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -294,16 +316,21 @@ def _is_valid_resume(text: str) -> bool:
                     "role": "system",
                     "content": (
                         "You are a strict document classifier. "
-                        "A Resume or CV lists a person's work experience, education history, "
-                        "and skills for the purpose of applying to a job. "
-                        "Textbooks, news articles, stories, invoices, menus, manuals, "
-                        "academic research papers, and cover letters are NOT resumes. "
+                        "A Resume or CV is a personal document that lists ONE person's "
+                        "work experience, education, and skills for the purpose of job applications. "
+                        "The following are NOT resumes and must be classified NO:\n"
+                        "  - Academic or scientific research papers / journal articles\n"
+                        "  - Technical reports (e.g. flight studies, engineering analyses)\n"
+                        "  - Textbooks, manuals, or reference documents\n"
+                        "  - News articles, blog posts, or essays\n"
+                        "  - Invoices, menus, contracts, or legal documents\n"
+                        "  - Cover letters (they accompany a resume but are not one)\n"
                         "Reply ONLY with the single word YES or NO. No explanation."
                     ),
                 },
                 {
                     "role": "user",
-                    "content": f"Is this document a Resume or CV?\n\n---\n{text[:2500]}\n---",
+                    "content": f"Is this document a Resume or CV?\n\n---\n{text[:2000]}\n---",
                 },
             ],
             temperature=0.0,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { UploadCloud, FileText, XCircle, RefreshCw, Zap, Check, Play, Sparkles, Cpu } from 'lucide-react';
+import { UploadCloud, FileText, XCircle, RefreshCw, Zap, Check, Play, AlertTriangle } from 'lucide-react';
 import { ToggleSwitch } from './UIHelpers';
 import { JDAnalysisSection } from './AnalysisPanels';
 import { ArchitectureDiagram } from './CompliancePanels';
@@ -21,6 +21,26 @@ export default function UploadView({ s }) {
             <input type="text" value={s.jobRole} onChange={e => s.setJobRole(e.target.value)} placeholder={s.detectingRole ? 'Detecting...' : 'e.g. Full Stack Engineer'} disabled={s.detectingRole}
               className="w-full glass-input rounded-xl px-4 py-3 text-sm text-white placeholder-white/20" />
           </div>
+
+          {/* ── Inline file rejection error banner ── */}
+          {s.fileUploadError && (
+            <div className="mb-5 max-w-xl flex items-start gap-3 px-4 py-3 rounded-xl border border-red-500/30 bg-red-500/[0.08] animate-fade-in">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-red-300 mb-0.5">Invalid Document</div>
+                <div className="text-xs text-red-300/80 leading-relaxed">{s.fileUploadError}</div>
+                <div className="text-xs text-white/40 mt-1">Please upload a valid resume or CV (PDF or image).</div>
+              </div>
+              <button
+                onClick={() => s.setFileUploadError(null)}
+                className="text-white/30 hover:text-white/60 transition-colors shrink-0 mt-0.5"
+                aria-label="Dismiss"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <input ref={s.fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" style={{ display: 'none' }} onChange={e => s.handleFileSelect(e.target.files[0])} />
           {!s.selectedFile ? (
             <div onClick={() => s.fileInputRef.current.click()} onDragOver={e => { e.preventDefault(); s.setDragOver(true); }} onDragLeave={() => s.setDragOver(false)}
