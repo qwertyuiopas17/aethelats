@@ -180,12 +180,20 @@ export function useAppState() {
     if (!f) return;
     const ok = ACCEPTED_TYPES.includes(f.type) || ACCEPTED_EXTS.some(e => f.name.toLowerCase().endsWith(e));
     if (!ok) { alert('Please upload a PDF or image file.'); return; }
-    setSelectedFile(f); setJobRole(''); setDetectingRole(true); setIsDemo(false);
-    const fd = new FormData(); fd.append('file', f);
-    fetch(API_URL + '/detect-role', { method: 'POST', body: fd })
-      .then(r => r.json()).then(d => setJobRole(d.role || ''))
-      .catch(() => setJobRole(''))
-      .finally(() => setDetectingRole(false));
+    
+    setSelectedFile(f); 
+    setIsDemo(false);
+
+    // If the JD analyzer or the user manually typed a role, DO NOT overwrite it.
+    // Only detect the role if the box is currently completely empty.
+    if (!jobRole || jobRole.trim() === '') {
+      setDetectingRole(true);
+      const fd = new FormData(); fd.append('file', f);
+      fetch(API_URL + '/detect-role', { method: 'POST', body: fd })
+        .then(r => r.json()).then(d => setJobRole(d.role || ''))
+        .catch(() => setJobRole(''))
+        .finally(() => setDetectingRole(false));
+    }
   }
 
   return {
