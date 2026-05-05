@@ -190,8 +190,19 @@ export function useAppState() {
       setDetectingRole(true);
       const fd = new FormData(); fd.append('file', f);
       fetch(API_URL + '/detect-role', { method: 'POST', body: fd })
-        .then(r => r.json()).then(d => setJobRole(d.role || ''))
-        .catch(() => setJobRole(''))
+        .then(async r => {
+          if (!r.ok) {
+            const errData = await r.json();
+            throw new Error(errData.detail || 'Failed to detect role.');
+          }
+          return r.json();
+        })
+        .then(d => setJobRole(d.role || ''))
+        .catch(e => {
+          setJobRole('');
+          setSelectedFile(null);
+          alert(e.message);
+        })
         .finally(() => setDetectingRole(false));
     }
   }
