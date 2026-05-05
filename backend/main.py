@@ -1185,6 +1185,9 @@ async def detect_role(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Empty file.")
     try:
         resume_text = extract_resume_text(pdf_bytes, ext)
+        if not _is_valid_resume(resume_text):
+            raise HTTPException(status_code=400, detail="The uploaded file does not appear to be a valid resume or CV.")
+            
         if not resume_text.strip():
             return {"role": ""}
         if client is None:
