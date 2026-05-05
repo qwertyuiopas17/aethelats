@@ -1202,6 +1202,9 @@ async def detect_role(file: UploadFile = File(...)):
         )
         data = parse_json_response(resp.choices[0].message.content)
         return {"role": data.get("role", "").strip()}
+    except HTTPException as he:
+        # Re-raise the guardrail 400 error so the frontend catches it
+        raise he
     except Exception:
         import traceback; traceback.print_exc()
         return {"role": ""}
