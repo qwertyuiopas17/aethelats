@@ -200,7 +200,16 @@ export function useAppState() {
           }
           return r.json();
         })
-        .then(d => setJobRole(d.role || ''))
+        .then(d => {
+          setJobRole(d.role || '');
+          if (!d.role && d.validation_warning) {
+            // Backend accepted the file but couldn't run role detection (e.g. LLM rate-limited).
+            // Show a soft warning — don't clear the file, let the user type the role manually.
+            setFileUploadError(
+              'Role auto-detection failed (AI service busy). You can type the role manually above to continue, or try uploading again.'
+            );
+          }
+        })
         .catch(e => {
           // Stay on the upload page — show an inline error instead of the full error step
           setJobRole('');

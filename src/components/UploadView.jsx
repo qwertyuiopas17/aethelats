@@ -22,24 +22,36 @@ export default function UploadView({ s }) {
               className="w-full glass-input rounded-xl px-4 py-3 text-sm text-white placeholder-white/20" />
           </div>
 
-          {/* ── Inline file rejection error banner ── */}
-          {s.fileUploadError && (
-            <div className="mb-5 max-w-xl flex items-start gap-3 px-4 py-3 rounded-xl border border-red-500/30 bg-red-500/[0.08] animate-fade-in">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-red-300 mb-0.5">Invalid Document</div>
-                <div className="text-xs text-red-300/80 leading-relaxed">{s.fileUploadError}</div>
-                <div className="text-xs text-white/40 mt-1">Please upload a valid resume or CV (PDF or image).</div>
+          {/* ── Inline file rejection / warning error banner ── */}
+          {s.fileUploadError && (() => {
+            const isWarning = s.fileUploadError.includes('AI service busy');
+            const border = isWarning ? 'border-yellow-500/30' : 'border-red-500/30';
+            const bg     = isWarning ? 'bg-yellow-500/[0.07]' : 'bg-red-500/[0.08]';
+            const icon   = isWarning ? 'text-yellow-400' : 'text-red-400';
+            const title  = isWarning ? 'text-yellow-300' : 'text-red-300';
+            const body   = isWarning ? 'text-yellow-300/80' : 'text-red-300/80';
+            return (
+              <div className={`mb-5 max-w-xl flex items-start gap-3 px-4 py-3 rounded-xl border ${border} ${bg} animate-fade-in`}>
+                <AlertTriangle className={`w-4 h-4 ${icon} shrink-0 mt-0.5`} />
+                <div className="flex-1 min-w-0">
+                  <div className={`text-sm font-semibold ${title} mb-0.5`}>
+                    {isWarning ? 'Detection Warning' : 'Invalid Document'}
+                  </div>
+                  <div className={`text-xs ${body} leading-relaxed`}>{s.fileUploadError}</div>
+                  {!isWarning && (
+                    <div className="text-xs text-white/40 mt-1">Please upload a valid resume or CV (PDF or image).</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => s.setFileUploadError(null)}
+                  className="text-white/30 hover:text-white/60 transition-colors shrink-0 mt-0.5"
+                  aria-label="Dismiss"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={() => s.setFileUploadError(null)}
-                className="text-white/30 hover:text-white/60 transition-colors shrink-0 mt-0.5"
-                aria-label="Dismiss"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+            );
+          })()}
 
           <input ref={s.fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" style={{ display: 'none' }} onChange={e => s.handleFileSelect(e.target.files[0])} />
           {!s.selectedFile ? (

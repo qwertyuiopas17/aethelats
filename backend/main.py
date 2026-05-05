@@ -341,9 +341,25 @@ def _is_valid_resume(text: str) -> bool:
         print(f"[Guardrail] LLM verdict: {'✓ VALID RESUME' if is_resume else '✗ NOT A RESUME'} (raw: '{answer}')")
         return is_resume
     except Exception as e:
-        # Fail open — if Groq is down, don't block real users
-        print(f"[Guardrail] LLM check failed ({e}). Defaulting ACCEPT.")
-        return True
+        # LLM is unavailable (rate-limit, network error, etc.).
+        # Use keyword signal strength as the tiebreaker instead of blindly accepting.
+        #   • strong_hits >= 2  → very likely a real resume  → ACCEPT
+        #   • total_hits  >= 5  → many resume-adjacent words → ACCEPT
+        #   • anything weaker   → too risky to accept        → REJECT (fail-closed)
+        # This prevents a gallery screenshot or flight-study PDF from slipping
+        # through on a Groq outage, while still protecting legitimate resume users.
+        if strong_hits >= 2 or total_hits >= 5:
+            print(
+                f"[Guardrail] LLM check failed ({e}). "
+                f"Strong signals present (strong={strong_hits}, total={total_hits}) — ACCEPTING."
+            )
+            return True
+        else:
+            print(
+                f"[Guardrail] LLM check failed ({e}). "
+                f"Insufficient signals (strong={strong_hits}, total={total_hits}) — REJECTING (fail-closed)."
+            )
+            return False
 
 # Dedicated Rotating Client for Vision API
 # Vision endpoints often have much stricter Rate Limits than text endpoints.
@@ -1234,7 +1250,10 @@ async def detect_role(file: UploadFile = File(...)):
         raise he
     except Exception:
         import traceback; traceback.print_exc()
-        return {"role": ""}
+        # Role detection LLM failed (rate-limit, timeout, etc.).
+        # Signal the frontend with validation_warning so it shows a helpful message
+        # instead of a silent disabled Analyze button.
+        return {"role": "", "validation_warning": True}
 
 def _generate_skills_for_role(role: str) -> list[str]:
     """Dynamically generate expected skills for a given role if none are provided."""
