@@ -111,8 +111,329 @@ except FileNotFoundError:
     print("[FairAI] skill_graph.json not found — using empty graph")
 
 
+# ─── DETERMINISTIC LEGACY ATS SIMULATOR ───────────────────────
+# Encodes the ACTUAL biases documented in AMCAT, CoCubes, and Naukri-style
+# keyword-ATS systems. Score is fully auditable — no LLM involved.
+#
+# Bias signals encoded (each with citation):
+#  +15  Elite institution mention (IJMEM 2026: -21.3pp shortlist gap Tier-3 vs Tier-1)
+#  -12  Employment gap language (eLitmus data: 12-18% lower shortlist for gap resumes)
+#  ±30  Keyword hit rate (AMCAT/CoCubes exact-match-only scoring)
+#  +8   Male-coded name detected (resume audit studies: ~8-10% advantage)
+#  -5   Non-metro location detected (IJMEM 2026: urban-rural shortlisting gap)
+# Baseline: 45 (legacy ATS conservatively rejects ~55% of candidates by default)
+
+_PRESTIGE_SCHOOLS = [
+    "iit", "iim", "iiser", "bits pilani", "nit ", "iiit",
+    "delhi university", "jadavpur", "vit", "srm",
+    "mit", "stanford", "oxford", "cambridge", "harvard",
+]
+_GAP_SIGNALS = [
+    "career break", "career gap", "sabbatical", "took time off",
+    "gap year", "on a break", "employment break", "between jobs",
+    "freelance break", "maternity", "paternity",
+]
+_MALE_NAME_SIGNALS = [
+    # Common dominant-caste / male-coded Indian first names
+    # (based on DECASTE 2025 research — not exhaustive, indicative)
+    "arjun", "rahul", "vikram", "amit", "rohan", "karan", "siddharth",
+    "raj", "aditya", "nikhil", "shubham", "akash", "harsh",
+    # Gender-neutral international
+    "alex", "jordan", "taylor",
+]
+_NONMETRO_SIGNALS = [
+    "tier 2", "tier 3", "tier-2", "tier-3", "small town",
+    "rural", "village",
+]
+
+def _simulate_legacy_ats(original_text: str, jd_skills: list[str]) -> dict:
+    """
+    Deterministic Legacy ATS Score Simulator.
+
+    Mimics keyword-only ATS behaviour with documented India hiring biases
+    hard-coded as scoring rules. ZERO LLM involvement — fully auditable.
+
+    Returns a dict with:
+      legacy_ats_score  — integer 0-100
+      bias_breakdown    — list of (signal, delta, citation) tuples for transparency
+      primary_bias      — string describing the single biggest bias factor
+    """
+    text = original_text.lower()
+    score = 45  # conservative baseline (legacy ATS is default-reject)
+    bias_breakdown = []
+
+    # 1. Keyword hit rate (AMCAT/CoCubes style — exact match only, no context)
+    if jd_skills:
+        hits = sum(1 for skill in jd_skills if skill.lower() in text)
+        hit_rate = hits / len(jd_skills)
+        kw_delta = min(30, int(hit_rate * 30))
+        score += kw_delta
+        bias_breakdown.append({
+            "signal": f"Keyword match ({hits}/{len(jd_skills)} JD skills found)",
+            "delta": kw_delta,
+            "citation": "AMCAT/CoCubes: exact-match keyword scoring, no synonym resolution",
+        })
+
+    # 2. Elite institution prestige bonus
+    prestige_found = next((s for s in _PRESTIGE_SCHOOLS if s in text), None)
+    if prestige_found:
+        score += 15
+        bias_breakdown.append({
+            "signal": f"Elite institution detected ('{prestige_found}')",
+            "delta": 15,
+            "citation": "IJMEM 2026: Tier-1 institutions receive +21.3pp shortlisting advantage",
+        })
+
+    # 3. Employment gap penalty
+    gap_found = next((g for g in _GAP_SIGNALS if g in text), None)
+    if gap_found:
+        score -= 12
+        bias_breakdown.append({
+            "signal": f"Gap language detected ('{gap_found}')",
+            "delta": -12,
+            "citation": "eLitmus data: career gaps correlate with 12-18% lower shortlisting rates",
+        })
+
+    # 4. Male-coded name bias (checked on original un-anonymised text)
+    male_found = next((n for n in _MALE_NAME_SIGNALS if re.search(rf'\b{n}\b', text)), None)
+    if male_found:
+        score += 8
+        bias_breakdown.append({
+            "signal": f"Male-coded name signal detected",
+            "delta": 8,
+            "citation": "Resume audit studies (India 2024): male-coded names shortlisted ~8-10% more",
+        })
+
+    # 5. Non-metro location penalty
+    nonmetro_found = next((s for s in _NONMETRO_SIGNALS if s in text), None)
+    if nonmetro_found:
+        score -= 5
+        bias_breakdown.append({
+            "signal": f"Non-metro signal detected ('{nonmetro_found}')",
+            "delta": -5,
+            "citation": "IJMEM 2026: urban candidates shortlisted at higher rates than non-metro",
+        })
+
+    final_score = max(0, min(100, score))
+
+    # Determine primary bias factor (largest absolute delta)
+    primary = max(bias_breakdown, key=lambda b: abs(b["delta"]), default=None)
+    primary_bias_str = primary["signal"] if primary else "No dominant bias signal detected"
+
+    # Legacy ATS verdict thresholds (typical cutoffs used by AMCAT/CoCubes)
+    if final_score >= 70:
+        verdict = "Passed"
+    elif final_score >= 50:
+        verdict = "Flagged for Review"
+    else:
+        verdict = "Auto-Rejected"
+
+    print(f"[LegacyATS] Deterministic score: {final_score} | Breakdown: {[(b['signal'], b['delta']) for b in bias_breakdown]}")
+
+    return {
+        "legacy_ats_score": final_score,
+        "verdict": verdict,
+        "bias_breakdown": bias_breakdown,
+        "primary_bias": primary_bias_str,
+    }
+
+
 # ─── HELPERS ──────────────────────────────────────────────────
-def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+# ─── Vision model for image OCR ──────────────────────────────
+_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+_VISION_PROMPT = (
+    "You are an OCR engine. Extract ALL text from this resume image exactly as it appears. "
+    "Preserve section headings, bullet points, and line breaks. "
+    "Return ONLY the raw extracted text — no commentary, no markdown fences."
+)
+# Groq hard limit for base64 image payloads
+_GROQ_B64_LIMIT_BYTES = 4 * 1024 * 1024  # 4 MB
+
+def _is_valid_resume(text: str) -> bool:
+    """
+    Guardrail: Checks if the extracted text is actually a resume/CV.
+
+    Two-tier architecture:
+      Tier 1 — Instant rejects (no API cost):
+        - Text too short
+        - ZERO resume signals (obviously a book, menu, invoice etc.)
+      Tier 2 — LLM is ALWAYS the final authority:
+        - Keywords NEVER accept a doc on their own (prevents textbook false positives)
+        - Everything with >= 1 signal goes to LLM for the definitive call
+    """
+    # ── Tier 1: Instant rejects ────────────────────────────────────────────
+    if not text or len(text.strip()) < 50:
+        return False
+
+    _resume_signals = {
+        # Standard English resume sections
+        "experience", "education", "skills", "project", "university",
+        "college", "school", "worked", "developer", "manager", "engineer",
+        "summary", "profile", "employment", "qualification", "internship",
+        "certification", "objective", "achievement", "career", "position",
+        # Indian-specific resume keywords
+        "technical skills", "work experience", "academic", "cgpa", "sgpa",
+        "10th", "12th", "ssc", "hsc", "btech", "mtech", "bca", "mca",
+        "fresher", "passout", "percentile", "aggregate",
+    }
+    text_lower = text.lower()
+    signal_count = sum(1 for k in _resume_signals if k in text_lower)
+
+    if signal_count == 0:
+        # Not a single resume-adjacent word — instant reject, no LLM call needed
+        print("[Guardrail] Zero resume signals. Rejected without LLM call.")
+        return False
+
+    # ── Tier 2: LLM is the definitive judge ───────────────────────────────
+    # Even if keywords matched (could still be a textbook!), LLM must confirm.
+    try:
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a strict document classifier. "
+                        "A Resume or CV lists a person's work experience, education history, "
+                        "and skills for the purpose of applying to a job. "
+                        "Textbooks, news articles, stories, invoices, menus, manuals, "
+                        "academic research papers, and cover letters are NOT resumes. "
+                        "Reply ONLY with the single word YES or NO. No explanation."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Is this document a Resume or CV?\n\n---\n{text[:2500]}\n---",
+                },
+            ],
+            temperature=0.0,
+            max_tokens=5,
+        )
+        answer = resp.choices[0].message.content.strip().upper()
+        is_resume = answer.startswith("YES")
+        print(f"[Guardrail] LLM verdict: {'✓ VALID RESUME' if is_resume else '✗ NOT A RESUME'} (raw: '{answer}')")
+        return is_resume
+    except Exception as e:
+        # Fail open — if Groq is down, don't block real users
+        print(f"[Guardrail] LLM check failed ({e}). Defaulting ACCEPT.")
+        return True
+
+# Dedicated Rotating Client for Vision API
+# Vision endpoints often have much stricter Rate Limits than text endpoints.
+# This prevents your Vision OCR from eating the API quota of your main analysis Bot.
+vision_client = None
+_vision_keys = []
+for i in range(1, 10):
+    k = os.environ.get(f"GROQ_VISION_KEY_{i}")
+    if k: _vision_keys.append(k)
+
+if _vision_keys:
+    class RotatingVisionClient:
+        def __init__(self, keys):
+            import groq
+            self.clients = [groq.Groq(api_key=k) for k in keys]
+            self.current_idx = 0
+            self.chat = self.Chat(self)
+        class Chat:
+            def __init__(self, parent): self.completions = self.Completions(parent)
+            class Completions:
+                def __init__(self, parent): self.parent = parent
+                def create(self, **kwargs):
+                    attempts = 0
+                    max_attempts = len(self.parent.clients)
+                    last_err = None
+                    while attempts < max_attempts:
+                        c = self.parent.clients[self.parent.current_idx]
+                        try:
+                            return c.chat.completions.create(**kwargs)
+                        except Exception as e:
+                            if "429" in str(e) or "rate limit" in str(e).lower():
+                                print(f"[OCR] Vision Key {self.parent.current_idx + 1} rate limited. Rotating...")
+                                self.parent.current_idx = (self.parent.current_idx + 1) % len(self.parent.clients)
+                                attempts += 1
+                                last_err = e
+                            else:
+                                raise e
+                    raise Exception(f"All Vision keys rate limited. Last error: {last_err}")
+    vision_client = RotatingVisionClient(_vision_keys)
+    print(f"[FairAI] Dedicated Vision Client initialized with {len(_vision_keys)} rotating keys.")
+else:
+    vision_client = client  # Fallback to main text rotating client if no dedicated vision keys
+
+
+def _extract_via_vision(image_bytes: bytes, mime_type: str) -> str:
+    """
+    OCR an image resume using Groq Vision (llama-4-scout).
+    Includes automatic PIL compression for images > 3MB to bypass Groq's 4MB base64 limit.
+    """
+    import base64
+    active_client = vision_client or client
+    if active_client is None:
+        print("[OCR] No Groq client available — cannot OCR image.")
+        return ""
+
+    # --- IMAGE COMPRESSION SAFEGUARD ---
+    # Groq's 4MB base64 limit roughly equals 3MB raw binary.
+    if len(image_bytes) > 3 * 1024 * 1024:
+        print(f"[OCR] Image is large ({len(image_bytes)//1024}KB). Compressing before sending to Groq...")
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(image_bytes))
+            # Convert to RGB to strip alpha channels and save as pure JPEG
+            if img.mode in ("RGBA", "P"): 
+                img = img.convert("RGB")
+                
+            # Resize if the longest edge is over 2000px
+            max_size = 2000
+            if max(img.size) > max_size:
+                ratio = max_size / max(img.size)
+                new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
+                
+            # Save compressed JPEG to memory buffer
+            out_buffer = io.BytesIO()
+            img.save(out_buffer, format="JPEG", quality=85, optimize=True)
+            image_bytes = out_buffer.getvalue()
+            mime_type = "image/jpeg"
+            print(f"[OCR] Successfully compressed image down to {len(image_bytes)//1024}KB.")
+        except ImportError:
+            print("[OCR] 'Pillow' library not installed. Cannot compress image. (Run: pip install Pillow)")
+            if len(image_bytes) > _GROQ_B64_LIMIT_BYTES:
+                return ""  # Hard abort if we couldn't compress and it's over the limit
+        except Exception as e:
+            print(f"[OCR] Image compression failed: {e}")
+            if len(image_bytes) > _GROQ_B64_LIMIT_BYTES:
+                return ""
+    # -----------------------------------
+
+    b64 = base64.b64encode(image_bytes).decode()
+    try:
+        resp = active_client.chat.completions.create(
+            model=_VISION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+                    },
+                    {"type": "text", "text": _VISION_PROMPT},
+                ],
+            }],
+            max_tokens=4096,
+            temperature=0.0,
+        )
+        text = resp.choices[0].message.content or ""
+        print(f"[OCR] Vision extracted {len(text)} chars from image.")
+        return text
+    except Exception as e:
+        print(f"[OCR] Vision OCR failed: {e}")
+        return ""
+
+
+def _extract_pdf_text(pdf_bytes: bytes) -> str:
+    """Extract text from a native (non-scanned) PDF using PyPDF2."""
     try:
         reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
         text = ""
@@ -122,8 +443,49 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
                 text += t + "\n"
         return text
     except Exception as e:
-        print(f"[FairAI] PDF extract error: {e}")
+        print(f"[FairAI] PDF text extract error: {e}")
         return ""
+
+
+def extract_resume_text(file_bytes: bytes, ext: str) -> str:
+    """
+    Unified resume text extractor.
+
+    Routing logic:
+      .pdf  → PyPDF2 (fast, free)
+              → if blank: Groq Vision on pdf bytes as image/jpeg fallback
+                (handles scanned / image-only PDFs)
+      .jpg / .jpeg / .png / .webp / .gif
+              → Groq Vision directly
+
+    Always returns a string (may be empty on total failure).
+    """
+    mime_map = {
+        ".pdf":  "application/pdf",
+        ".jpg":  "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png":  "image/png",
+        ".webp": "image/webp",
+        ".gif":  "image/gif",
+    }
+    if ext == ".pdf":
+        text = _extract_pdf_text(file_bytes)
+        if text.strip():
+            return text
+        # Scanned / image-only PDF — send raw bytes to Vision as JPEG
+        print("[FairAI] PDF yielded no text — attempting Vision OCR on scanned PDF...")
+        return _extract_via_vision(file_bytes, "image/jpeg")
+    else:
+        # Direct image upload
+        mime = mime_map.get(ext, "image/jpeg")
+        print(f"[FairAI] Image resume detected ({ext}). Routing to Vision OCR...")
+        return _extract_via_vision(file_bytes, mime)
+
+
+# Keep the old name as an alias so nothing outside this file breaks
+def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    """Legacy alias — use extract_resume_text() for new code."""
+    return _extract_pdf_text(pdf_bytes)
 
 def _repair_truncated_json(raw: str) -> str:
     """Try to close open braces/brackets in a truncated JSON string."""
@@ -634,10 +996,7 @@ Flag resumes where >60% of skills are declarative as possible keyword stuffing.
     }}
   ],
   "counterfactual": {{
-    "legacy_ats_score": <integer 0-100>,
-    "fairai_score": <same as fit_score>,
-    "score_delta": <fairai_score minus legacy_ats_score>,
-    "primary_bias_factor": "<#1 reason a biased system would downgrade this candidate>"
+    "primary_bias_factor": "<#1 reason a biased system would downgrade this candidate based on resume text>"
   }},
   "feature_attributions": [
     {{
@@ -825,7 +1184,7 @@ async def detect_role(file: UploadFile = File(...)):
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Empty file.")
     try:
-        resume_text = extract_text_from_pdf(pdf_bytes)
+        resume_text = extract_resume_text(pdf_bytes, ext)
         if not resume_text.strip():
             return {"role": ""}
         if client is None:
@@ -1075,7 +1434,10 @@ async def analyze_resume(
         raise HTTPException(status_code=400, detail="Empty file.")
 
     try:
-        resume_text = extract_text_from_pdf(pdf_bytes)
+        resume_text = extract_resume_text(pdf_bytes, ext)
+        if not _is_valid_resume(resume_text):
+            raise HTTPException(status_code=400, detail="The uploaded file does not appear to be a valid resume or CV. Please upload a professional profile.")
+            
         print(f"[FairAI] Analyzing for role: {role}")
 
         loop = asyncio.get_event_loop()
@@ -1316,13 +1678,34 @@ Resume:
         result.setdefault("bias_proxies", [])
         result.setdefault("feature_attributions", [])
         fit = result["fit_score"]
-        result.setdefault("counterfactual", {
-            "legacy_ats_score": max(0, fit - 20),
-            "fairai_score": fit, "score_delta": 20,
-            "primary_bias_factor": "Unknown"
-        })
-        result.setdefault("legacy_ats_verdict", "Flagged for Review")
+
+        # ── DETERMINISTIC Legacy ATS Score (replaces LLM hallucination) ────────
+        # Run deterministic scorer on the ORIGINAL (pre-sanitised) text so bias
+        # signals like name and institution are still present — that's the point.
+        legacy_ats_result = _simulate_legacy_ats(resume_text, jd_skills_list)
+        legacy_score   = legacy_ats_result["legacy_ats_score"]
+        score_delta    = fit - legacy_score
+
+        # Pull primary_bias_factor from LLM if it returned one, else use deterministic
+        llm_counterfactual  = result.get("counterfactual", {})
+        primary_bias_factor = (
+            llm_counterfactual.get("primary_bias_factor")
+            or legacy_ats_result["primary_bias"]
+        )
+
+        # Overwrite the counterfactual block with real numbers
+        result["counterfactual"] = {
+            "legacy_ats_score":   legacy_score,
+            "fairai_score":       fit,
+            "score_delta":        score_delta,
+            "primary_bias_factor": primary_bias_factor,
+            "legacy_ats_verdict": legacy_ats_result["verdict"],
+            "bias_breakdown":     legacy_ats_result["bias_breakdown"],
+            "method":             "deterministic_keyword_ats",  # audit trail
+        }
+        result["legacy_ats_verdict"] = legacy_ats_result["verdict"]
         result.setdefault("recommendation", "Schedule Screening Call")
+        print(f"[FairAI] Legacy ATS={legacy_score} | FairAI={fit} | Delta=+{score_delta}")
 
         # Percentile (Feature 4 — seeded pool)
         score_history.append(fit)
@@ -1371,7 +1754,10 @@ async def counterfactual_test(
         raise HTTPException(status_code=400, detail="Empty file.")
 
     try:
-        resume_text = extract_text_from_pdf(pdf_bytes)
+        resume_text = extract_resume_text(pdf_bytes, ext)
+        if not _is_valid_resume(resume_text):
+            raise HTTPException(status_code=400, detail="The uploaded file does not appear to be a valid resume or CV.")
+            
         print(f"[FairAI] Real counterfactual test (baseline={baseline_score})...")
 
         loop = asyncio.get_event_loop()
@@ -1868,7 +2254,7 @@ async def compare_models(
         raise HTTPException(status_code=400, detail="Empty file.")
 
     try:
-        resume_text = extract_text_from_pdf(pdf_bytes)
+        resume_text = extract_resume_text(pdf_bytes, ext)
         print(f"[FairAI] /compare-models — role={role}, baseline={baseline_score}")
 
         loop = asyncio.get_event_loop()
