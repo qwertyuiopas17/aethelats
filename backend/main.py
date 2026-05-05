@@ -25,6 +25,10 @@ from structure_agent import structure_resume
 from evaluator_agent import evaluate_resume
 from pydantic import BaseModel
 
+# ─── DATABASE (real percentile pool) ───────────────────────────
+from database import SessionLocal, ResumeScore, init_db
+from sqlalchemy import func as sa_func
+
 class ColabUrlUpdate(BaseModel):
     new_url: str
 
@@ -922,6 +926,10 @@ async def keep_awake_task():
 @app.on_event("startup")
 async def startup_event():
     """Starts the background task when the FastAPI server starts."""
+    # Create resume_scores table (Postgres on Render, SQLite locally) if missing.
+    print("[FairAI] Initialising score pool database...")
+    init_db()
+
     print("[FairAI] Starting keep-awake background task...")
     asyncio.create_task(keep_awake_task())
 # ──────────────────────────────────────────────────────────────
@@ -1158,6 +1166,77 @@ Platform data:
 """
 
 
+# ─── DB HELPERS (real percentile pool) ───────────────────────
+# Minimum records per role before we trust a computed percentile.
+# Below this, we return a mock percentile so the UI doesn't look
+# empty for brand-new roles.
+_PERCENTILE_MIN_SAMPLES = 10
+
+
+def _record_score(role_target: str, fit_score: int, contextual_ratio: float) -> None:
+    """
+    Persist one anonymised scoring result. Silent-fail: a DB outage
+    must never break the /analyze response to the user.
+    """
+    try:
+        with SessionLocal() as db:
+            row = ResumeScore(
+                role_target=(role_target or "Professional").strip()[:255],
+                fit_score=int(max(0, min(100, fit_score))),
+                contextual_ratio=float(contextual_ratio if contextual_ratio is not None else 0.5),
+                has_pii_stripped=True,
+            )
+            db.add(row)
+            db.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"[FairAI] WARNING: failed to persist ResumeScore: {e}", file=sys.stderr)
+
+
+def _compute_percentile_from_db(role_target: str, fit_score: int) -> tuple[int, int, bool]:
+    """
+    Returns (percentile, pool_size, is_mock).
+
+    - Counts rows for this role_target.
+    - If fewer than _PERCENTILE_MIN_SAMPLES rows exist, returns a
+      deterministic mock percentile derived from the seeded history
+      so the UI stays populated for new roles.
+    - Otherwise returns the real percentile:
+        (count(fit_score < current) / count(*)) * 100
+    """
+    role_target = (role_target or "Professional").strip()
+    try:
+        with SessionLocal() as db:
+            total = (
+                db.query(sa_func.count(ResumeScore.id))
+                .filter(ResumeScore.role_target == role_target)
+                .scalar()
+                or 0
+            )
+
+            if total < _PERCENTILE_MIN_SAMPLES:
+                # Fallback: use the seeded mock pool so new roles
+                # still render something sensible in the chart.
+                below = sum(1 for s in score_history if s < fit_score)
+                denom = len(score_history) or 1
+                mock_pct = round((below / denom) * 100)
+                return mock_pct, total, True
+
+            below = (
+                db.query(sa_func.count(ResumeScore.id))
+                .filter(ResumeScore.role_target == role_target)
+                .filter(ResumeScore.fit_score < fit_score)
+                .scalar()
+                or 0
+            )
+            percentile = round((below / total) * 100)
+            return percentile, total, False
+    except Exception as e:  # noqa: BLE001
+        print(f"[FairAI] WARNING: percentile DB query failed, using mock: {e}", file=sys.stderr)
+        below = sum(1 for s in score_history if s < fit_score)
+        denom = len(score_history) or 1
+        return round((below / denom) * 100), 0, True
+
+
 # ─── ROUTES ───────────────────────────────────────────────────
 @app.post("/update-colab-url")
 def update_colab_url(payload: ColabUrlUpdate):
@@ -1168,15 +1247,23 @@ def update_colab_url(payload: ColabUrlUpdate):
 
 @app.get("/health")
 def health():
+    # Best-effort real pool size from DB; fall back to seeded length.
+    try:
+        with SessionLocal() as db:
+            db_pool_size = db.query(sa_func.count(ResumeScore.id)).scalar() or 0
+    except Exception:  # noqa: BLE001
+        db_pool_size = None
+
     return {
         "status": "ok",
         "model": MODEL,
         "version": "5.0",
-        "pool_size": len(score_history),
+        "pool_size": db_pool_size if db_pool_size is not None else len(score_history),
+        "pool_source": "database" if db_pool_size is not None else "mock_seeded",
         "features": [
             "gliner_ner_pii_stripping", "llm_pii_fallback",
             "context_scoring", "real_counterfactual_mutations",
-            "percentile_benchmarking_seeded", "skill_knowledge_graph",
+            "percentile_benchmarking_db", "skill_knowledge_graph",
             "jd_bias_detection", "multi_platform_proof_of_work"
         ],
         "bot_pipeline": {
@@ -1188,18 +1275,58 @@ def health():
 
 @app.get("/stats")
 def get_stats():
-    if not score_history:
-        return {"pool_size": 0, "avg_score": 0, "distribution": [], "labels": []}
-    distribution = [0] * 10
-    for s in score_history:
-        bucket = min(int(s / 10), 9)
-        distribution[bucket] += 1
-    return {
-        "pool_size": len(score_history),
-        "avg_score": round(sum(score_history) / len(score_history), 1),
-        "distribution": distribution,
-        "labels": ["0-9","10-19","20-29","30-39","40-49","50-59","60-69","70-79","80-89","90-100"]
-    }
+    """
+    Real stats pulled from the resume_scores table.
+
+    If the DB is empty (or unreachable), we gracefully fall back to
+    the seeded in-memory pool so the UI never looks broken.
+    """
+    labels = ["0-9","10-19","20-29","30-39","40-49","50-59","60-69","70-79","80-89","90-100"]
+    try:
+        with SessionLocal() as db:
+            pool_size = db.query(sa_func.count(ResumeScore.id)).scalar() or 0
+            if pool_size == 0:
+                # No real data yet — return empty shell (NOT the mock pool),
+                # so the frontend can show "waiting for first submissions".
+                return {
+                    "pool_size": 0,
+                    "avg_score": 0,
+                    "distribution": [0] * 10,
+                    "labels": labels,
+                    "source": "database",
+                }
+
+            avg_score = db.query(sa_func.avg(ResumeScore.fit_score)).scalar() or 0
+
+            # Histogram: bucket by tens. Pull scores in one query.
+            scores = [row[0] for row in db.query(ResumeScore.fit_score).all()]
+            distribution = [0] * 10
+            for s in scores:
+                bucket = min(int((s or 0) / 10), 9)
+                distribution[bucket] += 1
+
+            return {
+                "pool_size": pool_size,
+                "avg_score": round(float(avg_score), 1),
+                "distribution": distribution,
+                "labels": labels,
+                "source": "database",
+            }
+    except Exception as e:  # noqa: BLE001
+        print(f"[FairAI] WARNING: /stats DB query failed, using mock: {e}", file=sys.stderr)
+        if not score_history:
+            return {"pool_size": 0, "avg_score": 0, "distribution": [0] * 10, "labels": labels, "source": "mock_seeded"}
+        distribution = [0] * 10
+        for s in score_history:
+            bucket = min(int(s / 10), 9)
+            distribution[bucket] += 1
+        return {
+            "pool_size": len(score_history),
+            "avg_score": round(sum(score_history) / len(score_history), 1),
+            "distribution": distribution,
+            "labels": labels,
+            "source": "mock_seeded",
+        }
 
 SUPPORTED_TYPES = {
     ".pdf":  "application/pdf",
@@ -1759,15 +1886,22 @@ Resume:
         result.setdefault("recommendation", "Schedule Screening Call")
         print(f"[FairAI] Legacy ATS={legacy_score} | FairAI={fit} | Delta=+{score_delta}")
 
-        # Percentile (Feature 4 — seeded pool)
-        score_history.append(fit)
-        below     = sum(1 for s in score_history if s < fit)
-        percentile = round((below / len(score_history)) * 100)
+        # ── Percentile (Feature 4 — real, DB-backed pool) ──────────────
+        # 1. Persist this (PII-free) result so future candidates benchmark
+        #    against real data.
+        contextual_ratio = result.get("contextual_ratio", 0.5)
+        _record_score(role, fit, contextual_ratio)
+
+        # 2. Compute percentile from the DB for THIS role.
+        #    Falls back to the seeded mock pool when <10 samples exist
+        #    for the role (so new roles don't show 0% / 100% extremes).
+        percentile, pool_size, is_mock = _compute_percentile_from_db(role, fit)
 
         result["pii_removed"]  = pii_items
         result["pii_method"]   = pii_method  # "gliner_ner" | "llm_fallback" | "none"
         result["percentile"]   = percentile
-        result["pool_size"]    = len(score_history)
+        result["pool_size"]    = pool_size if not is_mock else len(score_history)
+        result["percentile_source"] = "mock_seeded" if is_mock else "database"
 
         # Extract URLs from original (pre-sanitized) resume for proof-of-work
         urls = extract_urls_from_text(resume_text)

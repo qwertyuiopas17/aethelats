@@ -8,3 +8,6 @@ torch
 transformers
 sentencepiece
 gliner
+Pillow
+sqlalchemy
+psycopg2-binary
