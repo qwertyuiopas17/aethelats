@@ -201,7 +201,8 @@ export function useAppState() {
         .catch(e => {
           setJobRole('');
           setSelectedFile(null);
-          alert(e.message);
+          setApiError(e.message);
+          setStep('error');
         })
         .finally(() => setDetectingRole(false));
     }
