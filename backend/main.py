@@ -2755,6 +2755,39 @@ async def compare_models(
 
         print(f"[FairAI][compare] Done. FairAI={fairai_score} Advantage={fairai_adv_avg} BiasReduction={fairai_bias_red}%")
 
+        # ── Persist bias deltas for ALL models to the dashboard DB ──────────────
+        try:
+            # Record FairAI (bias-blind) row with near-zero deltas
+            record_bias_deltas(
+                role_target=role,
+                original_score=fairai_score,
+                variants={
+                    "institution": fairai_score + fairai_i_delta,
+                    "gap":         fairai_score + fairai_g_delta,
+                    "name":        fairai_score + fairai_n_delta,
+                    "combined":    fairai_score,
+                },
+                evaluator_model="aethel",
+            )
+            # Record each external LLM's deltas
+            for m_out in models_out:
+                if not m_out["is_own_model"] and m_out["score"] >= 0:
+                    bd = {d["key"]: d["delta"] for d in m_out["bias_deltas"]}
+                    s = m_out["score"]
+                    record_bias_deltas(
+                        role_target=role,
+                        original_score=s,
+                        variants={
+                            "institution": s + bd.get("institution_delta", 0),
+                            "gap":         s + bd.get("gap_delta", 0),
+                            "name":        s + bd.get("name_delta", 0),
+                            "combined":    s,
+                        },
+                        evaluator_model=m_out["model_id"],
+                    )
+        except Exception as _db_err:
+            print(f"[FairAI] WARNING: compare-models DB write skipped: {_db_err}", file=sys.stderr)
+
         return {
             "models":                  models_out,
             "fairai_advantage_avg":    fairai_adv_avg,
