@@ -28,6 +28,7 @@ from sqlalchemy import (
     String,
     create_engine,
     func,
+    text,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -101,6 +102,26 @@ def init_db() -> None:
     """Create tables if they don't already exist. Idempotent."""
     try:
         Base.metadata.create_all(bind=engine)
+        
+        # --- Migration for newly added columns ---
+        # sqlalchemy's create_all doesn't add new columns to existing tables
+        with engine.connect() as conn:
+            # We wrap in try-except because ALTER TABLE fails if column already exists
+            # and SQLite ALTER TABLE doesn't support IF NOT EXISTS in all versions.
+            columns = [
+                "delta_institution FLOAT",
+                "delta_gap FLOAT",
+                "delta_name FLOAT",
+                "delta_combined FLOAT",
+                "evaluator_model VARCHAR(64)"
+            ]
+            for col in columns:
+                try:
+                    conn.execute(text(f"ALTER TABLE resume_scores ADD COLUMN {col}"))
+                    conn.commit()
+                except Exception:
+                    pass  # column already exists or syntax error
+
         backend = "SQLite" if _is_sqlite else "PostgreSQL"
         print(f"[FairAI] DB ready ({backend}) — table 'resume_scores' ensured.")
     except Exception as e:  # noqa: BLE001
