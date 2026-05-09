@@ -76,10 +76,11 @@ _CHECKPOINT_PATH = Path(os.environ.get(
 ))
 _BASE_MODEL_NAME  = "t5-base"
 
-# ── HuggingFace Serverless Inference API config ────────────────────────────────
-_T5_HF_REPO  = os.environ.get("T5_HF_REPO", "Unded-17/bot3-t5-resume-structurer")
+# ── HuggingFace & Modal config ────────────────────────────────────────────────
+_T5_HF_REPO  = os.environ.get("T5_HF_REPO", "Unded-17/bot3-qwen25-resume-structurer")
 _HF_TOKEN    = os.environ.get("HF_TOKEN", "")
 _COLAB_URL   = os.environ.get("COLAB_URL", "")
+MODAL_BOT3_URL = os.environ.get("MODAL_BOT3_URL", "")
 _HF_MAX_RETRIES = 2
 _HF_RETRY_DELAYS = [8, 12]  # seconds between retries on 503 — shorter to reduce cold-start wait
 
@@ -370,17 +371,46 @@ def _run_t5_via_hf_api(formatted_text: str) -> Optional[dict]:
                 print("[Bot3] ✓ Colab GPU succeeded.")
                 return data["structured_data"]
         except Exception as e:
-            print(f"[Bot3] Colab unavailable ({e}). Trying HF API ...")
+            print(f"[Bot3] Colab unavailable ({e}). Trying Modal ...")
 
-    # HuggingFace Serverless Inference API
+    # Try Modal endpoint
+    modal_url = os.environ.get("MODAL_BOT3_URL", MODAL_BOT3_URL)
+    if modal_url:
+        try:
+            print(f"[Bot3] Trying Modal GPU at {modal_url} ...")
+            resp = requests.post(
+                modal_url.rstrip("/"),
+                json={"sanitized_text": formatted_text},
+                timeout=120
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("structured_data"):
+                print("[Bot3] ✓ Modal GPU succeeded.")
+                return data["structured_data"]
+            elif data.get("error"):
+                print(f"[Bot3] Modal returned parse error: {data['error'][:200]}. Trying HF API ...")
+        except Exception as e:
+            print(f"[Bot3] Modal unavailable ({e}). Trying HF API ...")
+
+    # HuggingFace Serverless Inference API (Fallback)
     api_url = f"https://api-inference.huggingface.co/models/{_T5_HF_REPO}"
     headers = {"Authorization": f"Bearer {_HF_TOKEN}"}
+    
+    qwen_prompt = (
+        "<|im_start|>system\nYou are a precise resume parser. Return ONLY valid JSON with keys: "
+        "total_years_experience, technical_skills, job_history, highest_degree, education, "
+        "experience, work_experience_summary. No markdown, no explanation.<|im_end|>\n"
+        "<|im_start|>user\nParse this resume:\n\n"
+        f"{formatted_text}<|im_end|>\n<|im_start|>assistant\n"
+    )
+    
     payload = {
-        "inputs": f"Extract JSON from this resume:\n{formatted_text}",
+        "inputs": qwen_prompt,
         "parameters": {
             "max_new_tokens": _MAX_OUTPUT_TOKENS,
-            "num_beams": _NUM_BEAMS,
-            "early_stopping": True,
+            "temperature": 0.1,
+            "return_full_text": False
         },
     }
 
@@ -923,14 +953,22 @@ def structure_resume(sanitized_text: str) -> dict:
     print(f"[Bot3] Pre-formatted resume ({len(formatted)} chars):\n"
           f"{formatted[:400]}{'…' if len(formatted) > 400 else ''}\n")
 
-    # 2. Try the fine-tuned T5 model (loads from HF Hub on first call, then cached)
-    print("[Bot3] Loading fine-tuned T5 model ...")
+    # 2. Try fast HF Serverless Inference API first (shared GPU — much faster than local CPU)
+    hf_result = _run_t5_via_hf_api(formatted)
+    if hf_result is not None:
+        print("[Bot3] ✓ HF API T5 produced valid JSON.")
+        return _validate_and_fill(hf_result)
+
+    # 3. Fall back to local fine-tuned T5 model (CPU — slower but works offline)
+    # NOTE: This is intentionally LAST because CPU beam-search with num_beams=4
+    # takes 2-3 minutes per resume. Only use when HF API is unavailable.
+    print("[Bot3] HF API unavailable — loading local T5 model (slow CPU fallback)...")
     t5_result = _run_t5(formatted)
     if t5_result is not None:
         print("[Bot3] ✓ T5 model produced valid JSON — using model output.")
         return _validate_and_fill(t5_result)
 
-    # 3. Fallback to rule-based extraction (always works, no model needed)
+    # 4. Deterministic rule-based extraction (always works, no model needed)
     print("[Bot3] T5 unavailable — using rule-based fallback.")
     fallback = _rule_based_fallback(formatted, sanitized_text)
     return _validate_and_fill(fallback)

@@ -10,6 +10,7 @@ import LandingView from './components/LandingView';
 import UploadView from './components/UploadView';
 import ResultsView from './components/ResultsView';
 import HorseLoader from './components/HorseLoader';
+import BiasDashboard from './components/BiasDashboard';
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(e) { return { error: e }; }
@@ -36,6 +37,7 @@ export default function App() {
   const goToUpload = () => { s.setStep('upload'); setMobileMenuOpen(false); };
   const loadDemoFromLanding = () => { s.loadDemo(); setMobileMenuOpen(false); };
   const goToLanding = () => { s.setStep('landing'); setMobileMenuOpen(false); };
+  const goToAnalytics = () => { s.setStep('analytics'); setMobileMenuOpen(false); };
 
   return (
     <ErrorBoundary>
@@ -82,7 +84,7 @@ export default function App() {
             <NavItem icon={<Users className="w-4 h-4" />} label="Talent Pool" active={false} />
             <NavItem icon={<Shield className="w-4 h-4" />} label="Audit Trail" active={s.step === 'upload' || s.step === 'scanning'} onClick={goToUpload} />
             <NavItem icon={<FileText className="w-4 h-4" />} label="Templates" active={false} />
-            <NavItem icon={<BarChart2 className="w-4 h-4" />} label="Analytics" active={false} />
+            <NavItem icon={<BarChart2 className="w-4 h-4" />} label="Analytics" active={s.step === 'analytics'} onClick={goToAnalytics} />
             <NavItem icon={<Clock className="w-4 h-4" />} label="History" active={false} />
           </nav>
           <div className="p-4 border-t border-white/[0.06]">
@@ -200,6 +202,9 @@ export default function App() {
 
             {/* ═══ RESULTS ═══ */}
             {s.step === 'results' && s.result && <ResultsView s={s} />}
+
+            {/* ═══ ANALYTICS / BIAS DASHBOARD ═══ */}
+            {s.step === 'analytics' && <BiasDashboard />}
 
           </main>
         </div>

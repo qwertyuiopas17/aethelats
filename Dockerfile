@@ -23,6 +23,9 @@ WORKDIR $HOME/app
 COPY --chown=user main.py ./main.py
 COPY --chown=user evaluator_agent.py ./evaluator_agent.py
 COPY --chown=user structure_agent.py ./structure_agent.py
+COPY --chown=user database.py ./database.py
+COPY --chown=user name_signals.py ./name_signals.py
+COPY --chown=user skill_graph.json ./skill_graph.json
 COPY --chown=user requirements.txt ./requirements.txt
 
 # Install CPU-only torch first (separate step to use --extra-index-url)
@@ -40,7 +43,10 @@ RUN pip install --no-cache-dir \
     requests \
     transformers \
     sentencepiece \
-    gliner
+    gliner \
+    Pillow \
+    sqlalchemy \
+    psycopg2-binary
 
 # HF Spaces requires port 7860
 ENV PORT=7860

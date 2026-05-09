@@ -31,9 +31,9 @@ COLAB_URL       = os.environ.get("COLAB_URL", "")
 MODAL_BOT4_URL  = os.environ.get("MODAL_BOT4_URL", "")
 
 # Retry config for HF Serverless Inference API cold starts
-_MAX_RETRIES    = 4       # max retry attempts on 503
-_RETRY_DELAYS   = [20, 25, 30, 30]  # seconds to wait between retries (~105s total max)
-_REQUEST_TIMEOUT = 180    # seconds per individual request
+_MAX_RETRIES    = 2       # max retry attempts on 503 (reduced to keep UX fast)
+_RETRY_DELAYS   = [10, 15]  # seconds to wait between retries (~25s total max)
+_REQUEST_TIMEOUT = 60     # seconds per individual request
 
 # ── Prompt template (must match fine-tuning format) ───────────────────────────
 _SYSTEM_PROMPT = (
@@ -158,6 +158,67 @@ def _call_hf_inference_api(payload: dict) -> dict:
     return {"error": "HF Inference API failed after all retries."}
 
 
+def _groq_fallback(structured_data: dict, jd_skills: list[str], job_title: str) -> dict:
+    """
+    Priority 4: Fast Groq LLM fallback when all fine-tuned model endpoints are down.
+
+    Uses llama-3.3-70b-versatile via Groq API to produce the same output schema
+    as the fine-tuned Phi-3.5 model. Slightly less calibrated, but always fast
+    and prevents the infinite-loading UX problem.
+    """
+    try:
+        from groq import Groq
+        import os as _os
+
+        # Try rotating keys (same pattern as main.py)
+        api_key = None
+        for i in range(1, 10):
+            k = _os.environ.get(f"GROQ_PRIMARY_KEY_{i}")
+            if k:
+                api_key = k
+                break
+        if not api_key:
+            api_key = _os.environ.get("GROQ_API_KEY", "")
+        if not api_key:
+            return {"error": "No Groq API keys configured for fallback."}
+
+        groq_client = Groq(api_key=api_key)
+        rubric = {"job_title": job_title, "required_skills": jd_skills}
+
+        prompt = (
+            f"You are an objective resume scoring assistant.\n"
+            f"Score this candidate's structured resume JSON against the job description rubric.\n\n"
+            f"Candidate Resume JSON:\n{json.dumps(structured_data, indent=2)}\n\n"
+            f"Job Description Rubric:\n{json.dumps(rubric, indent=2)}\n\n"
+            f"Return ONLY valid JSON with these keys:\n"
+            f"- overall_score (0-100)\n"
+            f"- skill_match_score (0-100)\n"
+            f"- experience_score (0-100)\n"
+            f"- education_score (0-100)\n"
+            f"- missing_skills (list of strings)\n"
+            f"- strengths (list of strings)\n"
+            f"- recommendation (one of: Strong Hire / Hire / Maybe / No Hire)\n"
+            f"- reasoning (2-3 sentence string)\n"
+        )
+
+        resp = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,
+            max_tokens=1024,
+            response_format={"type": "json_object"},
+        )
+        raw = resp.choices[0].message.content.strip()
+        result = json.loads(raw)
+        print(f"[Bot4] ✓ Groq fallback succeeded: score={result.get('overall_score')}")
+        return result
+    except Exception as e:
+        print(f"[Bot4] Groq fallback also failed: {e}")
+        return {"error": f"All Bot 4 endpoints failed. Last: {e}"}
+
 def evaluate_resume(
     structured_data: dict,
     jd_skills: list[str],
@@ -210,7 +271,7 @@ def evaluate_resume(
                     "job_title": job_title,
                     "max_new_tokens": max_new_tokens,
                 },
-                timeout=300,   # Phi-3.5 cold start can take up to 3 min on first request
+                timeout=120,   # Allow enough time for Modal serverless GPU cold start (can take 60-90s)
             )
             resp.raise_for_status()
             result = resp.json()
@@ -241,4 +302,10 @@ def evaluate_resume(
     # ── Priority 3: HF Free Inference API (likely 404 for custom models) ───────
     print(f"[Bot4] Using HF Free Inference API: {HF_REPO_ID}")
     print("[Bot4] Note: first request may take 30-90s while model loads on shared GPU.")
-    return _call_hf_inference_api(payload)
+    hf_result = _call_hf_inference_api(payload)
+    if "error" not in hf_result:
+        return hf_result
+    print(f"[Bot4] HF Free API failed: {hf_result.get('error')}. Trying Groq fallback...")
+
+    # ── Priority 4: Groq LLM fallback (fast, always-on) ───────────────────────
+    return _groq_fallback(structured_data, jd_skills, job_title)
