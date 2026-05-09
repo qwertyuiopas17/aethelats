@@ -215,6 +215,11 @@ These platforms were *designed* to level the playing field by letting non-IIT st
 │  ✦  Renders a full Skill Knowledge Graph for every candidate            │
 │  ✦  India-specific bias vectors: IIT/NIT swap, maternity gap, Tier-2    │
 │     city, caste-proxy names (Priya Kumari vs Arjun Sharma)              │
+│                                                                         │
+│  🆕 NEW — May 2026                                                      │
+│  ✦  Downloads a 5-section PDF Bias Audit Report (LL 144 ready)         │
+│  ✦  Bias Analytics Dashboard — aggregate bias trends across all scans  │
+│  ✦  FairAI signals show evidence quotes (same depth as Llama/Gemma)    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
