@@ -2271,6 +2271,39 @@ async def bias_comparison(role: str = None):
     }
 
 
+# ─── PDF REPORT EXPORT ────────────────────────────────────────
+
+from fastapi.responses import Response as FastAPIResponse
+
+@app.post("/export-report")
+async def export_report(payload: dict = Body(...)):
+    """
+    Generates and returns a professional PDF Bias Audit Report.
+
+    Accepts the full scan result as JSON (assembled by the frontend):
+      role, fit_score, legacy_ats_score, candidate_id,
+      cf_result (from /counterfactual-test),
+      comp_result (from /compare-models)
+
+    Returns: application/pdf download.
+    Suitable as supporting evidence for NYC LL 144 annual bias audit disclosures
+    and EU AI Act high-risk system documentation (enforceable August 2, 2026).
+    """
+    try:
+        from report_generator import generate_report
+        pdf_bytes = generate_report(payload)
+        cand_id   = payload.get("candidate_id", "report")
+        filename  = f"aethel-audit-{cand_id}.pdf"
+        return FastAPIResponse(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+
+
 # ─── JD BIAS DETECTION ENDPOINT ──────────────────────────────
 
 @app.post("/analyze-jd")

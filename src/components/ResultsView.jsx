@@ -22,6 +22,41 @@ export default function ResultsView({ s }) {
   const animTech = useCountUp(radar.technical_depth || 0, 1200);
   const animLead = useCountUp(radar.project_complexity || 0, 1200);
 
+  const [exporting, setExporting] = React.useState(false);
+  const candidateId = React.useRef(`AETH-${Math.floor(Math.random() * 90000 + 10000)}`);
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://unded-17-aethel-backend-v3.hf.space';
+      const payload = {
+        role: s.jobRole || 'Unknown Role',
+        fit_score: fitScore,
+        legacy_ats_score: legacyScore,
+        candidate_id: candidateId.current,
+        cf_result: s.cfResult || null,
+        comp_result: s.compResult || null,
+      };
+      const res = await fetch(`${API_BASE}/export-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `aethel-audit-${candidateId.current}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(`PDF export failed: ${e.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="p-8 pb-20 max-w-6xl animate-fade-in">
       {biasProxies.length > 0 && !s.fairnessConfirmed && (
@@ -41,13 +76,21 @@ export default function ResultsView({ s }) {
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-1">Audit Trail / Results</div>
           <h1 className="text-2xl font-bold text-white">Candidate Analysis</h1>
-          <p className="text-white/90 text-sm">Sr. Director of Engineering · Candidate ID: #AETH-{Math.floor(Math.random() * 9000 + 1000)}</p>
+          <p className="text-white/90 text-sm">Sr. Director of Engineering · Candidate ID: #{candidateId.current}</p>
         </div>
         <div className="flex items-center gap-3 no-print">
-          <button onClick={() => window.print()} className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift"><Download className="w-4 h-4" />Export PDF</button>
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift disabled:opacity-50 disabled:cursor-wait"
+          >
+            <Download className="w-4 h-4" />
+            {exporting ? 'Generating…' : 'Download Audit Report'}
+          </button>
           <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 btn-premium"><CheckCircle className="w-4 h-4" />Advance to Final</button>
         </div>
       </div>
+
 
       {/* Score Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

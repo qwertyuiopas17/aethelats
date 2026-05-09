@@ -55,6 +55,7 @@ def deploy():
         "backend/structure_agent.py":  "structure_agent.py",
         "backend/database.py":         "database.py",
         "backend/name_signals.py":     "name_signals.py",
+        "backend/report_generator.py": "report_generator.py",
         "backend/requirements.txt":    "requirements.txt",
         "backend/skill_graph.json":    "skill_graph.json",
         "Dockerfile":                  "Dockerfile",
