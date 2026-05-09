@@ -2638,19 +2638,64 @@ async def compare_models(
         fairai_n_delta = 0
         fairai_max_d   = 0
 
-        # Parse signals/gaps passed from the frontend's existing Bot 4 result
+        # ── Run full evidence-backed signal analysis on PII-stripped text ──────
+        # This gives FairAI the same quality of signals as comparison LLMs:
+        # strengths with direct evidence quotes, specific gaps, etc.
+        # The SCORE stays as baseline_score (Bot 4). Only signals are updated.
+        # Crucially, the analysis runs on `sanitized` (PII-stripped), not raw text.
         try:
-            fairai_strengths = json.loads(fairai_signals) if fairai_signals else []
-        except Exception:
+            print("[FairAI][compare] Running evidence-backed signal analysis on PII-stripped text...")
+            fairai_full = await loop.run_in_executor(
+                pool, _full_score_with_model, MODEL, "groq", sanitized, role
+            )
+
+            raw_s = fairai_full.get("strengths", [])
             fairai_strengths = []
-        try:
-            fairai_gaps_list = json.loads(fairai_gaps) if fairai_gaps else []
-        except Exception:
+            for sig in raw_s:
+                if isinstance(sig, dict):
+                    fairai_strengths.append({
+                        "signal":   sig.get("signal", ""),
+                        "evidence": sig.get("evidence", ""),
+                        "weight":   sig.get("weight", "medium"),
+                    })
+                elif isinstance(sig, str):
+                    fairai_strengths.append({"signal": sig, "evidence": sig, "weight": "medium"})
+
+            raw_g = fairai_full.get("gaps", [])
             fairai_gaps_list = []
-        try:
-            fairai_skills_list = json.loads(fairai_skills) if fairai_skills else []
-        except Exception:
-            fairai_skills_list = []
+            for g in raw_g:
+                if isinstance(g, dict):
+                    fairai_gaps_list.append({
+                        "gap":      g.get("gap", ""),
+                        "severity": g.get("severity", "minor"),
+                    })
+                elif isinstance(g, str):
+                    fairai_gaps_list.append({"gap": g, "severity": "minor"})
+
+            raw_sk = fairai_full.get("skills_found", [])
+            fairai_skills_list = [
+                {"found_in_resume": sk, "canonical_name": sk, "match_type": "exact"}
+                for sk in raw_sk if isinstance(sk, str)
+            ]
+
+            print(f"[FairAI][compare] FairAI signals: {len(fairai_strengths)} strengths, "
+                  f"{len(fairai_gaps_list)} gaps, {len(fairai_skills_list)} skills")
+
+        except Exception as _sig_err:
+            # Fallback: use the frontend-passed signals from the original /analyze run
+            print(f"[FairAI][compare] Signal analysis failed ({_sig_err}), using fallback signals")
+            try:
+                fairai_strengths = json.loads(fairai_signals) if fairai_signals else []
+            except Exception:
+                fairai_strengths = []
+            try:
+                fairai_gaps_list = json.loads(fairai_gaps) if fairai_gaps else []
+            except Exception:
+                fairai_gaps_list = []
+            try:
+                fairai_skills_list = json.loads(fairai_skills) if fairai_skills else []
+            except Exception:
+                fairai_skills_list = []
 
         # Build a differentiated radar using the same formula as /analyze
         # We don't have Bot 4 sub-scores here (we reuse baseline), so we derive
