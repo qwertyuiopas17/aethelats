@@ -204,11 +204,11 @@ function AuthenticatedApp({ s }) {
       )}
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileMenuOpen(false)} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
       {/* SIDEBAR */}
-      <aside className={`w-56 shrink-0 glass-sidebar flex flex-col min-h-screen z-50 !fixed md:!relative transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`w-56 shrink-0 glass-sidebar flex flex-col min-h-screen z-[70] !fixed md:!relative transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/assets/shield_logo.png" alt="Aethel" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
@@ -274,7 +274,7 @@ function AuthenticatedApp({ s }) {
             </button>
             <div className="flex items-center gap-2">
               <img src="/assets/shield_logo.png" alt="Aethel Logo" className="w-6 h-6 object-contain" />
-              <span className="text-sm font-bold text-white tracking-tight hidden sm:block">Aethel ATS</span>
+              <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
             </div>
           </div>
           <div className="flex items-center gap-3 relative">
