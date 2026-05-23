@@ -134,10 +134,6 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={onLoadDemo}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">
-            <Play className="w-3.5 h-3.5" /> Demo
-          </button>
           <button onClick={onSignIn}
             className="px-4 py-2 text-sm font-semibold text-white/80 hover:text-white border border-white/[0.10]
               hover:border-white/20 rounded-xl transition-all hover:bg-white/[0.04]">
@@ -380,11 +376,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* ── LOGGED IN: full app ── */}
-      {isLoggedIn && <AuthenticatedApp s={s} />}
+      {/* ── LOGGED IN OR DEMO: full app ── */}
+      {(isLoggedIn || s.isDemo) && <AuthenticatedApp s={s} />}
 
       {/* ── LOGGED OUT: public landing ── */}
-      {!isLoggedIn && (
+      {(!isLoggedIn && !s.isDemo) && (
         <PublicLanding
           onSignIn={handleSignIn}
           onGetStarted={handleGetStarted}

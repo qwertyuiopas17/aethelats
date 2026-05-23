@@ -323,11 +323,11 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-white/[0.06]">
-                  <th className="text-left py-2 pr-4 font-bold text-white/40 uppercase tracking-wider">Capability</th>
-                  <th className="text-center py-2 px-3 font-bold text-white uppercase tracking-wider">Aethel</th>
-                  <th className="text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">AMCAT</th>
-                  <th className="text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">CoCubes</th>
-                  <th className="text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">Jobscan</th>
+                  <th className="w-[40%] text-left py-2 pr-4 font-bold text-white/40 uppercase tracking-wider">Capability</th>
+                  <th className="w-[15%] text-center py-2 px-3 font-bold text-white uppercase tracking-wider">Aethel</th>
+                  <th className="w-[15%] text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">AMCAT</th>
+                  <th className="w-[15%] text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">CoCubes</th>
+                  <th className="w-[15%] text-center py-2 px-3 font-bold text-white/30 uppercase tracking-wider">Jobscan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
