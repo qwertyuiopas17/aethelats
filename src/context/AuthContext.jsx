@@ -40,6 +40,8 @@ export function AuthProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Register: returns { pending_verification, email } — NO token yet
+  // UNLESS backend has SKIP_EMAIL_VERIFY=true, in which case it returns
+  // access_token + user directly (like login) and we log in immediately.
   const register = useCallback(async ({ email, password, name, role, org }) => {
     setLoading(true);
     setAuthError(null);
@@ -51,7 +53,15 @@ export function AuthProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Registration failed.');
-      // Returns { pending_verification: true, email }
+
+      // SKIP_EMAIL_VERIFY mode: backend returns token immediately
+      if (data.access_token && data.user) {
+        setToken(data.access_token);
+        setUser(data.user);
+        return { ok: true, loggedIn: true };
+      }
+
+      // Normal OTP flow
       return { ok: true, pendingEmail: data.email };
     } catch (e) {
       setAuthError(e.message);

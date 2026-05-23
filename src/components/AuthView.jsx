@@ -290,7 +290,9 @@ function RegisterForm({ onSwitch, onOTPRequired }) {
     e.preventDefault();
     clearAuthError();
     const result = await register({ name, email, password, role, org: org || undefined });
-    if (result.ok && result.pendingEmail) {
+    if (result.ok && result.loggedIn) {
+      // SKIP_EMAIL_VERIFY: already logged in — nothing to do, App rerenders automatically
+    } else if (result.ok && result.pendingEmail) {
       onOTPRequired(result.pendingEmail);
     }
   };
