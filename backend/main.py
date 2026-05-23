@@ -1399,6 +1399,10 @@ def get_stats():
 
 # ─── AUTH ENDPOINTS ───────────────────────────────────────────
 
+# If SKIP_EMAIL_VERIFY=true, users are auto-verified on registration (no OTP email needed).
+# Use this when Resend domain isn't set up yet. Remove it once you verify a domain.
+_SKIP_EMAIL_VERIFY = os.environ.get("SKIP_EMAIL_VERIFY", "").lower() in ("1", "true", "yes")
+
 @app.post("/auth/register", status_code=201)
 @limiter.limit("2/hour")   # max 2 account creations per IP per hour
 def auth_register(request: Request, body: RegisterRequest):
@@ -1442,6 +1446,24 @@ def auth_register(request: Request, body: RegisterRequest):
     )
     if user is None:
         raise HTTPException(status_code=500, detail="Failed to create account. Please try again.")
+
+    # ── Auto-verify mode (no Resend domain set up yet) ──────────
+    if _SKIP_EMAIL_VERIFY:
+        from database import mark_user_verified
+        mark_user_verified(email)
+        token = create_access_token(user.id, user.email, user.role)
+        print(f"[Auth] SKIP_EMAIL_VERIFY: auto-verified {email!r}")
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id":    user.id,
+                "email": user.email,
+                "name":  user.name,
+                "role":  user.role,
+                "org":   user.org,
+            },
+        }
 
     # Generate OTP and send email
     otp = create_otp(email)
