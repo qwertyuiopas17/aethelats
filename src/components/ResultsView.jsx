@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench, BarChart2, Users } from 'lucide-react';
 import { SectionHeading, Pill, ScoreMeter, AnimatedBar, useCountUp, getFitVariant } from './UIHelpers';
 import { PercentileBadge, PIIStripPanel, SkillDepthSection, SkillMatchSection } from './FeatureSections';
 import { ProofOfWorkSection, BiasStabilitySection } from './AnalysisPanels';
@@ -103,12 +103,12 @@ export default function ResultsView({ s }) {
         {/* Horizontal scroll container for secondary metrics on mobile */}
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 md:overflow-visible md:col-span-2 md:grid md:grid-cols-2 no-scrollbar">
           <div className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-2">
-            <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Technical Aptitude</span><span className="text-white">📊</span></div>
+            <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Technical Aptitude</span><BarChart2 className="w-5 h-5 text-white/50" /></div>
             <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animTech}</span><span className="text-sm text-[#22c55e] font-semibold">+4% avg</span></div>
             <AnimatedBar value={radar.technical_depth || 0} delay={200} color="bg-white/40" />
           </div>
           <div className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-3">
-            <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Leadership Index</span><span className="text-white">👥</span></div>
+            <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Leadership Index</span><Users className="w-5 h-5 text-white/50" /></div>
             <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animLead}</span><span className="text-sm text-white/90 font-semibold">-1% avg</span></div>
             <AnimatedBar value={radar.project_complexity || 0} delay={300} color="bg-white/30" />
           </div>

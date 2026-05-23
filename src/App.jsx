@@ -99,7 +99,7 @@ function UserAvatar({ name }) {
 function UserMenu({ user, onLogout, onClose }) {
   if (!user) return null;
   return (
-    <div className="absolute right-0 top-full mt-2 w-56 glass-card rounded-2xl border border-white/[0.08] shadow-xl z-50 overflow-hidden animate-fade-in">
+    <div className="absolute right-0 top-full mt-2 w-56 glass-card rounded-2xl border border-white/[0.08] shadow-xl z-[100] overflow-hidden animate-fade-in">
       <div className="px-4 py-3 border-b border-white/[0.06]">
         <div className="text-sm font-bold text-white truncate">{user.name}</div>
         <div className="text-xs text-white/40 truncate">{user.email}</div>
@@ -137,17 +137,17 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
             <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 -mt-0.5">Precision Recruitment</div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {s?.isDemo && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-white/70 border border-white/[0.08]">Demo</span>
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-white/70 border border-white/[0.08]">Demo</span>
           )}
           <button onClick={onSignIn}
-            className="px-4 py-2 text-sm font-semibold text-white/80 hover:text-white border border-white/[0.10]
+            className="hidden sm:block px-4 py-2 text-sm font-semibold text-white/80 hover:text-white border border-white/[0.10]
               hover:border-white/20 rounded-xl transition-all hover:bg-white/[0.04]">
             Sign In
           </button>
           <button onClick={onGetStarted}
-            className="px-4 py-2 text-sm font-bold text-black bg-white rounded-xl hover:bg-white/90 active:scale-95 transition-all">
+            className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-black bg-white rounded-xl hover:bg-white/90 active:scale-95 transition-all whitespace-nowrap">
             Get Started Free
           </button>
         </div>
@@ -306,11 +306,7 @@ function AuthenticatedApp({ s }) {
               <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
                 <HorseLoader />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Analyzing Candidate Profile</h2>
-              <p className="text-white/60 text-sm mb-12 text-center max-w-md leading-relaxed">
-                Applying semantic matching for <span className="text-white font-semibold">{s.jobRole}</span>.<br />
-                {s.progress < 30 ? 'Extracting core competencies...' : s.progress < 70 ? 'Cross-referencing skills against JD...' : 'Computing final bias-free verdict...'}
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
               
               <div className="w-full max-w-lg glass-card rounded-2xl p-6 scan-container shadow-[0_0_50px_rgba(255,255,255,0.03)] border border-white/[0.08]">
                 <div className="flex justify-between items-end mb-3">
