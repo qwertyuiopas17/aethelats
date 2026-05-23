@@ -116,7 +116,7 @@ function UserMenu({ user, onLogout, onClose }) {
 /* ══════════════════════════════════════════════════════════════
    PUBLIC LANDING — shown to everyone, no auth required
 ══════════════════════════════════════════════════════════════ */
-function PublicLanding({ onSignIn, onGetStarted, onLoadDemo }) {
+function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
   return (
     <div className="min-h-screen bg-black relative">
       <div className="bg-grid-pattern fixed z-0" />
@@ -134,6 +134,9 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {s?.isDemo && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-white/70 border border-white/[0.08]">Demo</span>
+          )}
           <button onClick={onSignIn}
             className="px-4 py-2 text-sm font-semibold text-white/80 hover:text-white border border-white/[0.10]
               hover:border-white/20 rounded-xl transition-all hover:bg-white/[0.04]">
@@ -146,10 +149,27 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo }) {
         </div>
       </header>
 
-      {/* Landing content */}
-      <div className="relative z-10">
-        <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
-      </div>
+      {/* Demo mode: show results + sign-up nudge */}
+      {s?.isDemo && s?.result ? (
+        <div className="relative z-10">
+          <div className="px-6 py-3 flex items-center justify-between gap-4 border-b border-white/[0.05]"
+            style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <p className="text-xs text-white/60">
+              👀 You're viewing a <span className="text-white font-semibold">sample demo</span>. Sign up free to audit your own resume.
+            </p>
+            <button onClick={onGetStarted}
+              className="shrink-0 px-4 py-1.5 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-all">
+              Audit My Resume — Free →
+            </button>
+          </div>
+          <ResultsView s={s} />
+        </div>
+      ) : (
+        /* Normal landing content */
+        <div className="relative z-10">
+          <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
+        </div>
+      )}
     </div>
   );
 }
@@ -340,7 +360,7 @@ function AuthenticatedApp({ s }) {
    ROOT APP — decides what to render based on auth state
 ══════════════════════════════════════════════════════════════ */
 export default function App() {
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn } = useAuth();
   const s = useAppState();
   const [showAuth, setShowAuth]     = useState(false);  // auth modal open?
   const [authIntent, setAuthIntent] = useState(null);   // where to go after login
@@ -348,14 +368,15 @@ export default function App() {
   // When user logs in → close modal and act on intent
   const prevLoggedIn = React.useRef(isLoggedIn);
   useEffect(() => {
-    if (!prevLoggedIn.current && isLoggedIn && showAuth) {
+    if (!prevLoggedIn.current && isLoggedIn) {
       setShowAuth(false);
       if (authIntent === 'scan') s.setStep('upload');
       else if (authIntent === 'demo') s.loadDemo();
       setAuthIntent(null);
     }
     prevLoggedIn.current = isLoggedIn;
-  }, [isLoggedIn, showAuth, authIntent]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
 
   const handleGetStarted = () => {
     if (isLoggedIn) { s.setStep('upload'); }
@@ -363,10 +384,8 @@ export default function App() {
   };
 
   const handleLoadDemo = () => {
-    // Demo works without auth
     s.loadDemo();
-    // If logged in, stay in app; if not logged in, let them see results without forcing auth
-    if (!isLoggedIn) { setShowAuth(false); }
+    setShowAuth(false);
   };
 
   const handleSignIn = () => {
@@ -374,21 +393,26 @@ export default function App() {
     setShowAuth(true);
   };
 
+  // A demo user (not logged in) sees results inside a stripped-down shell
+  const showApp = isLoggedIn || s.isDemo;
+
+
   return (
     <ErrorBoundary>
-      {/* ── LOGGED IN OR DEMO: full app ── */}
-      {(isLoggedIn || s.isDemo) && <AuthenticatedApp s={s} />}
+      {/* ── LOGGED IN: full authenticated app ── */}
+      {isLoggedIn && <AuthenticatedApp s={s} />}
 
-      {/* ── LOGGED OUT: public landing ── */}
-      {(!isLoggedIn && !s.isDemo) && (
+      {/* ── NOT LOGGED IN: public landing (handles demo state internally) ── */}
+      {!isLoggedIn && (
         <PublicLanding
           onSignIn={handleSignIn}
           onGetStarted={handleGetStarted}
           onLoadDemo={handleLoadDemo}
+          s={s}
         />
       )}
 
-      {/* ── Auth modal: shown over landing when needed ── */}
+      {/* ── Auth modal ── */}
       {showAuth && !isLoggedIn && (
         <AuthModal onClose={() => setShowAuth(false)} />
       )}
