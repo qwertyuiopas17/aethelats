@@ -93,21 +93,25 @@ export default function ResultsView({ s }) {
 
 
       {/* Score Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="glass-card-hover rounded-2xl p-6 flex flex-col items-center text-center animate-fade-in-up stagger-1">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 mb-6">
+        <div className="glass-card-hover rounded-2xl p-6 flex flex-col items-center text-center animate-fade-in-up stagger-1 md:col-span-1">
           <div className="flex items-center justify-between w-full mb-2"><span className="text-xs text-white uppercase tracking-wider">Composite Score</span><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/20">● CLEARED</span></div>
           <ScoreMeter value={fitScore} size={180} />
           <p className="text-xs text-white/80 mt-3">Top {100 - (result.percentile || 88)}% of candidate pool for this role archetype.</p>
         </div>
-        <div className="glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-2">
-          <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Technical Aptitude</span><span className="text-white">📊</span></div>
-          <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animTech}</span><span className="text-sm text-[#22c55e] font-semibold">+4% avg</span></div>
-          <AnimatedBar value={radar.technical_depth || 0} delay={200} color="bg-white/40" />
-        </div>
-        <div className="glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-3">
-          <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Leadership Index</span><span className="text-white">👥</span></div>
-          <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animLead}</span><span className="text-sm text-white/90 font-semibold">-1% avg</span></div>
-          <AnimatedBar value={radar.project_complexity || 0} delay={300} color="bg-white/30" />
+        
+        {/* Horizontal scroll container for secondary metrics on mobile */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 md:overflow-visible md:col-span-2 md:grid md:grid-cols-2 no-scrollbar">
+          <div className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-2">
+            <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Technical Aptitude</span><span className="text-white">📊</span></div>
+            <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animTech}</span><span className="text-sm text-[#22c55e] font-semibold">+4% avg</span></div>
+            <AnimatedBar value={radar.technical_depth || 0} delay={200} color="bg-white/40" />
+          </div>
+          <div className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center glass-card-hover rounded-2xl p-6 animate-fade-in-up stagger-3">
+            <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-white">Leadership Index</span><span className="text-white">👥</span></div>
+            <div className="flex items-baseline gap-3 mb-2"><span className="text-5xl font-black text-white">{animLead}</span><span className="text-sm text-white/90 font-semibold">-1% avg</span></div>
+            <AnimatedBar value={radar.project_complexity || 0} delay={300} color="bg-white/30" />
+          </div>
         </div>
       </div>
 
