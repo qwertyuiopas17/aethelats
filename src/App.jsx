@@ -94,6 +94,7 @@ function UserAvatar({ name }) {
 
 /* ── User dropdown ── */
 function UserMenu({ user, onLogout, onClose }) {
+  if (!user) return null;
   return (
     <div className="absolute right-0 top-full mt-2 w-56 glass-card rounded-2xl border border-white/[0.08] shadow-xl z-50 overflow-hidden animate-fade-in">
       <div className="px-4 py-3 border-b border-white/[0.06]">
