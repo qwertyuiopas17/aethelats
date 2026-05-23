@@ -309,13 +309,26 @@ function AuthenticatedApp({ s }) {
                 {s.progress < 30 ? 'Extracting core competencies...' : s.progress < 70 ? 'Cross-referencing skills against JD...' : 'Computing final bias-free verdict...'}
               </p>
               
-              <div className="w-full max-w-md">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/40">Engine Progress</span>
-                  <span className="text-sm font-mono text-white/80">{s.progress}%</span>
+              <div className="w-full max-w-lg glass-card rounded-2xl p-6 scan-container shadow-[0_0_50px_rgba(255,255,255,0.03)] border border-white/[0.08]">
+                <div className="flex justify-between items-end mb-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-white/50 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Audit Trail
+                  </span>
+                  <span className="text-lg font-black text-white font-mono">{s.progress}%</span>
                 </div>
-                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
                   <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
+                </div>
+                
+                {/* Vertical Text Animation Container */}
+                <div className="space-y-3 font-mono text-xs h-48 overflow-hidden relative">
+                  {s.logs.filter(Boolean).map(log => (
+                    <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
+                      <div className="mt-0.5"><LogIcon type={log.type} /></div>
+                      <div className="leading-relaxed">{log.text}</div>
+                    </div>
+                  ))}
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
                 </div>
               </div>
             </div>
