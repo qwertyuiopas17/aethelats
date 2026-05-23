@@ -268,11 +268,14 @@ function AuthenticatedApp({ s }) {
         {/* TOPBAR */}
         <header className="h-14 shrink-0 border-b border-white/[0.06] backdrop-blur-md z-50 flex items-center justify-between px-4 sm:px-6"
           style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button className="md:hidden p-1 -ml-1 text-white/80 hover:text-white" onClick={() => setMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </button>
-            <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
+            <div className="flex items-center gap-2">
+              <img src="/assets/shield_logo.png" alt="Aethel Logo" className="w-6 h-6 object-contain" />
+              <span className="text-sm font-bold text-white tracking-tight hidden sm:block">Aethel ATS</span>
+            </div>
           </div>
           <div className="flex items-center gap-3 relative">
             {s.isDemo && s.step === 'results' && (
