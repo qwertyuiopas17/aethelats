@@ -383,86 +383,95 @@ function BrandPanel() {
 /* ─────────────────────────────────────────────────────────────
    Main AuthView — manages tab + OTP step state
 ───────────────────────────────────────────────────────────── */
-export default function AuthView() {
-  // 'login' | 'register' | 'otp'
-  const [tab, setTab]             = useState('login');
+/* ─────────────────────────────────────────────────────────────
+   Main AuthView — manages tab + OTP step state
+   isModal: when true, skips the full-screen bg wrapper
+   (the AuthModal overlay in App.jsx provides the backdrop)
+───────────────────────────────────────────────────────────── */
+export default function AuthView({ isModal = false }) {
+  const [tab, setTab]                   = useState('login');
   const [pendingEmail, setPendingEmail] = useState('');
-  const { clearAuthError }        = useAuth();
+  const { clearAuthError }              = useAuth();
 
-  const switchTab = next => {
-    clearAuthError();
-    setTab(next);
-  };
+  const switchTab = next => { clearAuthError(); setTab(next); };
+  const handleOTPRequired = email => { setPendingEmail(email); setTab('otp'); };
 
-  const handleOTPRequired = email => {
-    setPendingEmail(email);
-    setTab('otp');
-  };
+  /* ── Inner card (shared between modal and standalone) ── */
+  const cardContent = (
+    <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-0">
+      {/* Left branding panel — hidden on mobile */}
+      <BrandPanel />
 
+      {/* Right form card */}
+      <div className="glass-card rounded-2xl lg:rounded-l-none lg:rounded-r-2xl p-8 lg:p-10 border border-white/[0.08]">
+        {/* Mobile logo (shown only when BrandPanel is hidden) */}
+        <div className="flex lg:hidden items-center gap-2 mb-6">
+          <img src="/assets/shield_logo.png" alt="Aethel"
+            style={{ width: 32, height: 32, objectFit: 'contain' }} />
+          <span className="text-lg font-black text-white">Aethel</span>
+        </div>
+
+        {/* OTP verification step */}
+        {tab === 'otp' && (
+          <OTPScreen
+            email={pendingEmail}
+            onBack={() => switchTab('register')}
+            onSuccess={() => { /* AuthContext sets user → App auto-rerenders */ }}
+          />
+        )}
+
+        {/* Login / Register tabs */}
+        {tab !== 'otp' && (
+          <>
+            <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-7">
+              {[['login', 'Sign In'], ['register', 'Create Account']].map(([key, label]) => (
+                <button key={key} onClick={() => switchTab(key)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                    tab === key ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white/70'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-white mb-1">
+                {tab === 'login' ? 'Welcome back' : 'Get started free'}
+              </h2>
+              <p className="text-xs text-white/40">
+                {tab === 'login'
+                  ? 'Sign in to your Aethel workspace.'
+                  : 'Create your account in under 30 seconds.'}
+              </p>
+            </div>
+
+            <div className="animate-fade-in" key={tab}>
+              {tab === 'login'
+                ? <LoginForm onSwitch={() => switchTab('register')} />
+                : <RegisterForm onSwitch={() => switchTab('login')} onOTPRequired={handleOTPRequired} />
+              }
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  /* ── Modal mode: no full-screen wrapper (App.jsx provides overlay) ── */
+  if (isModal) {
+    return <div className="w-full">{cardContent}</div>;
+  }
+
+  /* ── Standalone mode: full-screen centered page ── */
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Backgrounds */}
       <div className="fixed inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%)' }} />
       <div className="bg-grid-pattern fixed z-0" />
-
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-0 relative z-10">
-        <BrandPanel />
-
-        {/* Right card */}
-        <div className="glass-card rounded-2xl lg:rounded-l-none lg:rounded-r-2xl p-8 lg:p-10 border border-white/[0.08]">
-
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-2 mb-6">
-            <img src="/assets/shield_logo.png" alt="Aethel" style={{ width: 32, height: 32, objectFit: 'contain' }} />
-            <span className="text-lg font-black text-white">Aethel</span>
-          </div>
-
-          {/* ── OTP screen (no tab switcher) ── */}
-          {tab === 'otp' && (
-            <OTPScreen
-              email={pendingEmail}
-              onBack={() => switchTab('register')}
-              onSuccess={() => { /* AuthContext sets user; App rerenders */ }}
-            />
-          )}
-
-          {/* ── Login / Register tabs ── */}
-          {tab !== 'otp' && (
-            <>
-              {/* Tab switcher */}
-              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-7">
-                {[['login', 'Sign In'], ['register', 'Create Account']].map(([key, label]) => (
-                  <button key={key} onClick={() => switchTab(key)}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                      tab === key ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white/70'
-                    }`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mb-5">
-                <h2 className="text-lg font-bold text-white mb-1">
-                  {tab === 'login' ? 'Welcome back' : 'Get started free'}
-                </h2>
-                <p className="text-xs text-white/40">
-                  {tab === 'login'
-                    ? 'Sign in to your Aethel workspace.'
-                    : 'Create your account in under 30 seconds.'}
-                </p>
-              </div>
-
-              <div className="animate-fade-in" key={tab}>
-                {tab === 'login'
-                  ? <LoginForm onSwitch={() => switchTab('register')} />
-                  : <RegisterForm onSwitch={() => switchTab('login')} onOTPRequired={handleOTPRequired} />
-                }
-              </div>
-            </>
-          )}
-        </div>
+      <div className="relative z-10 w-full flex justify-center">
+        {cardContent}
       </div>
     </div>
   );
 }
+
