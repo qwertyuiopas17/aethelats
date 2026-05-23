@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart2, RefreshCw, Shield, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Database } from 'lucide-react';
+import { BarChart2, RefreshCw, Shield, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Database, Building2, Pause, User, Shuffle } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://unded-17-aethel-backend-v3.hf.space';
 
@@ -51,10 +51,10 @@ function VerdictBadge({ verdict }) {
 
 // ── Signal row ────────────────────────────────────────────────────
 const SIGNAL_META = {
-  delta_institution: { label: 'Institution Prestige', icon: '🏛️', desc: 'Score change when uni → MIT' },
-  delta_gap:         { label: 'Career Gap',           icon: '⏸️', desc: 'Score change when gap removed' },
-  delta_name:        { label: 'Name (Demographic)',   icon: '👤', desc: 'Score change when name → Alex Johnson' },
-  delta_combined:    { label: 'All Combined',         icon: '🔀', desc: 'Intersectional amplification' },
+  delta_institution: { label: 'Institution Prestige', icon: <Building2 className="w-5 h-5" />, desc: 'Score change when uni → MIT' },
+  delta_gap:         { label: 'Career Gap',           icon: <Pause className="w-5 h-5" />, desc: 'Score change when gap removed' },
+  delta_name:        { label: 'Name (Demographic)',   icon: <User className="w-5 h-5" />, desc: 'Score change when name → Alex Johnson' },
+  delta_combined:    { label: 'All Combined',         icon: <Shuffle className="w-5 h-5" />, desc: 'Intersectional amplification' },
 };
 
 function SignalRow({ sigKey, value }) {
@@ -62,7 +62,7 @@ function SignalRow({ sigKey, value }) {
   if (!meta) return null;
   return (
     <div className="flex items-center gap-4 py-3 border-b border-white/[0.04] last:border-0">
-      <span className="text-lg w-7 text-center">{meta.icon}</span>
+      <span className="flex items-center justify-center w-7 shrink-0 text-white/70">{meta.icon}</span>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-white">{meta.label}</div>
         <div className="text-xs text-white/40">{meta.desc}</div>
@@ -254,15 +254,15 @@ export default function BiasDashboard() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-white/60">
               <div>
-                <div className="text-white font-semibold mb-1">🏛️ Institution Prestige</div>
+                <div className="text-white font-semibold mb-1 flex items-center gap-1.5"><Building2 className="w-4 h-4 text-white/70" /> Institution Prestige</div>
                 A positive delta means the model scored the resume higher when the university was replaced with MIT. This is institution-prestige bias.
               </div>
               <div>
-                <div className="text-white font-semibold mb-1">⏸️ Career Gap</div>
+                <div className="text-white font-semibold mb-1 flex items-center gap-1.5"><Pause className="w-4 h-4 text-white/70" /> Career Gap</div>
                 A negative delta means the model scored the resume lower when the career gap was present. This is gap-penalty bias.
               </div>
               <div>
-                <div className="text-white font-semibold mb-1">👤 Name Bias</div>
+                <div className="text-white font-semibold mb-1 flex items-center gap-1.5"><User className="w-4 h-4 text-white/70" /> Name Bias</div>
                 Any delta here means the model scored differently based on the candidate's perceived demographic signal from their name alone.
               </div>
             </div>
