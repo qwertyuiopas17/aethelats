@@ -300,12 +300,8 @@ function AuthenticatedApp({ s }) {
 
           {s.step === 'scanning' && (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
-              <div className="relative mb-12">
-                <div className="w-24 h-24 rounded-full border border-white/20 flex items-center justify-center relative shadow-[0_0_40px_rgba(255,255,255,0.1)]">
-                  <div className="absolute inset-0 rounded-full border-t border-white animate-spin" style={{ animationDuration: '3s' }} />
-                  <div className="absolute inset-2 rounded-full border-b border-white/50 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
-                  <img src="/assets/shield_logo.png" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] animate-pulse" alt="Aethel Engine" />
-                </div>
+              <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
+                <HorseLoader />
               </div>
               <h2 className="text-2xl font-bold text-white mb-3">Analyzing Candidate Profile</h2>
               <p className="text-white/60 text-sm mb-12 text-center max-w-md leading-relaxed">
