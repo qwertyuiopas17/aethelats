@@ -263,7 +263,7 @@ function AuthenticatedApp({ s }) {
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0 w-full">
         {/* TOPBAR */}
-        <header className="h-14 shrink-0 border-b border-white/[0.06] backdrop-blur-md z-20 flex items-center justify-between px-4 sm:px-6"
+        <header className="h-14 shrink-0 border-b border-white/[0.06] backdrop-blur-md z-50 flex items-center justify-between px-4 sm:px-6"
           style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="flex items-center gap-4">
             <button className="md:hidden p-1 -ml-1 text-white/80 hover:text-white" onClick={() => setMobileMenuOpen(true)}>
