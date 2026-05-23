@@ -429,7 +429,7 @@ export default function AuthView({ isModal = false }) {
               {[['login', 'Sign In'], ['register', 'Create Account']].map(([key, label]) => (
                 <button key={key} onClick={() => switchTab(key)}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                    tab === key ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white/70'
+                    tab === key ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white/90'
                   }`}>
                   {label}
                 </button>

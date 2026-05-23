@@ -55,14 +55,16 @@ function AuthModal({ onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto">
+    <div className="fixed inset-0 z-[200] overflow-y-auto">
       {/* Backdrop — click to dismiss */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
-      {/* Modal content — positioned above backdrop */}
-      <div className="relative z-10 w-full max-w-4xl mx-4 my-8 animate-scale-in">
+      {/* Scrollable Container */}
+      <div className="relative min-h-screen flex items-center justify-center p-4 py-12">
+        {/* Modal content — positioned above backdrop */}
+        <div className="relative w-full max-w-4xl animate-scale-in">
         {/* Dismiss button */}
         <button
           onClick={onClose}
@@ -75,6 +77,7 @@ function AuthModal({ onClose }) {
         </button>
         {/* Re-use AuthView but with modal styling */}
         <AuthView isModal />
+      </div>
       </div>
     </div>
   );
