@@ -231,13 +231,13 @@ function AuthenticatedApp({ s }) {
           <NavItem icon={<img src="/assets/shield_logo.png" alt="" className="w-4 h-4 object-contain" />}
             label="Home" active={s.step === 'landing'} onClick={() => goTo('landing')} />
           <NavItem icon={<Users className="w-4 h-4" />}
-            label="Talent Pool" active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
+            label="Talent Pipeline" active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
+          <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />
+          <ComingSoonNavItem icon={<Activity className="w-4 h-4" />} label="AI Coach" />
           <NavItem icon={<Shield className="w-4 h-4" />}
             label="Audit Trail" active={s.step === 'upload' || s.step === 'scanning'} onClick={() => goTo('upload')} />
-          <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="Templates" />
           <NavItem icon={<BarChart2 className="w-4 h-4" />}
             label="Analytics" active={s.step === 'analytics'} onClick={() => goTo('analytics')} />
-          <ComingSoonNavItem icon={<Clock className="w-4 h-4" />} label="History" />
         </nav>
 
         <div className="p-4 border-t border-white/[0.06] space-y-1">
@@ -270,11 +270,6 @@ function AuthenticatedApp({ s }) {
               <Menu className="w-5 h-5" />
             </button>
             <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
-            <nav className="hidden sm:flex items-center gap-6 text-sm">
-              <span className={'cursor-pointer ' + (s.step === 'landing' ? 'text-white font-semibold' : 'text-white/60 hover:text-white')} onClick={() => goTo('landing')}>Home</span>
-              <span className={'cursor-pointer ' + (s.step === 'upload' || s.step === 'scanning' ? 'text-white font-semibold' : 'text-white/60 hover:text-white')} onClick={() => goTo('upload')}>Scan</span>
-              <span className={'cursor-pointer ' + (s.step === 'analytics' ? 'text-white font-semibold' : 'text-white/60 hover:text-white')} onClick={() => goTo('analytics')}>Analytics</span>
-            </nav>
           </div>
           <div className="flex items-center gap-3 relative">
             {s.isDemo && s.step === 'results' && (
@@ -305,29 +300,26 @@ function AuthenticatedApp({ s }) {
 
           {s.step === 'scanning' && (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
-              <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
-                <HorseLoader />
+              <div className="relative mb-12">
+                <div className="w-24 h-24 rounded-full border border-white/20 flex items-center justify-center relative shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+                  <div className="absolute inset-0 rounded-full border-t border-white animate-spin" style={{ animationDuration: '3s' }} />
+                  <div className="absolute inset-2 rounded-full border-b border-white/50 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
+                  <img src="/assets/shield_logo.png" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] animate-pulse" alt="Aethel Engine" />
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-1">Compliance Engine Running</h2>
-              <p className="text-white/70 text-sm mb-2 text-center max-w-md">
-                Scanning <span className="text-white font-medium">{s.selectedFile?.name}</span> for <span className="text-white font-semibold">{s.jobRole}</span>
+              <h2 className="text-2xl font-bold text-white mb-3">Analyzing Candidate Profile</h2>
+              <p className="text-white/60 text-sm mb-12 text-center max-w-md leading-relaxed">
+                Applying semantic matching for <span className="text-white font-semibold">{s.jobRole}</span>.<br />
+                {s.progress < 30 ? 'Extracting core competencies...' : s.progress < 70 ? 'Cross-referencing skills against JD...' : 'Computing final bias-free verdict...'}
               </p>
-              <p className="text-white/40 text-xs mb-10">PII stripping + bias-free scoring · 15–40 seconds</p>
-              <div className="w-full max-w-lg glass-card rounded-2xl p-6 scan-container">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm text-white/70 font-medium">Pipeline Progress</span>
-                  <span className="text-lg font-bold text-white">{s.progress}%</span>
+              
+              <div className="w-full max-w-md">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs font-bold uppercase tracking-widest text-white/40">Engine Progress</span>
+                  <span className="text-sm font-mono text-white/80">{s.progress}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
-                  <div className="h-full prog-bar-aethel rounded-full transition-all duration-200" style={{ width: s.progress + '%' }} />
-                </div>
-                <div className="space-y-2 font-mono text-xs h-52 overflow-hidden relative">
-                  {s.logs.filter(Boolean).map(log => (
-                    <div key={log.id} className={'flex items-center gap-2 animate-fade-in-up ' + getLogColor(log.type)}>
-                      <LogIcon type={log.type} />{log.text}
-                    </div>
-                  ))}
-                  <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+                <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
                 </div>
               </div>
             </div>

@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
-import { FileText, ChevronUp, ChevronDown, RefreshCw, AlertTriangle, Globe, Zap, FlaskConical, Shield, Check } from 'lucide-react';
-import { PLATFORM_ICONS, SEVERITY_STYLE } from './constants';
+import { FileText, ChevronUp, ChevronDown, RefreshCw, AlertTriangle, Globe, Zap, FlaskConical, Shield, Check, Github, Linkedin, Code, Database, Link } from 'lucide-react';
+import { SEVERITY_STYLE } from './constants';
 import { SectionHeading } from './UIHelpers';
+
+const PlatformIcon = ({ platform, className }) => {
+  const p = platform?.toLowerCase() || '';
+  if (p === 'github') return <Github className={className} />;
+  if (p === 'linkedin') return <Linkedin className={className} />;
+  if (p === 'leetcode' || p === 'hackerrank' || p === 'codeforces') return <Code className={className} />;
+  if (p === 'kaggle') return <Database className={className} />;
+  if (p === 'portfolio' || p === 'medium' || p === 'devto') return <Globe className={className} />;
+  return <Link className={className} />;
+};
 
 export function JDResultPanel({ result }) {
   const score = result.overall_bias_score || 70;
@@ -74,8 +84,9 @@ export function ProofOfWorkSection({ detectedLinks, proofResult, isLoading, onFe
         <SectionHeading icon={<Globe className="w-3.5 h-3.5" />} label={'Proof of Work — ' + detectedLinks.length + ' Links'} />
         <div className="glass-card glass-card-hover rounded-2xl p-6">
           <div className="flex flex-wrap gap-2 mb-4">{detectedLinks.map((l, i) => (
-            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-white">
-              <span>{PLATFORM_ICONS[l.platform] || '🔗'}</span><span className="capitalize font-medium">{l.platform}</span>
+            <span key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-white">
+              <PlatformIcon platform={l.platform} className="w-3.5 h-3.5 text-white/70" />
+              <span className="capitalize font-medium">{l.platform}</span>
             </span>
           ))}</div>
           <div className="flex items-start gap-4">
@@ -122,7 +133,7 @@ export function ProofOfWorkSection({ detectedLinks, proofResult, isLoading, onFe
           {(proof.platform_data || []).filter(p => p.signals?.length > 0).map((p, i) => (
             <div key={i} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 hover-lift">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-base">{PLATFORM_ICONS[p.platform] || '🔗'}</span>
+                <PlatformIcon platform={p.platform} className="w-4 h-4 text-white/80" />
                 <span className="text-sm font-semibold text-white capitalize">{p.platform}</span>
                 {p.username && <span className="text-xs text-white/80">@{p.username}</span>}
                 <span className={'ml-auto text-xs px-2 py-0.5 rounded font-bold ' + (p.status === 'fetched' ? 'bg-white/[0.06] text-white' : 'bg-white/[0.03] text-white/80')}>{p.status === 'fetched' ? '● Live' : '○ Detected'}</span>
