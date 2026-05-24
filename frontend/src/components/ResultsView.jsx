@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench, BarChart2, Users } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench, BarChart2, Users, Sparkles, ArrowRight } from 'lucide-react';
 import { SectionHeading, Pill, ScoreMeter, AnimatedBar, useCountUp, getFitVariant } from './UIHelpers';
 import { PercentileBadge, PIIStripPanel, SkillDepthSection, SkillMatchSection } from './FeatureSections';
 import { ProofOfWorkSection, BiasStabilitySection } from './AnalysisPanels';
@@ -7,8 +7,12 @@ import { FeatureAttributionChart, FairnessMetricsCard, ComplianceDashboard, Rese
 import { ModelComparisonPanel } from './ModelComparisonPanel';
 import SkillKnowledgeGraph from './SkillKnowledgeGraph';
 import { SEVERITY_STYLE, BIAS_TYPE_LABELS } from './constants';
+import { useAuth } from '../context/AuthContext';
 
 export default function ResultsView({ s }) {
+  const { user } = useAuth();
+  const isCandidate = user?.role === 'candidate';
+  const isRecruiter = !isCandidate;
   const result = s.result;
   const fitScore = result?.fit_score || 0;
   const legacyScore = result?.counterfactual?.legacy_ats_score || Math.max(0, fitScore - 20);
@@ -74,20 +78,40 @@ export default function ResultsView({ s }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in-up">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-1">Audit Trail / Results</div>
-          <h1 className="text-2xl font-bold text-white">Candidate Analysis</h1>
-          <p className="text-white/90 text-sm">Sr. Director of Engineering · Candidate ID: #{candidateId.current}</p>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-1">
+            {isCandidate ? 'My Results' : 'Audit Trail / Results'}
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            {isCandidate ? 'Your Resume Score' : 'Candidate Analysis'}
+          </h1>
+          <p className="text-white/90 text-sm">
+            {isCandidate
+              ? `${s.jobRole || 'Target Role'} · See how your resume scores and where to improve`
+              : `Sr. Director of Engineering · Candidate ID: #${candidateId.current}`
+            }
+          </p>
         </div>
         <div className="flex items-center gap-3 no-print">
-          <button
-            onClick={handleExportPDF}
-            disabled={exporting}
-            className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift disabled:opacity-50 disabled:cursor-wait"
-          >
-            <Download className="w-4 h-4" />
-            {exporting ? 'Generating…' : 'Download Audit Report'}
-          </button>
-          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 btn-premium"><CheckCircle className="w-4 h-4" />Advance to Final</button>
+          {isRecruiter && (
+            <>
+              <button
+                onClick={handleExportPDF}
+                disabled={exporting}
+                className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift disabled:opacity-50 disabled:cursor-wait"
+              >
+                <Download className="w-4 h-4" />
+                {exporting ? 'Generating…' : 'Download Audit Report'}
+              </button>
+              <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 btn-premium">
+                <CheckCircle className="w-4 h-4" />Advance to Final
+              </button>
+            </>
+          )}
+          {isCandidate && (
+            <button onClick={s.reset} className="px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 btn-premium">
+              <RefreshCw className="w-4 h-4" />Audit Another Resume
+            </button>
+          )}
         </div>
       </div>
 
@@ -296,24 +320,57 @@ export default function ResultsView({ s }) {
         </div>
       </section>
 
-      <BiasStabilitySection cfResult={s.cfResult} isRunning={s.runningCF} onRunTest={s.handleCounterfactualTest} isDemo={s.isDemo} />
-      <ModelComparisonPanel compResult={s.compResult} isRunning={s.runningComp} onRunTest={s.handleModelComparison} isDemo={s.isDemo} />
-      <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />
-      <ComplianceDashboard result={result} cfResult={s.cfResult} />
-      <ResearchCitationsSection />
+      {/* Recruiter-only: counterfactual, model comparison, compliance */}
+      {isRecruiter && (
+        <>
+          <BiasStabilitySection cfResult={s.cfResult} isRunning={s.runningCF} onRunTest={s.handleCounterfactualTest} isDemo={s.isDemo} />
+          <ModelComparisonPanel compResult={s.compResult} isRunning={s.runningComp} onRunTest={s.handleModelComparison} isDemo={s.isDemo} />
+          <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />
+          <ComplianceDashboard result={result} cfResult={s.cfResult} />
+          <ResearchCitationsSection />
+        </>
+      )}
+
+      {/* Candidate: AI Coach CTA */}
+      {isCandidate && (
+        <section className="mb-6 animate-fade-in-up stagger-7">
+          <div className="glass-card glass-card-hover rounded-2xl p-6 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center gap-5"
+            style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(168,85,247,0.08) 100%)' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-indigo-500/20 border border-indigo-500/30">
+              <Sparkles className="w-6 h-6 text-indigo-300" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-white mb-1">Get Personalised Coaching</h3>
+              <p className="text-sm text-white/70 leading-relaxed">Your AI coach can explain your score, help you improve specific bullets, and prep you for interviews based on your gaps.</p>
+            </div>
+            <button className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/30 transition-all">
+              <Sparkles className="w-4 h-4" />Coming Soon
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="animate-fade-in-up stagger-8">
-        <SectionHeading icon={<CheckCircle className="w-3.5 h-3.5" />} label="Recommendation" />
+        <SectionHeading icon={<CheckCircle className="w-3.5 h-3.5" />} label={isCandidate ? 'Next Steps' : 'Recommendation'} />
         <div className="border border-white/10 rounded-2xl p-6 glass-card glass-card-hover flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-white/[0.06] border border-white/[0.08]"><CheckCircle className="w-6 h-6 text-white" /></div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-white mb-1">{recommendation}</h3>
+            <h3 className="text-base font-bold text-white mb-1">
+              {isCandidate ? (fitScore >= 70 ? 'Strong Match — Apply with Confidence' : fitScore >= 50 ? 'Good Potential — Address the Gaps' : 'Needs Work — Focus on Key Gaps') : recommendation}
+            </h3>
             <p className="text-sm text-white/90 leading-relaxed">{result.summary}</p>
-            {scoreDelta > 0 && <p className="text-xs text-white/80 mt-2"><AlertTriangle className="w-3 h-3 inline mr-1" />Without blind eval, score would have been {legacyScore}/100.</p>}
+            {isRecruiter && scoreDelta > 0 && <p className="text-xs text-white/80 mt-2"><AlertTriangle className="w-3 h-3 inline mr-1" />Without blind eval, score would have been {legacyScore}/100.</p>}
           </div>
-          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 no-print btn-premium">
-            {biasProxies.length > 0 && !s.fairnessConfirmed ? <><AlertTriangle className="w-4 h-4" />Review & Proceed</> : 'Advance Candidate'}
-          </button>
+          {isRecruiter && (
+            <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 no-print btn-premium">
+              {biasProxies.length > 0 && !s.fairnessConfirmed ? <><AlertTriangle className="w-4 h-4" />Review & Proceed</> : 'Advance Candidate'}
+            </button>
+          )}
+          {isCandidate && (
+            <button onClick={s.reset} className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 no-print btn-premium">
+              <ArrowRight className="w-4 h-4" />Audit Another
+            </button>
+          )}
         </div>
       </section>
     </div>

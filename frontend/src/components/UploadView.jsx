@@ -18,7 +18,8 @@ function fmtTime(iso) {
 }
 
 export default function UploadView({ s }) {
-  const { authHeaders } = useAuth();
+  const { user, authHeaders } = useAuth();
+  const isCandidate = user?.role === 'candidate';
   const [recentScans, setRecentScans]   = useState([]);
   const [scansLoading, setScansLoading] = useState(true);
 
@@ -35,8 +36,15 @@ export default function UploadView({ s }) {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div>
           <div className="mb-1 flex items-center gap-2"><span className="text-white/80 text-xs">◈</span><span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Compliance Engine</span></div>
-          <h1 className="text-3xl font-bold text-white mb-3">Resume Bias Audit</h1>
-          <p className="text-white/90 text-sm max-w-xl leading-relaxed mb-8">Upload candidate profiles to scan for unconscious bias indicators in formatting, language, and institutional markers. Engineered for objective evaluation.</p>
+          <h1 className="text-3xl font-bold text-white mb-3">
+            {isCandidate ? 'Audit Your Resume' : 'Resume Bias Audit'}
+          </h1>
+          <p className="text-white/90 text-sm max-w-xl leading-relaxed mb-8">
+            {isCandidate
+              ? 'Upload your resume to see how it scores against your target role and discover any bias signals that could affect your chances.'
+              : 'Upload candidate profiles to scan for unconscious bias indicators in formatting, language, and institutional markers. Engineered for objective evaluation.'
+            }
+          </p>
           <div className="mb-6 max-w-xl">
             <label className="block text-xs font-bold uppercase tracking-widest text-white mb-2 flex items-center gap-2">Target Role
               {s.detectingRole && <span className="flex items-center gap-1.5 text-white/90 font-normal normal-case tracking-normal"><RefreshCw className="w-3 h-3 animate-spin" />Detecting...</span>}
@@ -120,7 +128,10 @@ export default function UploadView({ s }) {
             </button>
           </div>
           <ArchitectureDiagram />
-          <JDAnalysisSection jdText={s.jdText} setJdText={s.setJdText} jdResult={s.jdResult} analyzing={s.jdAnalyzing} onAnalyze={s.handleJDAnalysis} expanded={s.jdExpanded} setExpanded={s.setJdExpanded} isDemo={s.isDemo} demoResult={DEMO_JD_RESULT} />
+          {/* JD Bias Analyzer is a recruiter-only tool */}
+          {!isCandidate && (
+            <JDAnalysisSection jdText={s.jdText} setJdText={s.setJdText} jdResult={s.jdResult} analyzing={s.jdAnalyzing} onAnalyze={s.handleJDAnalysis} expanded={s.jdExpanded} setExpanded={s.setJdExpanded} isDemo={s.isDemo} demoResult={DEMO_JD_RESULT} />
+          )}
         </div>
         <div className="space-y-4">
           <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow scroll-animate">
