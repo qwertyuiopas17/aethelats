@@ -994,6 +994,10 @@ async def keep_awake_task():
 @app.on_event("startup")
 async def startup_event():
     """Starts the background task when the FastAPI server starts."""
+    global scan_queue
+    scan_queue = asyncio.Queue()
+    asyncio.create_task(scan_worker_loop())
+
     # Create resume_scores table (Postgres on Render, SQLite locally) if missing.
     print("[FairAI] Initialising score pool database...")
     init_db()
@@ -1885,6 +1889,36 @@ def _synthesize_links(platform_data_list: list) -> dict:
 
 
 # ─── MAIN ANALYZE ENDPOINT ────────────────────────────────────
+import uuid
+
+job_store = {}
+scan_queue = None
+
+async def scan_worker_loop():
+    while True:
+        try:
+            job_id, kwargs = await scan_queue.get()
+            job_store[job_id]["status"] = "processing"
+            try:
+                result = await execute_scan_job(job_id=job_id, **kwargs)
+                job_store[job_id]["status"] = "completed"
+                job_store[job_id]["result"] = result
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                job_store[job_id]["status"] = "error"
+                job_store[job_id]["error"] = getattr(e, 'detail', str(e))
+                print(f"[Queue Error] Job {job_id} failed: {e}")
+            finally:
+                scan_queue.task_done()
+        except Exception as e:
+            print(f"[Worker Error] {e}")
+
+@app.get("/analyze/status/{job_id}")
+async def get_analyze_status(job_id: str):
+    if job_id not in job_store:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job_store[job_id]
 
 @app.post("/analyze")
 @limiter.limit("5/day", key_func=_analyze_rate_key)   # 5 scans per user (or IP) per day
@@ -1895,6 +1929,10 @@ async def analyze_resume(
     jd_skills: str = Form(default=""),
     current_user=Depends(get_optional_user),
 ):
+    global scan_queue
+    if scan_queue is None:
+        raise HTTPException(status_code=503, detail="Queue not initialized")
+
     filename = (file.filename or "").lower()
     ext = next((e for e in SUPPORTED_TYPES if filename.endswith(e)), None)
     if not ext:
@@ -1903,6 +1941,23 @@ async def analyze_resume(
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Empty file.")
 
+    job_id = str(uuid.uuid4())
+    job_store[job_id] = {"status": "queued", "result": None, "error": None}
+    
+    current_user_id = current_user.id if current_user else None
+    
+    await scan_queue.put((job_id, {
+        "filename": file.filename or "",
+        "ext": ext,
+        "pdf_bytes": pdf_bytes,
+        "role": role,
+        "jd_skills": jd_skills,
+        "current_user_id": current_user_id
+    }))
+
+    return {"job_id": job_id, "status": "queued"}
+
+async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: bytes, role: str, jd_skills: str, current_user_id: int):
     try:
         _t0 = __import__('time').monotonic()
         resume_text = extract_resume_text(pdf_bytes, ext)
@@ -2229,19 +2284,19 @@ Resume:
         print(f"[FairAI] Done! score={fit}  bias_proxies={len(result['bias_proxies'])}  percentile={percentile}  links={len(urls)}")
 
         # ── Persist scan record for authenticated users ─────────────────────────
-        if current_user is not None:
+        if current_user_id is not None:
             import random as _rand
             cand_id = f"AETH-{_rand.randint(10000, 99999)}"
             try:
                 create_scan_record(
-                    user_id=current_user.id,
+                    user_id=current_user_id,
                     role_target=role,
                     fit_score=fit,
-                    file_name=file.filename,
+                    file_name=filename,
                     candidate_id=cand_id,
                     result_json=json.dumps(result),
                 )
-                print(f"[FairAI] Scan record saved for user_id={current_user.id}")
+                print(f"[FairAI] Scan record saved for user_id={current_user_id}")
             except Exception as _e:
                 print(f"[FairAI] WARNING: Failed to save scan record: {_e}")
 
