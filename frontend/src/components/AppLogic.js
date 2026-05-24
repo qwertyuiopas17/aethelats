@@ -250,7 +250,7 @@ export function useAppState() {
 
   return {
     step, setStep, progress, logs, dragOver, setDragOver, selectedFile, setSelectedFile, jobRole, setJobRole,
-    detectingRole, result, apiError, fileUploadError, setFileUploadError, isDemo, showFairnessGate, setShowFairnessGate,
+    detectingRole, result, setResult, apiError, fileUploadError, setFileUploadError, isDemo, showFairnessGate, setShowFairnessGate,
     fairnessConfirmed, cfResult, runningCF, jdText, setJdText, jdResult, jdAnalyzing,
     jdExpanded, setJdExpanded, mmResult, runningMM, proofResult, proofLoading,
     piiRedaction, setPiiRedaction, instMasking, setInstMasking, genderedLang, setGenderedLang,

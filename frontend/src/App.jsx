@@ -1,7 +1,7 @@
 import React, { Component, useState, useEffect } from 'react';
 import {
   AlertTriangle, AlertCircle, Shield, Users, Activity, BarChart2,
-  RefreshCw, XCircle, Play, Bell, HelpCircle,
+  RefreshCw, XCircle, Play, Bell, HelpCircle, Layers,
   FileText, Clock, Menu, X, LogOut, ChevronRight
 } from 'lucide-react';
 import { useAppState } from './components/AppLogic';
@@ -12,6 +12,7 @@ import ResultsView from './components/ResultsView';
 import HorseLoader from './components/HorseLoader';
 import BiasDashboard from './components/BiasDashboard';
 import TalentPoolView from './components/TalentPoolView';
+import BatchUploadView from './components/BatchUploadView';
 import AuthView from './components/AuthView';
 import RecruiterVerificationModal from './components/RecruiterVerificationModal';
 import { useAuth } from './context/AuthContext';
@@ -243,6 +244,10 @@ function AuthenticatedApp({ s }) {
             label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
           {user?.role !== 'candidate' && <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />}
           <ComingSoonNavItem icon={<Activity className="w-4 h-4" />} label="AI Coach" />
+          {user?.role !== 'candidate' && (
+            <NavItem icon={<Layers className="w-4 h-4" />}
+              label="Batch Upload" active={s.step === 'batch'} onClick={() => goTo('batch')} />
+          )}
           <NavItem icon={<Shield className="w-4 h-4" />}
             label={user?.role === 'candidate' ? 'New Audit' : 'Audit Trail'} active={s.step === 'upload' || s.step === 'scanning'} onClick={() => goTo('upload')} />
           {user?.role !== 'candidate' && (
@@ -379,6 +384,14 @@ function AuthenticatedApp({ s }) {
           {s.step === 'results' && s.result && <ResultsView s={s} />}
           {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
           {s.step === 'talent-pool' && <TalentPoolView />}
+          {s.step === 'batch' && user?.role !== 'candidate' && (
+            <BatchUploadView
+              onViewResult={(job) => {
+                s.setResult(job.result);
+                s.setStep('results');
+              }}
+            />
+          )}
 
         </main>
       </div>
