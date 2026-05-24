@@ -14,6 +14,7 @@ import BiasDashboard from './components/BiasDashboard';
 import TalentPoolView from './components/TalentPoolView';
 import BatchUploadView from './components/BatchUploadView';
 import AuthView from './components/AuthView';
+import PipelineVisualizer from './components/PipelineVisualizer';
 import RecruiterVerificationModal from './components/RecruiterVerificationModal';
 import { useAuth } from './context/AuthContext';
 
@@ -342,37 +343,35 @@ function AuthenticatedApp({ s }) {
 
           {s.step === 'upload' && <UploadView s={s} />}
 
-          {s.step === 'scanning' && (
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
-              <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
-                <HorseLoader />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
-              
-              <div className="w-full max-w-lg glass-card rounded-2xl p-6 scan-container shadow-[0_0_50px_rgba(255,255,255,0.03)] border border-white/[0.08]">
-                <div className="flex justify-between items-end mb-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/50 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Audit Trail
-                  </span>
-                  <span className="text-lg font-black text-white font-mono">{s.progress}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
-                  <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
+          {s.step === 'scanning' && (() => {
+            const activeStageIndex = Math.min(7, Math.floor((s.progress / 100) * 8));
+            return (
+              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
+                <h2 className="text-2xl font-bold text-white mb-2">Analyzing Candidate Profile</h2>
+                <div className="text-white/60 mb-12 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                  Processing pipeline... {s.progress}%
                 </div>
                 
-                {/* Vertical Text Animation Container */}
-                <div className="space-y-3 font-mono text-xs h-48 overflow-hidden relative">
-                  {s.logs.filter(Boolean).map(log => (
-                    <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
-                      <div className="mt-0.5"><LogIcon type={log.type} /></div>
-                      <div className="leading-relaxed">{log.text}</div>
-                    </div>
-                  ))}
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+                <div className="w-full max-w-4xl">
+                  <PipelineVisualizer activeStageIndex={activeStageIndex} />
+                </div>
+                
+                <div className="w-full max-w-lg mt-6">
+                  {/* Vertical Text Animation Container for logs (smaller footprint now) */}
+                  <div className="space-y-3 font-mono text-xs h-32 overflow-hidden relative glass-card p-4 rounded-xl border border-white/[0.08]">
+                    {s.logs.filter(Boolean).map(log => (
+                      <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
+                        <div className="mt-0.5"><LogIcon type={log.type} /></div>
+                        <div className="leading-relaxed">{log.text}</div>
+                      </div>
+                    ))}
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {s.step === 'error' && (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
