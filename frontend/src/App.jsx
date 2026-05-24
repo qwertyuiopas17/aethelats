@@ -1,6 +1,6 @@
 import React, { Component, useState, useEffect } from 'react';
 import {
-  AlertTriangle, Shield, Users, Activity, BarChart2,
+  AlertTriangle, AlertCircle, Shield, Users, Activity, BarChart2,
   RefreshCw, XCircle, Play, Bell, HelpCircle,
   FileText, Clock, Menu, X, LogOut, ChevronRight
 } from 'lucide-react';
