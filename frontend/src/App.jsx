@@ -246,7 +246,14 @@ function AuthenticatedApp({ s }) {
           <ComingSoonNavItem icon={<Activity className="w-4 h-4" />} label="AI Coach" />
           {user?.role !== 'candidate' && (
             <NavItem icon={<Layers className="w-4 h-4" />}
-              label="Batch Upload" active={s.step === 'batch'} onClick={() => goTo('batch')} />
+              label="Batch Upload" active={s.step === 'batch'} 
+              onClick={() => {
+                if (user?.role === 'recruiter' && !user?.is_recruiter_verified) {
+                  setShowVerificationModal(true);
+                } else {
+                  goTo('batch');
+                }
+              }} />
           )}
           <NavItem icon={<Shield className="w-4 h-4" />}
             label={user?.role === 'candidate' ? 'New Audit' : 'Audit Trail'} active={s.step === 'upload' || s.step === 'scanning'} onClick={() => goTo('upload')} />

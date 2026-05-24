@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { UploadCloud, FileText, XCircle, Play, CheckCircle, AlertTriangle, Clock, Zap, RefreshCw, ChevronDown, ChevronUp, Award, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import { API_URL } from './constants';
 import { useAuth } from '../context/AuthContext';
+import PipelineVisualizer from './PipelineVisualizer';
 
 const STAGES = [
   { key: 'upload',     label: 'Upload',      icon: '📄' },
@@ -259,6 +260,9 @@ export default function BatchUploadView({ onViewResult }) {
       <p className="text-white/70 text-sm max-w-xl leading-relaxed mb-8">
         Upload up to 20 resumes at once. All candidates process through the full 8-stage bias-free pipeline simultaneously. Results are ranked by fit score when done.
       </p>
+
+      {/* 8-Stage Pipeline Visualizer */}
+      <PipelineVisualizer />
 
       {/* Role Input */}
       <div className="mb-6 max-w-xl">
