@@ -76,9 +76,34 @@ export function useAppState() {
       .then(res => { if (!res.ok) return res.json().then(e => { throw new Error(e.detail || 'Failed'); }); return res.json(); })
       .then(data => {
         if (cancelled) return;
-        clearInterval(progTimerRef.current); clearInterval(logTimerRef.current);
-        setProgress(100); setResult(data);
-        setTimeout(() => setStep('results'), 600);
+        
+        const jobId = data.job_id;
+        if (!jobId) {
+            // Fallback if backend doesn't return job_id (e.g., using old backend temporarily)
+            clearInterval(progTimerRef.current); clearInterval(logTimerRef.current);
+            setProgress(100); setResult(data);
+            setTimeout(() => setStep('results'), 600);
+            return;
+        }
+
+        const pollInterval = setInterval(() => {
+          fetch(API_URL + '/analyze/status/' + jobId, { headers: authHeaders() })
+            .then(r => r.json())
+            .then(statusData => {
+              if (cancelled) { clearInterval(pollInterval); return; }
+              if (statusData.status === 'completed') {
+                clearInterval(pollInterval);
+                clearInterval(progTimerRef.current); clearInterval(logTimerRef.current);
+                setProgress(100); setResult(statusData.result);
+                setTimeout(() => setStep('results'), 600);
+              } else if (statusData.status === 'error') {
+                clearInterval(pollInterval);
+                clearInterval(progTimerRef.current); clearInterval(logTimerRef.current);
+                setApiError(statusData.error || 'Failed during background processing'); setStep('error');
+              }
+            })
+            .catch(err => console.error("Polling error:", err));
+        }, 2000);
       })
       .catch(err => {
         if (cancelled) return;
