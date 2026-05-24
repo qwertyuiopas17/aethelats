@@ -158,11 +158,13 @@ export default function BatchUploadView({ s, onViewResult }) {
   const [jobRole, setJobRole] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [jobs, setJobs] = useState([]);          // [{filename, job_id, status, result, error}]
+  const [jobs, setJobs] = useState([]);          // [{filename, job_id, status, result, error, stage, stage_name}]
   const [batchError, setBatchError] = useState(null);
   const fileInputRef = useRef(null);
-  const pollersRef = useRef({});                 // job_id → interval id
+  const pollersRef = useRef({});                 // job_id → interval id (fallback polling)
   const [activeStageFilter, setActiveStageFilter] = useState(null); // idx of stage to filter by
+  const [ws, setWs] = useState(null);            // WebSocket connection
+  const [batchId, setBatchId] = useState(null);  // Current batch ID
 
   const ACCEPTED_EXTS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
@@ -206,8 +208,15 @@ export default function BatchUploadView({ s, onViewResult }) {
     pollersRef.current[job_id] = interval;
   };
 
-  // Cleanup pollers on unmount
-  useEffect(() => () => Object.values(pollersRef.current).forEach(clearInterval), []);
+  // Cleanup pollers and WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pollersRef.current).forEach(clearInterval);
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [ws]);
 
   const handleSubmit = async () => {
     if (!files.length || !jobRole.trim()) return;
@@ -230,18 +239,79 @@ export default function BatchUploadView({ s, onViewResult }) {
         throw new Error(err.detail || 'Batch upload failed');
       }
       const data = await res.json();
+      const newBatchId = data.batch_id;
+      setBatchId(newBatchId);
 
       // Initialize job states from response
-      const initialJobs = data.jobs.map(j => ({ ...j, result: null, error: null }));
+      const initialJobs = data.jobs.map(j => ({ ...j, result: null, error: null, stage: 0, stage_name: "Extracting Text" }));
       setJobs(initialJobs);
       setFiles([]);
 
-      // Start polling for each job
+      // Connect WebSocket for real-time updates
+      connectWebSocket(newBatchId, initialJobs);
+
+      // Start fallback polling for each job (in case WebSocket fails)
       initialJobs.forEach(j => startPoll(j.job_id));
     } catch (e) {
       setBatchError(e.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const connectWebSocket = (batchId, initialJobs) => {
+    try {
+      // Construct WebSocket URL from API_URL
+      const wsUrl = API_URL.replace(/^http/, 'ws') + `/ws/batch/${batchId}`;
+      console.log(`[WebSocket] Connecting to ${wsUrl}`);
+      
+      const websocket = new WebSocket(wsUrl);
+      
+      websocket.onopen = () => {
+        console.log(`[WebSocket] Connected to batch ${batchId}`);
+        // Send initial heartbeat
+        websocket.send('ping');
+      };
+      
+      websocket.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "job_progress") {
+            console.log(`[WebSocket] Job ${msg.job_id} - Stage ${msg.stage}: ${msg.stage_name}`);
+            setJobs(prev => prev.map(j => {
+              if (j.job_id === msg.job_id) {
+                const isNewlyProcessing = j.status === 'queued' && msg.status === 'processing';
+                return {
+                  ...j,
+                  status: msg.status,
+                  stage: msg.stage,
+                  stage_name: msg.stage_name,
+                  result: msg.result || j.result,
+                  error: msg.error || j.error,
+                  _processingStartedAt: isNewlyProcessing ? Date.now() : j._processingStartedAt || (msg.status === 'processing' ? Date.now() : undefined)
+                };
+              }
+              return j;
+            }));
+          }
+        } catch (err) {
+          console.error('[WebSocket] Failed to parse message:', err);
+        }
+      };
+      
+      websocket.onerror = (err) => {
+        console.error(`[WebSocket] Error in batch ${batchId}:`, err);
+      };
+      
+      websocket.onclose = () => {
+        console.log(`[WebSocket] Disconnected from batch ${batchId}`);
+        setWs(null);
+      };
+      
+      setWs(websocket);
+    } catch (err) {
+      console.error('[WebSocket] Failed to connect:', err);
+      // Fallback to polling only
     }
   };
 
@@ -404,11 +474,7 @@ export default function BatchUploadView({ s, onViewResult }) {
             >
               <RefreshCw className="w-3 h-3" /> New Batch
             </button>
-            {activeStageFilter !== null && (
-               <button onClick={() => setActiveStageFilter(null)} className="text-xs text-blue-400 hover:text-blue-300 ml-4">
-                 Clear Filter
-               </button>
-            )}
+
           </div>
           <div className="w-full bg-white/[0.06] rounded-full h-1.5 mb-4 overflow-hidden">
             <div
@@ -416,37 +482,38 @@ export default function BatchUploadView({ s, onViewResult }) {
               style={{ width: `${totalCount ? (completedCount / totalCount) * 100 : 0}%` }}
             />
           </div>
+          {activeStageFilter !== null && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-emerald-400/80 font-semibold animate-fade-in">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Highlighting candidates in stage: <span className="text-emerald-400">{['Resume Upload','PII Strip','Blind Score','Skill Graph','Bias Detect','Percentile Rank','Counterfactual','Fairness Gate'][activeStageFilter]}</span>
+              <button onClick={() => setActiveStageFilter(null)} className="ml-2 text-white/30 hover:text-white/60 transition-colors">[clear]</button>
+            </div>
+          )}
           <div className="glass-card rounded-2xl border border-white/[0.08] overflow-hidden">
-            {jobs.filter(j => {
-              if (activeStageFilter === null) return true;
-              if (activeStageFilter === 0 && j.status === 'queued') return true;
-              if (activeStageFilter === 7 && (j.status === 'completed' || j.status === 'error')) return true;
-              if (j.status === 'processing' && j._processingStartedAt) {
-                const elapsed = Date.now() - j._processingStartedAt;
-                let stage = Math.floor(elapsed / 3500) + 1;
-                stage = Math.min(stage, 6);
-                return stage === activeStageFilter;
+            {jobs.map((job, idx) => {
+              // Determine if this job matches the active stage filter
+              let isHighlighted = false;
+              if (activeStageFilter !== null) {
+                if (activeStageFilter === 0 && job.status === 'queued') isHighlighted = true;
+                else if (activeStageFilter === 7 && (job.status === 'completed' || job.status === 'error')) isHighlighted = true;
+                else if (job.status === 'processing' && job.stage !== undefined && job.stage === activeStageFilter) isHighlighted = true;
+                else if (job.status === 'processing' && job._processingStartedAt) {
+                  const elapsed = Date.now() - job._processingStartedAt;
+                  const estStage = Math.min(Math.floor(elapsed / 3500) + 1, 6);
+                  if (estStage === activeStageFilter) isHighlighted = true;
+                }
               }
-              return activeStageFilter === 1 && j.status === 'processing';
-            }).map((job, idx) => (
-              <JobRow key={job.job_id || idx} job={job} onViewResult={onViewResult} />
-            ))}
-            {jobs.filter(j => {
-              if (activeStageFilter === null) return true;
-              if (activeStageFilter === 0 && j.status === 'queued') return true;
-              if (activeStageFilter === 7 && (j.status === 'completed' || j.status === 'error')) return true;
-              if (j.status === 'processing' && j._processingStartedAt) {
-                const elapsed = Date.now() - j._processingStartedAt;
-                let stage = Math.floor(elapsed / 3500) + 1;
-                stage = Math.min(stage, 6);
-                return stage === activeStageFilter;
-              }
-              return activeStageFilter === 1 && j.status === 'processing';
-            }).length === 0 && (
-              <div className="p-8 text-center text-sm text-white/40">
-                No candidates currently in this stage.
-              </div>
-            )}
+              return (
+                <div
+                  key={job.job_id || idx}
+                  className={`transition-all duration-300 ${
+                    activeStageFilter !== null && !isHighlighted ? 'opacity-30' : ''
+                  } ${isHighlighted ? 'ring-1 ring-inset ring-emerald-500/30 bg-emerald-500/[0.03]' : ''}`}
+                >
+                  <JobRow job={job} onViewResult={onViewResult} />
+                </div>
+              );
+            })}
           </div>
 
           {/* Ranked table when done */}
