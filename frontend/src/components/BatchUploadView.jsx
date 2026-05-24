@@ -38,15 +38,8 @@ function JobRow({ job, onViewResult }) {
   const isDone = job.status === 'completed';
   const isFailed = job.status === 'error';
 
-  // Estimate which pipeline stage we're on based on elapsed time
-  const [stageIdx, setStageIdx] = useState(0);
-  useEffect(() => {
-    if (!isProcessing) { setStageIdx(0); return; }
-    const interval = setInterval(() => {
-      setStageIdx(prev => Math.min(prev + 1, STAGES.length - 1));
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [isProcessing]);
+  // Estimate which pipeline stage we're on based on elapsed time (now handled by Visualizer)
+  // No local state needed for stageIdx anymore
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 border-b border-white/[0.05] last:border-0 hover:bg-white/[0.02] transition-colors group animate-fade-in">
@@ -60,14 +53,7 @@ function JobRow({ job, onViewResult }) {
         <div className="text-sm font-medium text-white truncate">{job.filename}</div>
         {isProcessing && (
           <div className="flex items-center gap-1.5 mt-1">
-            {STAGES.map((s, i) => (
-              <div key={s.key} title={s.label} className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                i < stageIdx ? 'bg-emerald-400' :
-                i === stageIdx ? 'bg-blue-400 animate-pulse scale-125' :
-                'bg-white/10'
-              }`} />
-            ))}
-            <span className="text-[10px] text-blue-300 ml-1">{STAGES[stageIdx]?.label}…</span>
+            <span className="text-[10px] text-blue-300">Processing in pipeline…</span>
           </div>
         )}
         {isDone && (
@@ -199,7 +185,17 @@ export default function BatchUploadView({ s, onViewResult }) {
         const res = await fetch(`${API_URL}/analyze/status/${job_id}`, { headers: authHeaders() });
         if (!res.ok) return;
         const data = await res.json();
-        setJobs(prev => prev.map(j => j.job_id === job_id ? { ...j, ...data } : j));
+        setJobs(prev => prev.map(j => {
+          if (j.job_id === job_id) {
+            const isNewlyProcessing = j.status === 'queued' && data.status === 'processing';
+            return { 
+              ...j, 
+              ...data,
+              _processingStartedAt: isNewlyProcessing ? Date.now() : j._processingStartedAt || (data.status === 'processing' ? Date.now() : undefined)
+            };
+          }
+          return j;
+        }));
         if (data.status === 'completed' || data.status === 'error') {
           clearInterval(pollersRef.current[job_id]);
           delete pollersRef.current[job_id];
@@ -264,7 +260,7 @@ export default function BatchUploadView({ s, onViewResult }) {
       </p>
 
       {/* 8-Stage Pipeline Visualizer */}
-      <PipelineVisualizer />
+      <PipelineVisualizer jobs={jobs} />
 
       {/* Role Input */}
       <div className="mb-6 max-w-xl">
