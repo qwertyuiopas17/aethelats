@@ -152,7 +152,7 @@ function RankedResults({ jobs, onViewResult }) {
   );
 }
 
-export default function BatchUploadView({ s, onViewResult }) {
+export default function BatchUploadView({ s = {}, onViewResult }) {
   const { authHeaders } = useAuth();
   const [files, setFiles] = useState([]);        // selected File objects
   const [jobRole, setJobRole] = useState('');
@@ -347,7 +347,7 @@ export default function BatchUploadView({ s, onViewResult }) {
       {/* JD Analyzer (Optional) */}
       {jobs.length === 0 && (
         <div className="mb-6">
-          <JDAnalysisSection jdText={s.jdText} setJdText={s.setJdText} jdResult={s.jdResult} analyzing={s.jdAnalyzing} onAnalyze={s.handleJDAnalysis} expanded={s.jdExpanded} setExpanded={s.setJdExpanded} isDemo={s.isDemo} demoResult={DEMO_JD_RESULT} />
+          <JDAnalysisSection jdText={s?.jdText || ''} setJdText={s?.setJdText} jdResult={s?.jdResult} analyzing={s?.jdAnalyzing} onAnalyze={s?.handleJDAnalysis} expanded={s?.jdExpanded} setExpanded={s?.setJdExpanded} isDemo={s?.isDemo} demoResult={DEMO_JD_RESULT} />
         </div>
       )}
 
@@ -361,15 +361,15 @@ export default function BatchUploadView({ s, onViewResult }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
               <div><div className="text-sm font-semibold text-white">PII Redaction</div><div className="text-xs text-white/80 mt-0.5">Remove names, addresses, emails</div></div>
-              <ToggleSwitch active={s.piiRedaction} onToggle={() => s.setPiiRedaction(v => !v)} />
+              <ToggleSwitch active={s?.piiRedaction} onToggle={() => s?.setPiiRedaction?.(v => !v)} />
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
               <div><div className="text-sm font-semibold text-white">Institution Masking</div><div className="text-xs text-white/80 mt-0.5">Obscure university/company names</div></div>
-              <ToggleSwitch active={s.instMasking} onToggle={() => s.setInstMasking(v => !v)} />
+              <ToggleSwitch active={s?.instMasking} onToggle={() => s?.setInstMasking?.(v => !v)} />
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
               <div><div className="text-sm font-semibold text-white">Gendered Language</div><div className="text-xs text-white/80 mt-0.5">Flag potentially biased semantics</div></div>
-              <ToggleSwitch active={s.genderedLang} onToggle={() => s.setGenderedLang(v => !v)} />
+              <ToggleSwitch active={s?.genderedLang} onToggle={() => s?.setGenderedLang?.(v => !v)} />
             </div>
           </div>
         </div>
