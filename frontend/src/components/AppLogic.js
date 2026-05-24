@@ -4,7 +4,27 @@ import { useAuth } from '../context/AuthContext';
 
 export function useAppState() {
   const { authHeaders } = useAuth();
-  const [step, setStep] = useState('landing');
+  const getHashStep = () => window.location.hash.replace('#', '') || 'landing';
+  const [step, setStepInternal] = useState(getHashStep());
+
+  const setStep = (newStep) => {
+    if (newStep !== step) {
+      window.history.pushState(null, '', `#${newStep}`);
+      setStepInternal(newStep);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setStepInternal(getHashStep());
+    };
+    window.addEventListener('popstate', handlePopState);
+    // Ensure initial load without hash sets it to landing in history if needed
+    if (!window.location.hash) {
+        window.history.replaceState(null, '', '#landing');
+    }
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [dragOver, setDragOver] = useState(false);
