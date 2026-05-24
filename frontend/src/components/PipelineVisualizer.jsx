@@ -12,7 +12,7 @@ const PIPELINE_STAGES = [
   { id: 'gate',       label: 'Fairness\nGate',   icon: CheckSquare,   color: 'text-white/80' },
 ];
 
-export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilter, activeStageIndex = -1 }) {
+export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilter, activeStageIndex = -1, title = "8-STAGE PIPELINE" }) {
   const [counts, setCounts] = useState(Array(8).fill(0));
 
   useEffect(() => {
@@ -22,20 +22,24 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
     }
     const interval = setInterval(() => {
       const newCounts = Array(8).fill(0);
-      const now = Date.now();
 
       jobs.forEach(j => {
         if (j.status === 'queued') {
           newCounts[0]++;
         } else if (j.status === 'completed' || j.status === 'error') {
           newCounts[7]++;
-        } else if (j.status === 'processing' && j._processingStartedAt) {
-          const elapsed = now - j._processingStartedAt;
-          let stage = Math.floor(elapsed / 3500) + 1;
-          stage = Math.min(stage, 6);
-          newCounts[stage]++;
         } else if (j.status === 'processing') {
-          newCounts[1]++;
+          // Use actual stage from WebSocket if available, otherwise estimate
+          if (j.stage !== undefined) {
+            newCounts[j.stage]++;
+          } else if (j._processingStartedAt) {
+            const elapsed = Date.now() - j._processingStartedAt;
+            let stage = Math.floor(elapsed / 3500) + 1;
+            stage = Math.min(stage, 6);
+            newCounts[stage]++;
+          } else {
+            newCounts[1]++;
+          }
         }
       });
       setCounts(newCounts);
@@ -49,7 +53,7 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
       {/* Header */}
       <div className="flex items-center gap-2 mb-8">
         <Network className="w-5 h-5 text-white/60" />
-        <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">8-STAGE PIPELINE</h3>
+        <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">{title}</h3>
       </div>
 
       {/* Pipeline Track */}

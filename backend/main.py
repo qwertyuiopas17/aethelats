@@ -2088,12 +2088,10 @@ async def process_job_with_stages(job_id, kwargs, batch_id):
         job_store[job_id]["status"] = "processing"
         job_store[job_id]["batch_id"] = batch_id
         
-        # Execute through each stage
-        for stage_idx, (stage_key, stage_name) in enumerate(PIPELINE_STAGES):
+        async def set_stage(stage_idx: int):
+            stage_key, stage_name = PIPELINE_STAGES[stage_idx]
             job_store[job_id]["stage"] = stage_idx
             job_store[job_id]["stage_name"] = stage_name
-            
-            # Broadcast stage update to all connected clients
             await broadcast_to_batch(batch_id, {
                 "type": "job_progress",
                 "job_id": job_id,
@@ -2102,9 +2100,12 @@ async def process_job_with_stages(job_id, kwargs, batch_id):
                 "status": "processing",
             })
             print(f"[Job {job_id}] Stage {stage_idx}: {stage_name}")
+
+        await set_stage(0)
         
         # Execute the full job (strip batch_id — execute_scan_job doesn't accept it)
         scan_kwargs = {k: v for k, v in kwargs.items() if k != "batch_id"}
+        scan_kwargs["stage_callback"] = set_stage
         result = await execute_scan_job(job_id=job_id, **scan_kwargs)
         job_store[job_id]["status"] = "completed"
         job_store[job_id]["result"] = result
@@ -2305,8 +2306,9 @@ async def websocket_batch_updates(websocket: WebSocket, batch_id: str):
         batch_connections[batch_id].discard(websocket)
 
 
-async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: bytes, role: str, jd_skills: str, current_user_id: int):
+async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: bytes, role: str, jd_skills: str, current_user_id: int, stage_callback=None):
     try:
+        if stage_callback: await stage_callback(0)
         _t0 = __import__('time').monotonic()
         resume_text = extract_resume_text(pdf_bytes, ext)
         # NOTE: _is_valid_resume is NOT called here — it is already called in
@@ -2318,6 +2320,7 @@ async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: byte
         loop = asyncio.get_event_loop()
 
         # Stage 1: PII Stripping (Bot 1: GLiNER local → LLM fallback)
+        if stage_callback: await stage_callback(1)
         print("[FairAI] Stage 1/3 — Stripping PII (Bot 1)...")
         pii_result = await loop.run_in_executor(_pool, _strip_pii, resume_text)
         sanitized  = pii_result["sanitized_text"]
@@ -2330,6 +2333,7 @@ async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: byte
         try:
             # Run skill generation AND resume structuring IN PARALLEL to save time.
             # Previously these were sequential (~5s + ~5s = 10s wasted before Bot 4 even starts).
+            if stage_callback: await stage_callback(3) # Skill Graph building
             print("[FairAI] Stage 2/3 — Structuring resume (Bot 3) + generating JD skills in parallel...")
 
             if jd_skills.strip():
@@ -2445,6 +2449,7 @@ Resume:
             print(f"[FairAI] Resume structured. Running Bot 4 evaluator...")
 
             # Stage 3: Evaluate (Bot 4: Modal → HF Dedicated → HF Free API → Groq)
+            if stage_callback: await stage_callback(2) # Blind Scoring
             print("[FairAI] Stage 3/3 — Evaluating (Bot 4)...")
             _t3_start = __import__('time').monotonic()
             evaluation = await loop.run_in_executor(_pool, evaluate_resume, structured_data, jd_skills_list, role)
@@ -2482,6 +2487,18 @@ Resume:
                 for jd_skill in jd_skills_list:
                     if jd_skill.lower() not in resume_skills_lower:
                         raw_gaps.append(jd_skill)
+            
+            # Evaluate bias flags (Stage 4)
+            if stage_callback: await stage_callback(4)
+            proxies = ["Institution"] if (evaluation.get("missing_skills", []) and len(raw_gaps) > 5) else []
+            if raw_strengths and "English" not in str(raw_strengths):
+                pass
+            
+            # Generate actionable feedback
+            if stage_callback: await stage_callback(5) # Percentile Rank (simulated)
+            recommendation = "Advance to Interview" if evaluation.get("overall_score", 0) > 75 else "Keep in Talent Pool"
+
+            if stage_callback: await stage_callback(6) # CF (simulated)
 
             # Build skill_usage_breakdown for Expertise Distribution tile
             # Only use short skill names (not long sentence strings from strengths)

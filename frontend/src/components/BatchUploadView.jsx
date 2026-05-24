@@ -333,6 +333,7 @@ export default function BatchUploadView({ s, onViewResult }) {
 
       {/* 8-Stage Pipeline Visualizer */}
       <PipelineVisualizer 
+        title="LIVE BATCH PROCESSING PIPELINE"
         jobs={jobs} 
         activeFilter={activeStageFilter}
         onStageClick={(idx) => setActiveStageFilter(prev => prev === idx ? null : idx)}
