@@ -260,59 +260,141 @@ export default function BatchUploadView({ s, onViewResult }) {
   };
 
   const connectWebSocket = (batchId, initialJobs) => {
-    try {
-      // Construct WebSocket URL from API_URL
-      const wsUrl = API_URL.replace(/^http/, 'ws') + `/ws/batch/${batchId}`;
-      console.log(`[WebSocket] Connecting to ${wsUrl}`);
-      
-      const websocket = new WebSocket(wsUrl);
-      
-      websocket.onopen = () => {
-        console.log(`[WebSocket] Connected to batch ${batchId}`);
-        // Send initial heartbeat
-        websocket.send('ping');
-      };
-      
-      websocket.onmessage = (e) => {
-        try {
-          const msg = JSON.parse(e.data);
-          if (msg.type === "job_progress") {
-            console.log(`[WebSocket] Job ${msg.job_id} - Stage ${msg.stage}: ${msg.stage_name}`);
-            setJobs(prev => prev.map(j => {
-              if (j.job_id === msg.job_id) {
-                const isNewlyProcessing = j.status === 'queued' && msg.status === 'processing';
-                return {
-                  ...j,
-                  status: msg.status,
-                  stage: msg.stage,
-                  stage_name: msg.stage_name,
-                  result: msg.result || j.result,
-                  error: msg.error || j.error,
-                  _processingStartedAt: isNewlyProcessing ? Date.now() : j._processingStartedAt || (msg.status === 'processing' ? Date.now() : undefined)
-                };
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    let reconnectTimeout = null;
+    let heartbeatInterval = null;
+    let pongTimeout = null;
+
+    const calculateBackoffDelay = (attempt) => {
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s max
+      // Formula: min(2^attempt * 1000, 16000)
+      const delay = Math.min(Math.pow(2, attempt) * 1000, 16000);
+      return delay;
+    };
+
+    const attemptConnection = () => {
+      try {
+        // Construct WebSocket URL from API_URL
+        const wsUrl = API_URL.replace(/^http/, 'ws') + `/ws/batch/${batchId}`;
+        console.log(`[WebSocket] Connecting to ${wsUrl}`);
+        
+        const websocket = new WebSocket(wsUrl);
+
+        websocket.onopen = () => {
+          console.log(`[WebSocket] Connected to batch ${batchId}`);
+          // Reset reconnection attempts on successful connection
+          reconnectAttempts = 0;
+          
+          // Send initial heartbeat
+          websocket.send('ping');
+          console.log(`[WebSocket] Sent initial ping to batch ${batchId}`);
+          
+          // Set up periodic heartbeat (ping every 30 seconds)
+          heartbeatInterval = setInterval(() => {
+            if (websocket.readyState === WebSocket.OPEN) {
+              websocket.send('ping');
+              console.log(`[WebSocket] Sent ping to batch ${batchId}`);
+              
+              // Set timeout to detect if pong is not received
+              pongTimeout = setTimeout(() => {
+                console.warn(`[WebSocket] No pong received for batch ${batchId} - connection may be dead`);
+              }, 5000); // Wait 5 seconds for pong response
+            }
+          }, 30000); // Send ping every 30 seconds
+        };
+        
+        websocket.onmessage = (e) => {
+          try {
+            // Handle pong response
+            if (e.data === 'pong') {
+              console.log(`[WebSocket] Received pong from batch ${batchId}`);
+              if (pongTimeout) {
+                clearTimeout(pongTimeout);
+                pongTimeout = null;
               }
-              return j;
-            }));
+              return;
+            }
+            
+            // Handle job progress messages
+            const msg = JSON.parse(e.data);
+            if (msg.type === "job_progress") {
+              console.log(`[WebSocket] Job ${msg.job_id} - Stage ${msg.stage}: ${msg.stage_name}`);
+              setJobs(prev => prev.map(j => {
+                if (j.job_id === msg.job_id) {
+                  const isNewlyProcessing = j.status === 'queued' && msg.status === 'processing';
+                  return {
+                    ...j,
+                    status: msg.status,
+                    stage: msg.stage,
+                    stage_name: msg.stage_name,
+                    result: msg.result || j.result,
+                    error: msg.error || j.error,
+                    _processingStartedAt: isNewlyProcessing ? Date.now() : j._processingStartedAt || (msg.status === 'processing' ? Date.now() : undefined)
+                  };
+                }
+                return j;
+              }));
+            }
+          } catch (err) {
+            console.error('[WebSocket] Failed to parse message:', err);
           }
-        } catch (err) {
-          console.error('[WebSocket] Failed to parse message:', err);
+        };
+        
+        websocket.onerror = (err) => {
+          console.error(`[WebSocket] Error in batch ${batchId}:`, err);
+        };
+        
+        websocket.onclose = () => {
+          console.log(`[WebSocket] Disconnected from batch ${batchId}`);
+          
+          // Clean up heartbeat interval and pong timeout
+          if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+          }
+          if (pongTimeout) {
+            clearTimeout(pongTimeout);
+            pongTimeout = null;
+          }
+          
+          // Attempt to reconnect if we haven't exceeded max attempts
+          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay = calculateBackoffDelay(reconnectAttempts);
+            reconnectAttempts++;
+            console.log(`[WebSocket] Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} scheduled in ${delay}ms`);
+            
+            reconnectTimeout = setTimeout(() => {
+              console.log(`[WebSocket] Attempting to reconnect (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+              attemptConnection();
+            }, delay);
+          } else {
+            console.error(`[WebSocket] Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`);
+            setWs(null);
+          }
+        };
+        
+        setWs(websocket);
+      } catch (err) {
+        console.error('[WebSocket] Failed to connect:', err);
+        // Attempt to reconnect on connection error
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          const delay = calculateBackoffDelay(reconnectAttempts);
+          reconnectAttempts++;
+          console.log(`[WebSocket] Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} scheduled in ${delay}ms`);
+          
+          reconnectTimeout = setTimeout(() => {
+            console.log(`[WebSocket] Attempting to reconnect (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+            attemptConnection();
+          }, delay);
+        } else {
+          console.error(`[WebSocket] Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`);
         }
-      };
-      
-      websocket.onerror = (err) => {
-        console.error(`[WebSocket] Error in batch ${batchId}:`, err);
-      };
-      
-      websocket.onclose = () => {
-        console.log(`[WebSocket] Disconnected from batch ${batchId}`);
-        setWs(null);
-      };
-      
-      setWs(websocket);
-    } catch (err) {
-      console.error('[WebSocket] Failed to connect:', err);
-      // Fallback to polling only
-    }
+      }
+    };
+
+    // Start initial connection attempt
+    attemptConnection();
   };
 
   const completedCount = jobs.filter(j => j.status === 'completed').length;
