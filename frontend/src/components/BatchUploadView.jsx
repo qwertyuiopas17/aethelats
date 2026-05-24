@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { UploadCloud, FileText, XCircle, Play, CheckCircle, AlertTriangle, Clock, Zap, RefreshCw, ChevronDown, ChevronUp, Award, TrendingDown, TrendingUp, Users } from 'lucide-react';
-import { API_URL } from './constants';
+import { API_URL, DEMO_JD_RESULT } from './constants';
 import { useAuth } from '../context/AuthContext';
 import PipelineVisualizer from './PipelineVisualizer';
+import { JDAnalysisSection } from './AnalysisPanels';
+import { ToggleSwitch } from './UIHelpers';
 
 const STAGES = [
   { key: 'upload',     label: 'Upload',      icon: '📄' },
@@ -164,7 +166,7 @@ function RankedResults({ jobs, onViewResult }) {
   );
 }
 
-export default function BatchUploadView({ onViewResult }) {
+export default function BatchUploadView({ s, onViewResult }) {
   const { authHeaders } = useAuth();
   const [files, setFiles] = useState([]);        // selected File objects
   const [jobRole, setJobRole] = useState('');
@@ -338,12 +340,43 @@ export default function BatchUploadView({ onViewResult }) {
           <button
             onClick={handleSubmit}
             disabled={!files.length || !jobRole.trim() || submitting}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm btn-premium disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm btn-premium disabled:opacity-40 disabled:cursor-not-allowed mb-6"
           >
             {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
             {submitting ? 'Submitting…' : `Analyze ${files.length || ''} Resume${files.length !== 1 ? 's' : ''}`}
           </button>
         </>
+      )}
+
+      {/* JD Analyzer (Optional) */}
+      {jobs.length === 0 && (
+        <div className="mb-6">
+          <JDAnalysisSection jdText={s.jdText} setJdText={s.setJdText} jdResult={s.jdResult} analyzing={s.jdAnalyzing} onAnalyze={s.handleJDAnalysis} expanded={s.jdExpanded} setExpanded={s.setJdExpanded} isDemo={s.isDemo} demoResult={DEMO_JD_RESULT} />
+        </div>
+      )}
+
+      {/* Audit Parameters */}
+      {jobs.length === 0 && (
+        <div className="mb-8 glass-card glass-card-hover rounded-2xl p-5 scroll-animate">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white">Audit Parameters</div>
+            <button className="text-xs text-white/80 flex items-center gap-1 hover:text-white transition-colors">⚙ Advanced</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
+              <div><div className="text-sm font-semibold text-white">PII Redaction</div><div className="text-xs text-white/80 mt-0.5">Remove names, addresses, emails</div></div>
+              <ToggleSwitch active={s.piiRedaction} onToggle={() => s.setPiiRedaction(v => !v)} />
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
+              <div><div className="text-sm font-semibold text-white">Institution Masking</div><div className="text-xs text-white/80 mt-0.5">Obscure university/company names</div></div>
+              <ToggleSwitch active={s.instMasking} onToggle={() => s.setInstMasking(v => !v)} />
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
+              <div><div className="text-sm font-semibold text-white">Gendered Language</div><div className="text-xs text-white/80 mt-0.5">Flag potentially biased semantics</div></div>
+              <ToggleSwitch active={s.genderedLang} onToggle={() => s.setGenderedLang(v => !v)} />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Live Queue */}
