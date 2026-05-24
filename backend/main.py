@@ -37,7 +37,7 @@ from database import (
     SessionLocal, ResumeScore, init_db, record_bias_deltas, get_bias_trends,
     create_user, get_user_by_email, get_user_by_id,
     create_scan_record, get_user_scans,
-    create_otp, consume_otp,
+    create_otp, consume_otp, mark_recruiter_verified, update_linkedin_url
 )
 from sqlalchemy import func as sa_func
 from name_signals import detect_caste_proxy_signals, get_mutation_names
@@ -63,6 +63,14 @@ class LoginRequest(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
     email: str
+    otp: str
+
+class RequestRecruiterVerification(BaseModel):
+    company_email: str
+    linkedin_url: str | None = None
+
+class VerifyRecruiterRequest(BaseModel):
+    company_email: str
     otp: str
 
 # ─── CONFIG ───────────────────────────────────────────────────
@@ -1466,6 +1474,8 @@ def auth_register(request: Request, body: RegisterRequest):
                 "name":  user.name,
                 "role":  user.role,
                 "org":   user.org,
+                "is_recruiter_verified": user.is_recruiter_verified,
+                "linkedin_url": user.linkedin_url,
             },
         }
 
@@ -1523,6 +1533,8 @@ def auth_verify_otp(body: VerifyOTPRequest):
             "name":  user.name,
             "role":  user.role,
             "org":   user.org,
+            "is_recruiter_verified": user.is_recruiter_verified,
+            "linkedin_url": user.linkedin_url,
         },
     }
 
@@ -1580,6 +1592,8 @@ def auth_login(request: Request, body: LoginRequest):
             "name":  user.name,
             "role":  user.role,
             "org":   user.org,
+            "is_recruiter_verified": user.is_recruiter_verified,
+            "linkedin_url": user.linkedin_url,
         },
     }
 
@@ -1593,7 +1607,89 @@ def auth_me(current_user=Depends(get_current_user)):
         "name":       current_user.name,
         "role":       current_user.role,
         "org":        current_user.org,
+        "is_recruiter_verified": current_user.is_recruiter_verified,
+        "linkedin_url": current_user.linkedin_url,
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+    }
+
+
+@app.post("/auth/request-recruiter-verification")
+@limiter.limit("5/hour")
+def request_recruiter_verification(request: Request, body: RequestRecruiterVerification, current_user=Depends(get_current_user)):
+    if current_user.role != "recruiter":
+        raise HTTPException(status_code=403, detail="Only recruiters can request verification.")
+    
+    email = body.company_email.lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid company email address.")
+
+    # Save linkedin URL immediately if provided
+    if body.linkedin_url:
+        update_linkedin_url(current_user.id, body.linkedin_url)
+
+    # ADMIN BYPASS
+    if email.startswith("admin@"):
+        mark_recruiter_verified(current_user.id)
+        # Fetch updated user
+        user = get_user_by_id(current_user.id)
+        token = create_access_token(user.id, user.email, user.role)
+        return {
+            "message": "Admin bypass activated. Account verified.",
+            "auto_verified": True,
+            "access_token": token,
+            "user": {
+                "id":    user.id,
+                "email": user.email,
+                "name":  user.name,
+                "role":  user.role,
+                "org":   user.org,
+                "is_recruiter_verified": user.is_recruiter_verified,
+                "linkedin_url": user.linkedin_url,
+            }
+        }
+
+    otp = create_otp(email)
+    if otp:
+        send_otp_email(email, otp, current_user.name)
+        return {"message": "Verification code sent to your company email.", "auto_verified": False}
+    raise HTTPException(status_code=500, detail="Failed to generate verification code.")
+
+
+@app.post("/auth/verify-recruiter")
+def verify_recruiter(body: VerifyRecruiterRequest, current_user=Depends(get_current_user)):
+    if current_user.role != "recruiter":
+        raise HTTPException(status_code=403, detail="Only recruiters can be verified.")
+    
+    email = body.company_email.lower().strip()
+    otp   = body.otp.strip()
+
+    if not email or not otp:
+        raise HTTPException(status_code=400, detail="Company email and OTP code are required.")
+
+    # Validate OTP
+    ok = consume_otp(email, otp)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code.")
+
+    # Mark recruiter as verified
+    mark_recruiter_verified(current_user.id)
+
+    # Re-fetch user to get updated fields
+    user = get_user_by_id(current_user.id)
+    token = create_access_token(user.id, user.email, user.role)
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id":    user.id,
+            "email": user.email,
+            "name":  user.name,
+            "role":  user.role,
+            "org":   user.org,
+            "is_recruiter_verified": user.is_recruiter_verified,
+            "linkedin_url": user.linkedin_url,
+        },
     }
 
 

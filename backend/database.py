@@ -115,6 +115,8 @@ class User(Base):
     org          = Column(String(255), nullable=True)
     role         = Column(String(32), nullable=False, default="recruiter")  # recruiter | candidate
     is_verified  = Column(Boolean, nullable=False, default=False)  # True after OTP verified
+    is_recruiter_verified = Column(Boolean, nullable=False, default=False)  # True after company email verified (recruiters only)
+    linkedin_url = Column(String(512), nullable=True)   # Optional LinkedIn profile URL (unverified display)
     created_at   = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     scans = relationship("ScanRecord", back_populates="user", cascade="all, delete-orphan")
@@ -187,6 +189,8 @@ def init_db() -> None:
                 ("resume_scores", "delta_name FLOAT"),
                 ("resume_scores", "delta_combined FLOAT"),
                 ("resume_scores", "evaluator_model VARCHAR(64)"),
+                ("users", "is_recruiter_verified BOOLEAN DEFAULT FALSE"),
+                ("users", "linkedin_url VARCHAR(512)"),
             ]
             for table, col in columns:
                 try:
@@ -495,4 +499,35 @@ def mark_user_verified(email: str) -> bool:
             return True
     except Exception as e:
         print(f"[Auth] mark_user_verified failed: {e}", file=sys.stderr)
+        return False
+
+
+def mark_recruiter_verified(user_id: int) -> bool:
+    """Mark a recruiter as company-email-verified after OTP confirmation."""
+    try:
+        with SessionLocal() as db:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False
+            user.is_recruiter_verified = True
+            db.commit()
+            print(f"[Auth] Recruiter verified: user_id={user_id}")
+            return True
+    except Exception as e:
+        print(f"[Auth] mark_recruiter_verified failed: {e}", file=sys.stderr)
+        return False
+
+
+def update_linkedin_url(user_id: int, linkedin_url: str) -> bool:
+    """Save an optional LinkedIn profile URL for a recruiter."""
+    try:
+        with SessionLocal() as db:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False
+            user.linkedin_url = linkedin_url.strip()[:512]
+            db.commit()
+            return True
+    except Exception as e:
+        print(f"[Auth] update_linkedin_url failed: {e}", file=sys.stderr)
         return False

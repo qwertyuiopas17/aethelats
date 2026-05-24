@@ -16,3 +16,5 @@ fpdf2
 bcrypt
 PyJWT
 slowapi
+celery
+redis
