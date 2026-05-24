@@ -153,7 +153,6 @@ function RankedResults({ jobs, onViewResult }) {
 }
 
 export default function BatchUploadView({ s, onViewResult }) {
-  console.log("BatchUploadView s keys:", Object.keys(s));
   const { authHeaders } = useAuth();
   const [files, setFiles] = useState([]);        // selected File objects
   const [jobRole, setJobRole] = useState('');
@@ -258,9 +257,7 @@ export default function BatchUploadView({ s, onViewResult }) {
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 mb-1">Bulk Process</div>
           <h1 className="text-3xl font-bold text-white mb-2">Batch Resume Analysis</h1>
           <p className="text-white/40 text-sm">Upload up to 20 resumes to analyze them concurrently against a role.</p>
-          <div className="text-xs text-red-500 mt-2 bg-black/50 p-2 border border-red-500 rounded">
-            DEBUG: s has keys: {Object.keys(s).join(', ')}
-          </div>
+
         </div>
       </div>
 
