@@ -15,89 +15,107 @@ const PIPELINE_STAGES = [
 
 /* ─── CSS injected once ────────────────────────────────────── */
 const CUBE_STYLE = `
-  .pipeline-cube-wrap {
-    perspective: 600px;
-    perspective-origin: 50% 40%;
-  }
-  .pipeline-cube {
-    width: 56px;
-    height: 56px;
+  .pipeline-oblique-wrap {
     position: relative;
-    transform-style: preserve-3d;
-    transform: rotateX(20deg) rotateY(-30deg);
-    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
-                filter 0.35s ease;
+    width: 64px;
+    height: 64px;
+    margin-top: 16px;
+    margin-right: 16px;
+    cursor: pointer;
   }
-  .pipeline-cube.is-active {
-    transform: rotateX(20deg) rotateY(-30deg) scale(1.15);
-    filter: drop-shadow(0 0 14px var(--cube-accent));
-    animation: cube-bob 2.2s ease-in-out infinite;
-  }
-  .pipeline-cube.has-items {
-    animation: cube-pulse 1.4s ease-in-out infinite;
-  }
-  @keyframes cube-bob {
-    0%, 100% { transform: rotateX(20deg) rotateY(-30deg) scale(1.15) translateY(0px); }
-    50%       { transform: rotateX(20deg) rotateY(-30deg) scale(1.15) translateY(-4px); }
-  }
-  @keyframes cube-pulse {
-    0%, 100% { filter: drop-shadow(0 0 6px var(--cube-accent)); }
-    50%       { filter: drop-shadow(0 0 18px var(--cube-accent)); }
-  }
-  .pipeline-cube:hover {
-    transform: rotateX(20deg) rotateY(-30deg) scale(1.12);
-    filter: drop-shadow(0 0 12px var(--cube-accent));
-  }
-
-  /* Six faces */
-  .cube-face {
-    position: absolute;
-    width: 56px;
-    height: 56px;
-    border: 1px solid rgba(255,255,255,0.10);
-    backface-visibility: hidden;
-    transition: background 0.4s ease, border-color 0.4s ease;
-  }
-  /* FRONT */
-  .cube-face-front  { transform: translateZ(28px); }
-  /* BACK  */
-  .cube-face-back   { transform: rotateY(180deg) translateZ(28px); }
-  /* LEFT  */
-  .cube-face-left   { transform: rotateY(-90deg) translateZ(28px); }
-  /* RIGHT */
-  .cube-face-right  { transform: rotateY(90deg)  translateZ(28px); }
-  /* TOP   */
-  .cube-face-top    { transform: rotateX(90deg)  translateZ(28px); }
-  /* BOTTOM*/
-  .cube-face-bottom { transform: rotateX(-90deg) translateZ(28px); }
-
-  /* idle colours */
-  .cube-face-front  { background: rgba(255,255,255,0.04); }
-  .cube-face-back   { background: rgba(255,255,255,0.02); }
-  .cube-face-left   { background: rgba(0,0,0,0.30); }
-  .cube-face-right  { background: rgba(255,255,255,0.06); }
-  .cube-face-top    { background: rgba(255,255,255,0.08); }
-  .cube-face-bottom { background: rgba(0,0,0,0.25); }
-
-  /* active / lit */
-  .pipeline-cube.has-items .cube-face-front  { background: rgba(var(--cube-rgb), 0.18); border-color: rgba(var(--cube-rgb), 0.35); }
-  .pipeline-cube.has-items .cube-face-top    { background: rgba(var(--cube-rgb), 0.22); border-color: rgba(var(--cube-rgb), 0.30); }
-  .pipeline-cube.has-items .cube-face-right  { background: rgba(var(--cube-rgb), 0.12); border-color: rgba(var(--cube-rgb), 0.20); }
-  .pipeline-cube.has-items .cube-face-left   { background: rgba(0,0,0,0.50); }
-  .pipeline-cube.is-active  .cube-face-front { background: rgba(var(--cube-rgb), 0.28); border-color: rgba(var(--cube-rgb), 0.55); }
-  .pipeline-cube.is-active  .cube-face-top   { background: rgba(var(--cube-rgb), 0.35); border-color: rgba(var(--cube-rgb), 0.50); }
-  .pipeline-cube.is-active  .cube-face-right { background: rgba(var(--cube-rgb), 0.20); border-color: rgba(var(--cube-rgb), 0.35); }
-
-  /* Icon centred on front face */
-  .cube-icon {
+  .pipeline-oblique {
     position: absolute;
     inset: 0;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+  }
+  .pipeline-oblique.is-active {
+    transform: translateY(-4px);
+    filter: drop-shadow(0 4px 16px var(--cube-accent));
+  }
+  .pipeline-oblique.has-items {
+    animation: cube-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes cube-pulse {
+    0%, 100% { filter: drop-shadow(0 0 4px var(--cube-accent)); }
+    50%       { filter: drop-shadow(0 0 16px var(--cube-accent)); }
+  }
+  .pipeline-oblique-wrap:hover .pipeline-oblique {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 2px 10px var(--cube-accent));
+  }
+
+  /* Faces */
+  .oblique-face {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.4s ease, border-color 0.4s ease;
+    box-sizing: border-box;
+  }
+
+  .oblique-front {
+    width: 64px;
+    height: 64px;
+    left: 0;
+    top: 16px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.6));
+    z-index: 3;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
-    transform: translateZ(29px);
-    pointer-events: none;
+    border-radius: 4px;
+  }
+
+  .oblique-top {
+    width: 64px;
+    height: 16px;
+    left: 0;
+    top: 0;
+    transform-origin: bottom left;
+    transform: skewX(-45deg);
+    background: rgba(255,255,255,0.12);
+    z-index: 1;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+
+  .oblique-right {
+    width: 16px;
+    height: 64px;
+    left: 64px;
+    top: 16px;
+    transform-origin: top left;
+    transform: skewY(-45deg);
+    background: rgba(255,255,255,0.04);
+    z-index: 2;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+
+  /* Active / Lit states */
+  .pipeline-oblique.has-items .oblique-front {
+    background: linear-gradient(135deg, rgba(var(--cube-rgb), 0.15), rgba(0,0,0,0.8));
+    border-color: rgba(var(--cube-rgb), 0.35);
+  }
+  .pipeline-oblique.has-items .oblique-top {
+    background: rgba(var(--cube-rgb), 0.25);
+    border-color: rgba(var(--cube-rgb), 0.3);
+  }
+  .pipeline-oblique.has-items .oblique-right {
+    background: rgba(var(--cube-rgb), 0.10);
+    border-color: rgba(var(--cube-rgb), 0.2);
+  }
+
+  .pipeline-oblique.is-active .oblique-front {
+    background: linear-gradient(135deg, rgba(var(--cube-rgb), 0.25), rgba(0,0,0,0.6));
+    border-color: rgba(var(--cube-rgb), 0.55);
+  }
+  .pipeline-oblique.is-active .oblique-top {
+    background: rgba(var(--cube-rgb), 0.35);
+    border-color: rgba(var(--cube-rgb), 0.50);
+  }
+  .pipeline-oblique.is-active .oblique-right {
+    background: rgba(var(--cube-rgb), 0.20);
+    border-color: rgba(var(--cube-rgb), 0.35);
   }
 
   /* Badge */
@@ -117,18 +135,17 @@ const CUBE_STYLE = `
     border: 2px solid #000;
     z-index: 20;
     animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform: translateZ(30px);
   }
   @keyframes badge-pop {
-    from { transform: translateZ(30px) scale(0); }
-    to   { transform: translateZ(30px) scale(1); }
+    from { transform: scale(0); }
+    to   { transform: scale(1); }
   }
 
   /* Connector arrow */
   .pipeline-arrow {
     display: flex;
     align-items: center;
-    padding: 0 2px;
+    padding: 0 4px;
     padding-bottom: 24px;
     opacity: 0.25;
     transition: opacity 0.3s ease;
@@ -140,22 +157,6 @@ const CUBE_STYLE = `
     color: white;
     flex-shrink: 0;
   }
-
-  /* Flow line under active stages */
-  .cube-flow-dot {
-    position: absolute;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    animation: flow-dot 1.2s ease-in-out infinite;
-  }
-  @keyframes flow-dot {
-    0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.8); }
-    50%       { opacity: 1;   transform: translateX(-50%) scale(1.4); }
-  }
 `;
 
 /* hex → "r,g,b" for CSS var */
@@ -166,76 +167,44 @@ function hexToRgb(hex) {
   return `${r},${g},${b}`;
 }
 
-/* ─── Single 3-D cube ───────────────────────────────────────── */
+/* ─── Single Oblique Cube ───────────────────────────────────────── */
 function Cube3D({ stage, count, isActive, onClick }) {
   const { Icon, accent } = stage;
   const hasItems = count > 0;
   const cls = [
-    'pipeline-cube',
+    'pipeline-oblique',
     hasItems  ? 'has-items' : '',
     isActive  ? 'is-active'  : '',
   ].join(' ');
 
   return (
-    <div
-      className="flex flex-col items-center shrink-0 gap-3"
-      style={{ width: 80 }}
-    >
-      {/* Cube wrapper — perspective container */}
-      <div
-        className="pipeline-cube-wrap relative cursor-pointer"
-        style={{ width: 56, height: 56 }}
+    <div className="flex flex-col items-center shrink-0 gap-3" style={{ width: 84 }}>
+      <div 
+        className={`pipeline-oblique-wrap ${!hasItems ? 'cursor-default opacity-60 hover:opacity-100 transition-opacity' : ''}`}
         onClick={() => hasItems && onClick?.()}
       >
-        <div
-          className={cls}
-          style={{
-            '--cube-accent': accent,
-            '--cube-rgb': hexToRgb(accent),
-          }}
-        >
-          {/* Six faces */}
-          <div className="cube-face cube-face-front"  />
-          <div className="cube-face cube-face-back"   />
-          <div className="cube-face cube-face-left"   />
-          <div className="cube-face cube-face-right"  />
-          <div className="cube-face cube-face-top"    />
-          <div className="cube-face cube-face-bottom" />
-
-          {/* Icon on front face */}
-          <div className="cube-icon">
+        <div className={cls} style={{ '--cube-accent': accent, '--cube-rgb': hexToRgb(accent) }}>
+          <div className="oblique-face oblique-top" />
+          <div className="oblique-face oblique-right" />
+          <div className="oblique-face oblique-front">
             <Icon
               style={{
-                width: 20,
-                height: 20,
-                color: (hasItems || isActive) ? accent : 'rgba(255,255,255,0.45)',
+                width: 24,
+                height: 24,
+                color: (hasItems || isActive) ? accent : 'rgba(255,255,255,0.6)',
                 transition: 'color 0.35s ease',
-                strokeWidth: 2,
+                strokeWidth: 1.5,
               }}
             />
+            {hasItems && (
+              <div className="cube-badge" style={{ background: accent }}>
+                {count}
+              </div>
+            )}
           </div>
-
-          {/* Count badge */}
-          {hasItems && (
-            <div
-              className="cube-badge"
-              style={{ background: accent }}
-            >
-              {count}
-            </div>
-          )}
-
-          {/* Flow dot below active cube */}
-          {hasItems && (
-            <div
-              className="cube-flow-dot"
-              style={{ background: accent }}
-            />
-          )}
         </div>
       </div>
 
-      {/* Label */}
       <div
         style={{
           fontSize: 10,
@@ -244,7 +213,7 @@ function Cube3D({ stage, count, isActive, onClick }) {
           textTransform: 'uppercase',
           lineHeight: 1.3,
           textAlign: 'center',
-          color: (hasItems || isActive) ? '#ffffff' : 'rgba(255,255,255,0.38)',
+          color: (hasItems || isActive) ? '#ffffff' : 'rgba(255,255,255,0.4)',
           transition: 'color 0.35s ease',
           userSelect: 'none',
         }}

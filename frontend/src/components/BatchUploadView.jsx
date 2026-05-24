@@ -342,10 +342,15 @@ export default function BatchUploadView({ s, onViewResult }) {
           <button
             onClick={handleSubmit}
             disabled={!files.length || !jobRole.trim() || submitting}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm btn-premium disabled:opacity-40 disabled:cursor-not-allowed mb-6"
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm btn-premium disabled:opacity-40 mb-6 ${(!jobRole.trim() || !files.length || submitting) ? 'cursor-not-allowed' : ''}`}
           >
             {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {submitting ? 'Submitting…' : `Analyze ${files.length || ''} Resume${files.length !== 1 ? 's' : ''}`}
+            {submitting 
+              ? 'Submitting…' 
+              : (!jobRole.trim() && files.length) 
+                  ? 'Enter Target Role to Analyze'
+                  : `Analyze ${files.length || ''} Resume${files.length !== 1 ? 's' : ''}`
+            }
           </button>
         </>
       )}
