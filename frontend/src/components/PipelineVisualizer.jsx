@@ -12,7 +12,7 @@ const PIPELINE_STAGES = [
   { id: 'gate',       label: 'Fairness\nGate',   icon: CheckSquare,   color: 'text-white/80' },
 ];
 
-export default function PipelineVisualizer({ jobs = [] }) {
+export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilter }) {
   const [counts, setCounts] = useState(Array(8).fill(0));
 
   useEffect(() => {
@@ -31,12 +31,11 @@ export default function PipelineVisualizer({ jobs = [] }) {
           newCounts[7]++;
         } else if (j.status === 'processing' && j._processingStartedAt) {
           const elapsed = now - j._processingStartedAt;
-          // each stage = 3500ms, max stage = 6 (since 7 is completed/gate)
-          let stage = Math.floor(elapsed / 3500) + 1; // starts moving past upload (0)
+          let stage = Math.floor(elapsed / 3500) + 1;
           stage = Math.min(stage, 6);
           newCounts[stage]++;
         } else if (j.status === 'processing') {
-          newCounts[1]++; // fallback if no timestamp
+          newCounts[1]++;
         }
       });
       setCounts(newCounts);
@@ -54,45 +53,57 @@ export default function PipelineVisualizer({ jobs = [] }) {
       </div>
 
       {/* Pipeline Track */}
-      <div className="flex flex-nowrap items-center justify-between gap-2 overflow-x-auto pb-4 hide-scrollbar">
-        {PIPELINE_STAGES.map((stage, idx) => {
-          const Icon = stage.icon;
-          const isLast = idx === PIPELINE_STAGES.length - 1;
+      <div className="relative">
+        <div className="flex flex-nowrap items-center justify-between gap-2 overflow-x-auto pb-6 hide-scrollbar relative z-10">
+          {PIPELINE_STAGES.map((stage, idx) => {
+            const Icon = stage.icon;
+            const isLast = idx === PIPELINE_STAGES.length - 1;
+            const hasItems = counts[idx] > 0;
+            const isActive = activeFilter === idx;
 
-          return (
-            <React.Fragment key={stage.id}>
-              {/* Stage Block */}
-              <div className="flex flex-col items-center shrink-0 w-20 sm:w-24 group">
-                {/* 3D Cube approximation */}
-                <div className={`relative w-14 h-14 sm:w-16 sm:h-16 mb-4 flex items-center justify-center
-                                bg-gradient-to-br border rounded-xl transition-all duration-500 
-                                ${counts[idx] > 0 ? 'from-blue-500/20 to-blue-500/5 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.3)] scale-110' : 'from-white/[0.08] to-transparent border-white/[0.1] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-110 hover:border-white/[0.2] hover:bg-white/[0.1]'}`}>
-                  {/* Subtle top glare */}
-                  <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.05] to-transparent rounded-t-xl" />
-                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 relative z-10 transition-colors duration-300 ${counts[idx] > 0 ? 'text-white' : stage.color} group-hover:text-white`} strokeWidth={2} />
-                  
-                  {/* Live Count Badge */}
-                  {counts[idx] > 0 && (
-                    <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 text-white text-[10px] sm:text-xs font-black flex items-center justify-center border-2 border-black animate-fade-in-up">
-                      {counts[idx]}
-                    </div>
-                  )}
+            return (
+              <React.Fragment key={stage.id}>
+                {/* Stage Block */}
+                <div 
+                  className={`flex flex-col items-center shrink-0 w-20 sm:w-24 group ${hasItems ? 'cursor-pointer' : 'cursor-default'}`}
+                  onClick={() => hasItems && onStageClick?.(idx)}
+                >
+                  {/* Sleek Rounded Square */}
+                  <div className={`relative w-14 h-14 sm:w-16 sm:h-16 mb-4 flex items-center justify-center
+                                  rounded-2xl transition-all duration-300
+                                  ${hasItems || isActive ? 'bg-white/[0.08] border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] scale-105' : 'bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] hover:bg-white/[0.06]'}`}>
+                    
+                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 relative z-10 transition-colors duration-300 ${isActive ? 'text-white' : stage.color} ${hasItems ? 'animate-pulse' : ''}`} strokeWidth={2} />
+                    
+                    {/* Live Count Badge */}
+                    {hasItems && (
+                      <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 text-white text-[10px] sm:text-xs font-black flex items-center justify-center border-2 border-black animate-fade-in-up shadow-lg">
+                        {counts[idx]}
+                      </div>
+                    )}
+                  </div>
+                  {/* Label */}
+                  <div className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider leading-tight whitespace-pre-line text-center transition-colors duration-300
+                                  ${hasItems || isActive ? 'text-white' : 'text-white/50 group-hover:text-white/80'}`}>
+                    {stage.label}
+                  </div>
                 </div>
-                {/* Label */}
-                <div className="text-[10px] sm:text-xs font-bold text-white/70 text-center uppercase tracking-wider leading-tight whitespace-pre-line group-hover:text-white transition-colors">
-                  {stage.label}
-                </div>
-              </div>
 
-              {/* Connecting Arrow */}
-              {!isLast && (
-                <div className="flex-1 min-w-[20px] flex justify-center shrink-0">
-                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-white/20" />
-                </div>
-              )}
-            </React.Fragment>
-          );
-        })}
+                {/* Connecting Arrow */}
+                {!isLast && (
+                  <div className="flex-1 min-w-[15px] flex justify-center shrink-0 mb-8">
+                    <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${counts[idx] > 0 ? 'text-white/40' : 'text-white/10'}`} />
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+        
+        {/* Continuous Progress Bar Underneath */}
+        <div className="absolute bottom-1 left-4 right-4 h-1 bg-white/[0.05] rounded-full overflow-hidden">
+           <div className="h-full bg-gradient-to-r from-emerald-500/20 via-blue-500/20 to-purple-500/20 w-full opacity-50" />
+        </div>
       </div>
     </div>
   );

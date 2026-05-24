@@ -152,7 +152,8 @@ function RankedResults({ jobs, onViewResult }) {
   );
 }
 
-export default function BatchUploadView({ s = {}, onViewResult }) {
+export default function BatchUploadView({ s, onViewResult }) {
+  console.log("BatchUploadView s keys:", Object.keys(s));
   const { authHeaders } = useAuth();
   const [files, setFiles] = useState([]);        // selected File objects
   const [jobRole, setJobRole] = useState('');
@@ -162,6 +163,7 @@ export default function BatchUploadView({ s = {}, onViewResult }) {
   const [batchError, setBatchError] = useState(null);
   const fileInputRef = useRef(null);
   const pollersRef = useRef({});                 // job_id → interval id
+  const [activeStageFilter, setActiveStageFilter] = useState(null); // idx of stage to filter by
 
   const ACCEPTED_EXTS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
@@ -252,15 +254,22 @@ export default function BatchUploadView({ s = {}, onViewResult }) {
     <div className="p-4 sm:p-8 animate-fade-in max-w-5xl">
       <div className="mb-1 flex items-center gap-2">
         <span className="text-white/80 text-xs">◈</span>
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Recruiter Tools</span>
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 mb-1">Bulk Process</div>
+          <h1 className="text-3xl font-bold text-white mb-2">Batch Resume Analysis</h1>
+          <p className="text-white/40 text-sm">Upload up to 20 resumes to analyze them concurrently against a role.</p>
+          <div className="text-xs text-red-500 mt-2 bg-black/50 p-2 border border-red-500 rounded">
+            DEBUG: s has keys: {Object.keys(s).join(', ')}
+          </div>
+        </div>
       </div>
-      <h1 className="text-3xl font-bold text-white mb-2">Batch Resume Audit</h1>
-      <p className="text-white/70 text-sm max-w-xl leading-relaxed mb-8">
-        Upload up to 20 resumes at once. All candidates process through the full 8-stage bias-free pipeline simultaneously. Results are ranked by fit score when done.
-      </p>
 
       {/* 8-Stage Pipeline Visualizer */}
-      <PipelineVisualizer jobs={jobs} />
+      <PipelineVisualizer 
+        jobs={jobs} 
+        activeFilter={activeStageFilter}
+        onStageClick={(idx) => setActiveStageFilter(prev => prev === idx ? null : idx)}
+      />
 
       {/* Role Input */}
       <div className="mb-6 max-w-xl">
@@ -347,7 +356,7 @@ export default function BatchUploadView({ s = {}, onViewResult }) {
       {/* JD Analyzer (Optional) */}
       {jobs.length === 0 && (
         <div className="mb-6">
-          <JDAnalysisSection jdText={s?.jdText || ''} setJdText={s?.setJdText} jdResult={s?.jdResult} analyzing={s?.jdAnalyzing} onAnalyze={s?.handleJDAnalysis} expanded={s?.jdExpanded} setExpanded={s?.setJdExpanded} isDemo={s?.isDemo} demoResult={DEMO_JD_RESULT} />
+          <JDAnalysisSection jdText={s.jdText} setJdText={s.setJdText} jdResult={s.jdResult} analyzing={s.jdAnalyzing} onAnalyze={s.handleJDAnalysis} expanded={s.jdExpanded} setExpanded={s.setJdExpanded} isDemo={s.isDemo} demoResult={DEMO_JD_RESULT} />
         </div>
       )}
 
@@ -361,15 +370,15 @@ export default function BatchUploadView({ s = {}, onViewResult }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
               <div><div className="text-sm font-semibold text-white">PII Redaction</div><div className="text-xs text-white/80 mt-0.5">Remove names, addresses, emails</div></div>
-              <ToggleSwitch active={s?.piiRedaction} onToggle={() => s?.setPiiRedaction?.(v => !v)} />
+              <ToggleSwitch active={s.piiRedaction} onToggle={() => s.setPiiRedaction(v => !v)} />
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
               <div><div className="text-sm font-semibold text-white">Institution Masking</div><div className="text-xs text-white/80 mt-0.5">Obscure university/company names</div></div>
-              <ToggleSwitch active={s?.instMasking} onToggle={() => s?.setInstMasking?.(v => !v)} />
+              <ToggleSwitch active={s.instMasking} onToggle={() => s.setInstMasking(v => !v)} />
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
               <div><div className="text-sm font-semibold text-white">Gendered Language</div><div className="text-xs text-white/80 mt-0.5">Flag potentially biased semantics</div></div>
-              <ToggleSwitch active={s?.genderedLang} onToggle={() => s?.setGenderedLang?.(v => !v)} />
+              <ToggleSwitch active={s.genderedLang} onToggle={() => s.setGenderedLang(v => !v)} />
             </div>
           </div>
         </div>
@@ -393,6 +402,11 @@ export default function BatchUploadView({ s = {}, onViewResult }) {
             >
               <RefreshCw className="w-3 h-3" /> New Batch
             </button>
+            {activeStageFilter !== null && (
+               <button onClick={() => setActiveStageFilter(null)} className="text-xs text-blue-400 hover:text-blue-300 ml-4">
+                 Clear Filter
+               </button>
+            )}
           </div>
           <div className="w-full bg-white/[0.06] rounded-full h-1.5 mb-4 overflow-hidden">
             <div
@@ -400,12 +414,37 @@ export default function BatchUploadView({ s = {}, onViewResult }) {
               style={{ width: `${totalCount ? (completedCount / totalCount) * 100 : 0}%` }}
             />
           </div>
-
-          {/* Job rows */}
-          <div className="glass-card rounded-2xl overflow-hidden mb-4">
-            {jobs.map(job => (
-              <JobRow key={job.job_id} job={job} onViewResult={onViewResult} />
+          <div className="glass-card rounded-2xl border border-white/[0.08] overflow-hidden">
+            {jobs.filter(j => {
+              if (activeStageFilter === null) return true;
+              if (activeStageFilter === 0 && j.status === 'queued') return true;
+              if (activeStageFilter === 7 && (j.status === 'completed' || j.status === 'error')) return true;
+              if (j.status === 'processing' && j._processingStartedAt) {
+                const elapsed = Date.now() - j._processingStartedAt;
+                let stage = Math.floor(elapsed / 3500) + 1;
+                stage = Math.min(stage, 6);
+                return stage === activeStageFilter;
+              }
+              return activeStageFilter === 1 && j.status === 'processing';
+            }).map((job, idx) => (
+              <JobRow key={job.job_id || idx} job={job} onViewResult={onViewResult} />
             ))}
+            {jobs.filter(j => {
+              if (activeStageFilter === null) return true;
+              if (activeStageFilter === 0 && j.status === 'queued') return true;
+              if (activeStageFilter === 7 && (j.status === 'completed' || j.status === 'error')) return true;
+              if (j.status === 'processing' && j._processingStartedAt) {
+                const elapsed = Date.now() - j._processingStartedAt;
+                let stage = Math.floor(elapsed / 3500) + 1;
+                stage = Math.min(stage, 6);
+                return stage === activeStageFilter;
+              }
+              return activeStageFilter === 1 && j.status === 'processing';
+            }).length === 0 && (
+              <div className="p-8 text-center text-sm text-white/40">
+                No candidates currently in this stage.
+              </div>
+            )}
           </div>
 
           {/* Ranked table when done */}

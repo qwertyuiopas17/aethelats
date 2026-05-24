@@ -393,6 +393,7 @@ function AuthenticatedApp({ s }) {
           {s.step === 'talent-pool' && <TalentPoolView />}
           {s.step === 'batch' && user?.role !== 'candidate' && (
             <BatchUploadView
+              s={s}
               onViewResult={(job) => {
                 s.setResult(job.result);
                 s.setStep('results');
