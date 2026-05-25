@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, FileText, Clock, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, AlertTriangle, MessageSquare, Check } from 'lucide-react';
 import { API_URL } from './constants';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,20 +33,57 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-function CandidateCard({ scan, onMove, movingId }) {
+function getSuggestedStage(score) {
+  if (score == null) return null;
+  if (score >= 80) return 'Interview';
+  if (score >= 60) return 'Screening';
+  return null;
+}
+
+function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders }) {
   const stage = scan.kanban_stage || 'Sourced';
-  const stageIdx = STAGES.indexOf(stage);
-  const canMoveLeft  = stageIdx > 0;
-  const canMoveRight = stageIdx < STAGES.length - 1;
   const isMoving = movingId === scan.id;
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [localNote, setLocalNote] = useState(scan.recruiter_notes || '');
+  const [noteSaved, setNoteSaved] = useState(false);
+  const noteTimerRef = React.useRef(null);
+
+  // AI suggestion logic
+  const suggested = getSuggestedStage(scan.fit_score);
+  const currentIdx = STAGES.indexOf(stage);
+  const suggestedIdx = suggested ? STAGES.indexOf(suggested) : -1;
+  const showSuggestion = suggested && suggestedIdx > currentIdx;
+
+  function scheduleNoteSave(scanId, text) {
+    clearTimeout(noteTimerRef.current);
+    setNoteSaved(false);
+    noteTimerRef.current = setTimeout(async () => {
+      try {
+        await fetch(`${API_URL}/user/scans/${scanId}/notes`, {
+          method: 'PATCH',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: text }),
+        });
+        setNoteSaved(true);
+        setTimeout(() => setNoteSaved(false), 2000);
+      } catch {}
+    }, 800); // 800ms debounce
+  }
 
   return (
-    <div className={`
-      group relative rounded-xl border p-3.5 transition-all duration-300 cursor-default
-      bg-white/[0.02] hover:bg-white/[0.04]
-      ${STAGE_COLORS[stage]?.border || 'border-white/10'}
-      ${isMoving ? 'opacity-50 scale-[0.98]' : ''}
-    `}>
+    <div
+      draggable={!isMoving}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart(scan);
+      }}
+      className={`
+        group relative rounded-xl border p-3.5 transition-all duration-300 cursor-grab active:cursor-grabbing
+        bg-white/[0.02] hover:bg-white/[0.04]
+        ${STAGE_COLORS[stage]?.border || 'border-white/10'}
+        ${isMoving ? 'opacity-50 scale-[0.98]' : ''}
+      `}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -68,36 +105,61 @@ function CandidateCard({ scan, onMove, movingId }) {
       {/* Role */}
       <div className="text-xs text-white/40 mb-3 truncate">{scan.role_target}</div>
 
-      {/* Footer: date + move arrows */}
-      <div className="flex items-center justify-between">
+      {/* AI Suggestion */}
+      {showSuggestion && (
+        <button
+          onClick={() => onMove(scan, suggested)}
+          disabled={!!movingId}
+          className="w-full mt-1 mb-2 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-violet-500/[0.08] border border-violet-500/20
+                     text-[10px] text-violet-300 hover:bg-violet-500/15 transition-all text-left"
+          title={`AI suggests moving to ${suggested} based on score ${scan.fit_score}`}
+        >
+          <span className="text-[8px]">✦</span>
+          AI suggests → <span className="font-bold">{suggested}</span>
+        </button>
+      )}
+
+      {/* Notes toggle */}
+      <div className="border-t border-white/[0.05] mt-2 pt-2">
+        <button
+          onClick={() => setNoteOpen(v => !v)}
+          className="flex items-center gap-1.5 text-[10px] text-white/30 hover:text-white/60 transition-colors"
+        >
+          <MessageSquare className="w-3 h-3" />
+          {localNote ? 'Note added' : 'Add note'}
+        </button>
+        {noteOpen && (
+          <div className="mt-2 relative">
+            <textarea
+              value={localNote}
+              onChange={e => { setLocalNote(e.target.value); scheduleNoteSave(scan.id, e.target.value); }}
+              placeholder="Private notes…"
+              rows={2}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-2 text-xs text-white/70 placeholder-white/20 resize-none focus:outline-none focus:border-white/20 transition-all"
+            />
+            {noteSaved && (
+              <span className="absolute right-2 bottom-2 text-[10px] text-emerald-400 flex items-center gap-0.5">
+                <Check className="w-2.5 h-2.5" /> Saved
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer: timestamp */}
+      <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-1 text-[10px] text-white/20">
           <Clock className="w-3 h-3" />
-          {fmtDate(scan.timestamp)}
-        </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            disabled={!canMoveLeft || isMoving}
-            onClick={() => onMove(scan, STAGES[stageIdx - 1])}
-            className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.12] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-            title={canMoveLeft ? `Move to ${STAGES[stageIdx - 1]}` : ''}
-          >
-            <ChevronLeft className="w-3.5 h-3.5 text-white/70" />
-          </button>
-          <button
-            disabled={!canMoveRight || isMoving}
-            onClick={() => onMove(scan, STAGES[stageIdx + 1])}
-            className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/[0.08] flex items-center justify-center hover:bg-white/[0.12] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-            title={canMoveRight ? `Move to ${STAGES[stageIdx + 1]}` : ''}
-          >
-            <ChevronRight className="w-3.5 h-3.5 text-white/70" />
-          </button>
+          {scan.stage_updated_at
+            ? `In stage ${fmtDate(scan.stage_updated_at)}`
+            : fmtDate(scan.timestamp)}
         </div>
       </div>
     </div>
   );
 }
 
-function KanbanColumn({ stage, cards, onMove, movingId }) {
+function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders }) {
   const colors = STAGE_COLORS[stage];
   return (
     <div className="flex flex-col min-w-[220px] max-w-[260px] w-full flex-shrink-0">
@@ -109,15 +171,31 @@ function KanbanColumn({ stage, cards, onMove, movingId }) {
           {cards.length}
         </span>
       </div>
-      {/* Cards */}
-      <div className="flex flex-col gap-2.5 min-h-[80px]">
+      {/* Drop zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOverStage(stage); }}
+        onDragLeave={() => setDragOverStage(null)}
+        onDrop={(e) => { e.preventDefault(); onDrop(stage); setDragOverStage(null); }}
+        className={`flex flex-col gap-2.5 min-h-[80px] rounded-xl transition-all duration-200 p-1 -m-1 ${
+          isDragOver ? 'bg-white/[0.04] ring-1 ring-white/20' : ''
+        }`}
+      >
         {cards.length === 0 && (
-          <div className="rounded-xl border border-dashed border-white/[0.06] py-8 text-center text-white/20 text-xs">
-            Empty
+          <div className={`rounded-xl border border-dashed py-8 text-center text-xs transition-all ${
+            isDragOver ? 'border-white/20 text-white/40' : 'border-white/[0.06] text-white/20'
+          }`}>
+            {isDragOver ? 'Drop here' : 'Empty'}
           </div>
         )}
         {cards.map(scan => (
-          <CandidateCard key={scan.id} scan={scan} onMove={onMove} movingId={movingId} />
+          <CandidateCard
+            key={scan.id}
+            scan={scan}
+            onMove={onMove}
+            movingId={movingId}
+            onDragStart={onDragStart}
+            authHeaders={authHeaders}
+          />
         ))}
       </div>
     </div>
@@ -129,12 +207,15 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const [scans, setScans] = useState(initialScans);
   const [movingId, setMovingId] = useState(null);
   const [moveError, setMoveError] = useState(null);
+  const [draggingScan, setDraggingScan] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
 
   // Keep in sync when parent refreshes
   React.useEffect(() => { setScans(initialScans); }, [initialScans]);
 
   async function handleMove(scan, newStage) {
-    if (movingId) return; // prevent double-click
+    if (movingId) return;
+    if ((scan.kanban_stage || 'Sourced') === newStage) return;
     setMovingId(scan.id);
     setMoveError(null);
 
@@ -160,6 +241,12 @@ export default function KanbanBoardView({ scans: initialScans }) {
     }
   }
 
+  function handleDrop(targetStage) {
+    if (!draggingScan) return;
+    handleMove(draggingScan, targetStage);
+    setDraggingScan(null);
+  }
+
   const grouped = STAGES.reduce((acc, stage) => {
     acc[stage] = scans.filter(s => (s.kanban_stage || 'Sourced') === stage);
     return acc;
@@ -181,6 +268,11 @@ export default function KanbanBoardView({ scans: initialScans }) {
             cards={grouped[stage]}
             onMove={handleMove}
             movingId={movingId}
+            onDragStart={setDraggingScan}
+            onDrop={handleDrop}
+            isDragOver={dragOverStage === stage}
+            setDragOverStage={setDragOverStage}
+            authHeaders={authHeaders}
           />
         ))}
       </div>

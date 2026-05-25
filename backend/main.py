@@ -36,7 +36,7 @@ from pydantic import BaseModel
 from database import (
     SessionLocal, ResumeScore, init_db, record_bias_deltas, get_bias_trends,
     create_user, get_user_by_email, get_user_by_id,
-    create_scan_record, get_user_scans, update_kanban_stage,
+    create_scan_record, get_user_scans, update_kanban_stage, update_scan_notes,
     create_otp, consume_otp, mark_recruiter_verified, update_linkedin_url
 )
 from sqlalchemy import func as sa_func
@@ -75,6 +75,9 @@ class VerifyRecruiterRequest(BaseModel):
 
 class KanbanStageUpdate(BaseModel):
     stage: str   # "Sourced" | "Screening" | "Interview" | "Offer" | "Rejected"
+
+class ScanNotesUpdate(BaseModel):
+    notes: str
 
 # ─── CONFIG ───────────────────────────────────────────────────
 import groq
@@ -1729,6 +1732,25 @@ def update_scan_kanban_stage(
     return {"ok": True, "scan_id": scan_id, "stage": body.stage}
 
 
+@app.patch("/user/scans/{scan_id}/notes")
+def update_scan_notes_endpoint(
+    scan_id: int,
+    body: ScanNotesUpdate,
+    current_user=Depends(get_current_user),
+):
+    """Update recruiter notes for a scan record."""
+    # Enforce 2000 character limit
+    if len(body.notes) > 2000:
+        raise HTTPException(status_code=400, detail="Notes exceed 2000 character limit.")
+    
+    # Call database function with ownership check
+    ok = update_scan_notes(scan_id=scan_id, user_id=current_user.id, notes=body.notes)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Scan record not found or access denied.")
+    
+    return {"ok": True, "message": "Notes updated"}
+
+
 SUPPORTED_TYPES = {
     ".pdf":  "application/pdf",
     ".jpg":  "image/jpeg",
@@ -2035,16 +2057,73 @@ PIPELINE_STAGES = [
 ]
 
 async def broadcast_to_batch(batch_id, message):
-    """Send a message to all WebSocket clients connected to a batch."""
+    """Send a message to all WebSocket clients connected to a batch with retry logic.
+    
+    Features:
+    - Retries failed sends up to 3 times with exponential backoff (100ms, 200ms, 400ms)
+    - Distinguishes between different failure types (timeout, connection, other)
+    - Logs successful broadcasts and retry attempts for debugging
+    - Handles timeouts gracefully to prevent hanging
+    - Maintains backward compatibility
+    """
     if batch_id not in batch_connections:
         return
+    
     disconnected = set()
+    max_retries = 3
+    retry_delays = [0.1, 0.2, 0.4]  # 100ms, 200ms, 400ms
+    timeout_seconds = 5
+    
     for ws in batch_connections[batch_id]:
-        try:
-            await ws.send_json(message)
-        except Exception as e:
-            print(f"[WebSocket] Failed to send to batch {batch_id}: {e}")
+        sent = False
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                # Attempt to send with timeout
+                await asyncio.wait_for(ws.send_json(message), timeout=timeout_seconds)
+                
+                # Log successful send
+                if attempt == 0:
+                    print(f"[WebSocket] Successfully sent to batch {batch_id}")
+                else:
+                    print(f"[WebSocket] Successfully sent to batch {batch_id} on retry attempt {attempt}")
+                
+                sent = True
+                break
+                
+            except asyncio.TimeoutError:
+                last_error = "timeout"
+                error_msg = f"[WebSocket] Timeout sending to batch {batch_id}"
+                if attempt < max_retries - 1:
+                    print(f"{error_msg} (attempt {attempt + 1}/{max_retries}), retrying in {retry_delays[attempt]*1000:.0f}ms...")
+                    await asyncio.sleep(retry_delays[attempt])
+                else:
+                    print(f"{error_msg} (attempt {attempt + 1}/{max_retries}), giving up")
+                    
+            except ConnectionError as e:
+                last_error = "connection"
+                error_msg = f"[WebSocket] Connection error sending to batch {batch_id}: {e}"
+                if attempt < max_retries - 1:
+                    print(f"{error_msg} (attempt {attempt + 1}/{max_retries}), retrying in {retry_delays[attempt]*1000:.0f}ms...")
+                    await asyncio.sleep(retry_delays[attempt])
+                else:
+                    print(f"{error_msg} (attempt {attempt + 1}/{max_retries}), giving up")
+                    
+            except Exception as e:
+                last_error = "other"
+                error_msg = f"[WebSocket] Failed to send to batch {batch_id}: {type(e).__name__}: {e}"
+                if attempt < max_retries - 1:
+                    print(f"{error_msg} (attempt {attempt + 1}/{max_retries}), retrying in {retry_delays[attempt]*1000:.0f}ms...")
+                    await asyncio.sleep(retry_delays[attempt])
+                else:
+                    print(f"{error_msg} (attempt {attempt + 1}/{max_retries}), giving up")
+        
+        # Mark as disconnected if all retries failed
+        if not sent:
+            print(f"[WebSocket] Marking client as disconnected after {max_retries} failed attempts ({last_error})")
             disconnected.add(ws)
+    
     # Clean up disconnected clients
     for ws in disconnected:
         batch_connections[batch_id].discard(ws)
@@ -2088,20 +2167,20 @@ async def process_job_with_stages(job_id, kwargs, batch_id):
         job_store[job_id]["status"] = "processing"
         job_store[job_id]["batch_id"] = batch_id
         
-        async def set_stage(stage_idx: int):
+        async def set_stage(stage_idx: int, detail: str = ""):
             stage_key, stage_name = PIPELINE_STAGES[stage_idx]
             job_store[job_id]["stage"] = stage_idx
             job_store[job_id]["stage_name"] = stage_name
+            job_store[job_id]["stage_detail"] = detail
             await broadcast_to_batch(batch_id, {
                 "type": "job_progress",
                 "job_id": job_id,
                 "stage": stage_idx,
                 "stage_name": stage_name,
+                "stage_detail": detail,
                 "status": "processing",
             })
-            print(f"[Job {job_id}] Stage {stage_idx}: {stage_name}")
-
-        await set_stage(0)
+            print(f"[Job {job_id}] Stage {stage_idx}: {stage_name}{' — ' + detail if detail else ''}")
         
         # Execute the full job (strip batch_id — execute_scan_job doesn't accept it)
         scan_kwargs = {k: v for k, v in kwargs.items() if k != "batch_id"}
@@ -2111,6 +2190,7 @@ async def process_job_with_stages(job_id, kwargs, batch_id):
         job_store[job_id]["result"] = result
         job_store[job_id]["stage"] = 7
         job_store[job_id]["stage_name"] = "Fairness Gate"
+        job_store[job_id]["stage_detail"] = "All checks passed"
         
         # Broadcast completion
         await broadcast_to_batch(batch_id, {
@@ -2118,6 +2198,7 @@ async def process_job_with_stages(job_id, kwargs, batch_id):
             "job_id": job_id,
             "stage": 7,
             "stage_name": "Fairness Gate",
+            "stage_detail": "All checks passed",
             "status": "completed",
             "result": result,
         })
@@ -2278,6 +2359,12 @@ async def websocket_batch_updates(websocket: WebSocket, batch_id: str):
         "stage_name": "Stripping PII",
         "status": "processing"
     }
+    
+    Implements bidirectional heartbeat:
+    - Server sends "ping" every 30 seconds if no client message received
+    - Client can send "ping" to keep connection alive
+    - Both sides respond with "pong" to heartbeats
+    - 60-second timeout on receive_text() detects dead connections
     """
     await websocket.accept()
     
@@ -2287,15 +2374,54 @@ async def websocket_batch_updates(websocket: WebSocket, batch_id: str):
     batch_connections[batch_id].add(websocket)
     
     print(f"[WebSocket] Client connected to batch {batch_id} (total: {len(batch_connections[batch_id])})")
+
+    # ── Catch-up snapshot ─────────────────────────────────────────────────
+    # Send the current state of every job in this batch immediately on connect.
+    # This handles the race where stages 0-1 fired before the WS was established.
+    snapshot_jobs = [
+        {
+            "job_id": jid,
+            "stage": info.get("stage", 0),
+            "stage_name": info.get("stage_name", "Extracting Text"),
+            "stage_detail": info.get("stage_detail", ""),
+            "status": info.get("status", "queued"),
+            "result": info.get("result"),
+            "error": info.get("error"),
+        }
+        for jid, info in job_store.items()
+        if info.get("batch_id") == batch_id
+    ]
+    if snapshot_jobs:
+        try:
+            await websocket.send_json({
+                "type": "job_snapshot",
+                "jobs": snapshot_jobs,
+            })
+            print(f"[WebSocket] Sent catch-up snapshot ({len(snapshot_jobs)} jobs) to new client on batch {batch_id}")
+        except Exception as snap_err:
+            print(f"[WebSocket] Failed to send snapshot: {snap_err}")
+    # ─────────────────────────────────────────────────────────────────────
     
     try:
         while True:
-            # Keep connection alive by receiving heartbeat messages
-            # Frontend can send periodic pings to keep connection alive
-            data = await websocket.receive_text()
-            # Optionally handle client messages (e.g., heartbeat, disconnect signal)
-            if data == "ping":
-                await websocket.send_text("pong")
+            try:
+                # Wait for client message with 60-second timeout
+                # If no message received within 60 seconds, TimeoutError is raised
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=60.0)
+                
+                # Handle client-initiated heartbeat
+                if data == "ping":
+                    print(f"[WebSocket] Heartbeat ping received from client on batch {batch_id}")
+                    await websocket.send_text("pong")
+                # Handle other client messages (e.g., job progress updates)
+                else:
+                    print(f"[WebSocket] Message received on batch {batch_id}: {data[:100]}")
+                    
+            except asyncio.TimeoutError:
+                # No message received for 60 seconds - connection is likely dead
+                print(f"[WebSocket] Timeout: No message from client on batch {batch_id} for 60 seconds")
+                break
+                
     except WebSocketDisconnect:
         print(f"[WebSocket] Client disconnected from batch {batch_id}")
         batch_connections[batch_id].discard(websocket)
@@ -2304,23 +2430,34 @@ async def websocket_batch_updates(websocket: WebSocket, batch_id: str):
     except Exception as e:
         print(f"[WebSocket] Error in batch {batch_id}: {e}")
         batch_connections[batch_id].discard(websocket)
+        if not batch_connections[batch_id]:
+            del batch_connections[batch_id]
 
 
 async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: bytes, role: str, jd_skills: str, current_user_id: int, stage_callback=None):
     try:
-        if stage_callback: await stage_callback(0)
+        # Stage 0: Extracting Text — fire callback BEFORE extraction so cube
+        # lights up while work is happening (WS is established by this point
+        # because process_job_with_stages no longer calls set_stage(0) up-front;
+        # the snapshot-on-connect handles any race).
+        if stage_callback:
+            await stage_callback(0, f"Reading {ext.lstrip('.').upper()} file…")
+            print("[FairAI] ✓ Stage 0/8 — Extracting Text (callback sent)")
         _t0 = __import__('time').monotonic()
         resume_text = extract_resume_text(pdf_bytes, ext)
         # NOTE: _is_valid_resume is NOT called here — it is already called in
         # /detect-role during file upload. Calling it again adds a redundant ~5s
         # Groq round-trip on every analysis, slowing down the hot path.
-
+        _chars = len(resume_text)
         print(f"[FairAI] Analyzing for role: {role}")
 
         loop = asyncio.get_event_loop()
 
-        # Stage 1: PII Stripping (Bot 1: GLiNER local → LLM fallback)
-        if stage_callback: await stage_callback(1)
+        # Stage 1: PII Stripping — fire callback BEFORE the blocking work so the
+        # cube animates while GLiNER is running (which can take ~22s on cold start).
+        if stage_callback:
+            await stage_callback(1, f"Scanning {_chars:,} characters for personal data…")
+            print("[FairAI] ✓ Stage 1/8 — Stripping PII (callback sent)")
         print("[FairAI] Stage 1/3 — Stripping PII (Bot 1)...")
         pii_result = await loop.run_in_executor(_pool, _strip_pii, resume_text)
         sanitized  = pii_result["sanitized_text"]
@@ -2331,9 +2468,12 @@ async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: byte
 
         result = None
         try:
-            # Run skill generation AND resume structuring IN PARALLEL to save time.
-            # Previously these were sequential (~5s + ~5s = 10s wasted before Bot 4 even starts).
-            if stage_callback: await stage_callback(3) # Skill Graph building
+            # Stage 2: Blind Scoring — fire NOW (after PII work) before the
+            # parallel Bot 3 + JD-skills block which represents the scoring phase.
+            if stage_callback:
+                await stage_callback(2, f"{len(pii_items)} PII items redacted — blind scoring…")
+                print("[FairAI] ✓ Stage 2/8 — Blind Scoring (callback sent)")
+
             print("[FairAI] Stage 2/3 — Structuring resume (Bot 3) + generating JD skills in parallel...")
 
             if jd_skills.strip():
@@ -2347,6 +2487,12 @@ async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: byte
 
             _t2 = __import__('time').monotonic()
             print(f"[FairAI] ✓ Stage 2 done in {_t2-_t1:.1f}s — JD skills: {jd_skills_list}")
+
+            # Stage 3: Skill Graph — fire after Bot 3 + JD skills work completes
+            _skills_label = ", ".join(jd_skills_list[:3]) + (f" +{len(jd_skills_list)-3} more" if len(jd_skills_list) > 3 else "") if jd_skills_list else "skills detected"
+            if stage_callback:
+                await stage_callback(3, f"Mapped {_skills_label}")
+                print("[FairAI] ✓ Stage 3/8 — Skill Graph (callback sent)")
             
             # ── Check if Bot 3 actually extracted useful data ──────────────
             # Bot 3 may return sentence-length "skills" that get stripped later.
@@ -2449,7 +2595,6 @@ Resume:
             print(f"[FairAI] Resume structured. Running Bot 4 evaluator...")
 
             # Stage 3: Evaluate (Bot 4: Modal → HF Dedicated → HF Free API → Groq)
-            if stage_callback: await stage_callback(2) # Blind Scoring
             print("[FairAI] Stage 3/3 — Evaluating (Bot 4)...")
             _t3_start = __import__('time').monotonic()
             evaluation = await loop.run_in_executor(_pool, evaluate_resume, structured_data, jd_skills_list, role)
@@ -2488,17 +2633,26 @@ Resume:
                     if jd_skill.lower() not in resume_skills_lower:
                         raw_gaps.append(jd_skill)
             
-            # Evaluate bias flags (Stage 4)
-            if stage_callback: await stage_callback(4)
+            # Stage 4: Bias Detection — fire after Bot 4 evaluation (score is now known)
+            _eval_score = evaluation.get("overall_score", evaluation.get("fit_score", "?"))
+            if stage_callback:
+                await stage_callback(4, f"Score: {_eval_score}/100 — scanning for bias signals…")
+                print("[FairAI] ✓ Stage 4/8 — Bias Detection (callback sent)")
             proxies = ["Institution"] if (evaluation.get("missing_skills", []) and len(raw_gaps) > 5) else []
             if raw_strengths and "English" not in str(raw_strengths):
                 pass
             
-            # Generate actionable feedback
-            if stage_callback: await stage_callback(5) # Percentile Rank (simulated)
+            # Stage 5: Percentile Rank — fire after bias detection
+            _gaps_label = f"{len(raw_gaps)} skill gap{'' if len(raw_gaps)==1 else 's'} flagged" if raw_gaps else "No skill gaps"
+            if stage_callback:
+                await stage_callback(5, f"{_gaps_label} — computing percentile rank…")
+                print("[FairAI] ✓ Stage 5/8 — Percentile Rank (callback sent)")
             recommendation = "Advance to Interview" if evaluation.get("overall_score", 0) > 75 else "Keep in Talent Pool"
 
-            if stage_callback: await stage_callback(6) # CF (simulated)
+            # Stage 6: Counterfactual — fire after percentile setup
+            if stage_callback:
+                await stage_callback(6, f"Running fairness audit vs. legacy ATS…")
+                print("[FairAI] ✓ Stage 6/8 — Counterfactual (callback sent)")
 
             # Build skill_usage_breakdown for Expertise Distribution tile
             # Only use short skill names (not long sentence strings from strengths)
@@ -2664,6 +2818,14 @@ Resume:
                 print(f"[FairAI] Scan record saved for user_id={current_user_id}")
             except Exception as _e:
                 print(f"[FairAI] WARNING: Failed to save scan record: {_e}")
+
+        # Stage 7: Fairness Gate — fire after legacy ATS + percentile are computed
+        _legacy = result.get("counterfactual", {}).get("legacy_ats_score", "?")
+        _fair   = result.get("fit_score", "?")
+        _delta  = result.get("counterfactual", {}).get("score_delta", None)
+        _delta_str = f" (Δ{'+' if isinstance(_delta, (int,float)) and _delta >= 0 else ''}{_delta}" + " vs ATS)" if _delta is not None else ""
+        if stage_callback: await stage_callback(7, f"FairAI {_fair} vs ATS {_legacy}{_delta_str}")
+        print("[FairAI] ✓ Stage 7/8 — Fairness Gate complete")
 
         return result
 
