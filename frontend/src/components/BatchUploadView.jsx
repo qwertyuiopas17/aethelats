@@ -38,9 +38,6 @@ function JobRow({ job, onViewResult }) {
   const isDone = job.status === 'completed';
   const isFailed = job.status === 'error';
 
-  // Estimate which pipeline stage we're on based on elapsed time (now handled by Visualizer)
-  // No local state needed for stageIdx anymore
-
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 border-b border-white/[0.05] last:border-0 hover:bg-white/[0.02] transition-colors group animate-fade-in">
       {/* File icon */}
@@ -52,8 +49,13 @@ function JobRow({ job, onViewResult }) {
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-white truncate">{job.filename}</div>
         {isProcessing && (
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] text-blue-300">Processing in pipeline…</span>
+          <div className="flex flex-col gap-0.5 mt-1">
+            <span className="text-[10px] font-semibold text-blue-300 uppercase tracking-wider">
+              {job.stage_name || 'Processing…'}
+            </span>
+            {job.stage_detail && (
+              <span className="text-[10px] text-white/40 truncate">{job.stage_detail}</span>
+            )}
           </div>
         )}
         {isDone && (
@@ -162,6 +164,12 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
   const fileInputRef = useRef(null);
   const pollersRef = useRef({});                 // job_id → interval id (fallback polling)
   const [activeStageFilter, setActiveStageFilter] = useState(null); // idx of stage to filter by
+  // Stage update queue: prevents rapid-fire WS messages from skipping cube animations.
+  // Each entry: { job_id, stage, stage_name, stage_detail, status, result, error }
+  const stageQueueRef = useRef({});             // job_id → array of pending updates
+  const stageTimerRef = useRef({});             // job_id → timeout id
+  const MIN_STAGE_MS = 900;                     // minimum ms each stage cube is shown
+  const lastStageTimeRef = useRef({});          // job_id → timestamp of last stage display
 
   const ACCEPTED_EXTS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
@@ -205,13 +213,63 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
     pollersRef.current[job_id] = interval;
   };
 
-  // Cleanup pollers and WebSocket on unmount
+  // ── Stage queue helpers ───────────────────────────────────────────────────
+  // Apply a single stage update immediately to jobs state
+  const applyStageUpdate = useCallback((update) => {
+    setJobs(prev => prev.map(j => {
+      if (j.job_id !== update.job_id) return j;
+      const isNewlyProcessing = j.status === 'queued' && update.status === 'processing';
+      return {
+        ...j,
+        status: update.status,
+        stage: update.stage,
+        stage_name: update.stage_name,
+        stage_detail: update.stage_detail ?? j.stage_detail,
+        result: update.result || j.result,
+        error: update.error || j.error,
+        _processingStartedAt: isNewlyProcessing ? Date.now() : j._processingStartedAt || (update.status === 'processing' ? Date.now() : undefined)
+      };
+    }));
+  }, [setJobs]);
+
+  // Drain the next update from the queue for a given job, respecting MIN_STAGE_MS
+  const drainQueue = useCallback((job_id) => {
+    const queue = stageQueueRef.current[job_id];
+    if (!queue || queue.length === 0) return;
+
+    const now = Date.now();
+    const lastTime = lastStageTimeRef.current[job_id] || 0;
+    const elapsed = now - lastTime;
+    const wait = Math.max(0, MIN_STAGE_MS - elapsed);
+
+    stageTimerRef.current[job_id] = setTimeout(() => {
+      const next = stageQueueRef.current[job_id]?.shift();
+      if (!next) return;
+      applyStageUpdate(next);
+      lastStageTimeRef.current[job_id] = Date.now();
+      // Schedule next if more in queue
+      drainQueue(job_id);
+    }, wait);
+  }, [applyStageUpdate]);
+
+  // Enqueue a stage update (or apply immediately if terminal state)
+  const enqueueStageUpdate = useCallback((msg) => {
+    const { job_id } = msg;
+    // Terminal states (completed/error) always flush immediately after queue drains
+    if (!stageQueueRef.current[job_id]) stageQueueRef.current[job_id] = [];
+    stageQueueRef.current[job_id].push(msg);
+    // If no timer running, start draining
+    if (!stageTimerRef.current[job_id]) {
+      drainQueue(job_id);
+    }
+  }, [drainQueue]);
+
+  // Cleanup timers and WebSocket on unmount
   useEffect(() => {
     return () => {
       Object.values(pollersRef.current).forEach(clearInterval);
-      if (ws) {
-        ws.close();
-      }
+      Object.values(stageTimerRef.current).forEach(clearTimeout);
+      if (ws) ws.close();
     };
   }, [ws]);
 
@@ -315,23 +373,33 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
             
             // Handle job progress messages
             const msg = JSON.parse(e.data);
-            if (msg.type === "job_progress") {
-              console.log(`[WebSocket] Job ${msg.job_id} - Stage ${msg.stage}: ${msg.stage_name}`);
-              setJobs(prev => prev.map(j => {
-                if (j.job_id === msg.job_id) {
-                  const isNewlyProcessing = j.status === 'queued' && msg.status === 'processing';
-                  return {
-                    ...j,
-                    status: msg.status,
-                    stage: msg.stage,
-                    stage_name: msg.stage_name,
-                    result: msg.result || j.result,
-                    error: msg.error || j.error,
-                    _processingStartedAt: isNewlyProcessing ? Date.now() : j._processingStartedAt || (msg.status === 'processing' ? Date.now() : undefined)
-                  };
-                }
-                return j;
+
+            // ── Catch-up snapshot sent immediately on connect ─────────────
+            if (msg.type === 'job_snapshot') {
+              console.log(`[WebSocket] Received catch-up snapshot: ${msg.jobs?.length} jobs`);
+              msg.jobs?.forEach(jobSnap => enqueueStageUpdate({
+                job_id: jobSnap.job_id,
+                status: jobSnap.status,
+                stage: jobSnap.stage,
+                stage_name: jobSnap.stage_name,
+                stage_detail: jobSnap.stage_detail,
+                result: jobSnap.result,
+                error: jobSnap.error,
               }));
+              return;
+            }
+
+            if (msg.type === 'job_progress') {
+              console.log(`[WebSocket] Job ${msg.job_id} — Stage ${msg.stage}: ${msg.stage_name}${msg.stage_detail ? ' — ' + msg.stage_detail : ''}`);
+              enqueueStageUpdate({
+                job_id: msg.job_id,
+                status: msg.status,
+                stage: msg.stage,
+                stage_name: msg.stage_name,
+                stage_detail: msg.stage_detail,
+                result: msg.result,
+                error: msg.error,
+              });
             }
           } catch (err) {
             console.error('[WebSocket] Failed to parse message:', err);

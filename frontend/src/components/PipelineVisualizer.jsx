@@ -14,14 +14,18 @@ const PIPELINE_STAGES = [
 
 export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilter, activeStageIndex = -1, title = "8-STAGE PIPELINE" }) {
   const [counts, setCounts] = useState(Array(8).fill(0));
+  const [activeDetail, setActiveDetail] = useState({ stage: -1, text: '' });
 
   useEffect(() => {
     if (!jobs.length) {
       setCounts(Array(8).fill(0));
+      setActiveDetail({ stage: -1, text: '' });
       return;
     }
     const interval = setInterval(() => {
       const newCounts = Array(8).fill(0);
+      let detailStage = -1;
+      let detailText = '';
 
       jobs.forEach(j => {
         if (j.status === 'queued') {
@@ -32,6 +36,11 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
           // Use actual stage from WebSocket if available, otherwise estimate
           if (j.stage !== undefined) {
             newCounts[j.stage]++;
+            // Capture detail from the most-recently-updated processing job
+            if (j.stage_detail) {
+              detailStage = j.stage;
+              detailText = j.stage_detail;
+            }
           } else if (j._processingStartedAt) {
             const elapsed = Date.now() - j._processingStartedAt;
             let stage = Math.floor(elapsed / 3500) + 1;
@@ -43,13 +52,18 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
         }
       });
       setCounts(newCounts);
+      setActiveDetail(prev =>
+        prev.stage !== detailStage || prev.text !== detailText
+          ? { stage: detailStage, text: detailText }
+          : prev
+      );
     }, 500);
 
     return () => clearInterval(interval);
   }, [jobs]);
 
   return (
-    <div className="glass-card rounded-2xl p-6 md:p-8 mb-8 border border-white/[0.08] relative overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
+    <div className="glass-card rounded-2xl p-6 md:p-8 mb-8 border border-white/[0.08] relative bg-gradient-to-b from-white/[0.03] to-transparent">
       {/* Header */}
       <div className="flex items-center gap-2 mb-8">
         <Network className="w-5 h-5 text-white/60" />
@@ -57,7 +71,7 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
       </div>
 
       {/* Pipeline Track */}
-      <div className="relative">
+      <div className="relative pb-6">
         <div className="flex flex-nowrap items-center justify-between gap-6 overflow-x-auto pb-6 hide-scrollbar relative z-10 scene px-2">
           {PIPELINE_STAGES.map((stage, idx) => {
             const Icon = stage.icon;
@@ -120,9 +134,21 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
           })}
         </div>
         
-        {/* Continuous Progress Bar Underneath */}
+        {/* Continuous Progress Bar + Live Detail Text */}
         <div className="absolute bottom-1 left-4 right-4 h-1 bg-white/[0.05] rounded-full overflow-hidden">
            <div className="h-full bg-gradient-to-r from-emerald-500/20 via-blue-500/20 to-purple-500/20 w-full opacity-50" />
+        </div>
+        {/* Live stage detail — shown below the progress bar, animates on change */}
+        <div className="absolute bottom-0 translate-y-full pt-2 left-0 right-0 text-center h-5">
+          {activeDetail.text && (
+            <span
+              key={`${activeDetail.stage}::${activeDetail.text}`}
+              className="text-[10px] text-emerald-400/70 font-medium tracking-wide"
+              style={{ animation: 'fadeInUp 0.3s ease-out both' }}
+            >
+              {activeDetail.text}
+            </span>
+          )}
         </div>
       </div>
     </div>
