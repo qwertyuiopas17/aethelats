@@ -152,19 +152,16 @@ function RankedResults({ jobs, onViewResult }) {
   );
 }
 
-export default function BatchUploadView({ s, onViewResult }) {
+export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchId, setBatchId, ws, setWs }) {
   const { authHeaders } = useAuth();
   const [files, setFiles] = useState([]);        // selected File objects
   const [jobRole, setJobRole] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [jobs, setJobs] = useState([]);          // [{filename, job_id, status, result, error, stage, stage_name}]
   const [batchError, setBatchError] = useState(null);
   const fileInputRef = useRef(null);
   const pollersRef = useRef({});                 // job_id → interval id (fallback polling)
   const [activeStageFilter, setActiveStageFilter] = useState(null); // idx of stage to filter by
-  const [ws, setWs] = useState(null);            // WebSocket connection
-  const [batchId, setBatchId] = useState(null);  // Current batch ID
 
   const ACCEPTED_EXTS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
@@ -552,7 +549,14 @@ export default function BatchUploadView({ s, onViewResult }) {
               </span>
             </div>
             <button
-              onClick={() => { setJobs([]); setBatchError(null); }}
+              onClick={() => { 
+                setJobs([]); 
+                setBatchError(null); 
+                if (ws) {
+                  ws.close();
+                  setWs(null);
+                }
+              }}
               className="text-xs text-white/40 hover:text-white/70 transition-colors flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" /> New Batch

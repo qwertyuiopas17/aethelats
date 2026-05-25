@@ -53,6 +53,12 @@ export function useAppState() {
   const [piiRedaction, setPiiRedaction] = useState(true);
   const [instMasking, setInstMasking] = useState(true);
   const [genderedLang, setGenderedLang] = useState(false);
+  
+  // Batch upload state (lifted from BatchUploadView to persist across navigation)
+  const [batchJobs, setBatchJobs] = useState([]);
+  const [batchId, setBatchId] = useState(null);
+  const [batchWs, setBatchWs] = useState(null);
+  
   const fileInputRef = useRef(null);
   const progressRef = useRef(0);
   const progTimerRef = useRef(null);
@@ -143,6 +149,15 @@ export function useAppState() {
     setProofResult(null); setProofLoading(false);
     setMmResult(null); setRunningMM(false);
     setCompResult(null); setRunningComp(false);
+    
+    // Clear batch state
+    setBatchJobs([]);
+    setBatchId(null);
+    if (batchWs) {
+      batchWs.close();
+      setBatchWs(null);
+    }
+    
     progressRef.current = 0;
   }
   function handlePrimaryAction(label) {
@@ -275,6 +290,7 @@ export function useAppState() {
     jdExpanded, setJdExpanded, mmResult, runningMM, proofResult, proofLoading,
     piiRedaction, setPiiRedaction, instMasking, setInstMasking, genderedLang, setGenderedLang,
     compResult, runningComp,
+    batchJobs, setBatchJobs, batchId, setBatchId, batchWs, setBatchWs,
     fileInputRef, loadDemo, startScan, reset, handlePrimaryAction, handleFairnessConfirm,
     handleMultiModelTest, handleCounterfactualTest, handleJDAnalysis, handleProofOfWork,
     handleFileSelect, handleModelComparison, pendingAction,

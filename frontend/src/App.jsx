@@ -393,6 +393,12 @@ function AuthenticatedApp({ s }) {
           {s.step === 'batch' && user?.role !== 'candidate' && (
             <BatchUploadView
               s={s}
+              jobs={s.batchJobs}
+              setJobs={s.setBatchJobs}
+              batchId={s.batchId}
+              setBatchId={s.setBatchId}
+              ws={s.batchWs}
+              setWs={s.setBatchWs}
               onViewResult={(job) => {
                 s.setResult(job.result);
                 s.setStep('results');
