@@ -232,37 +232,66 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
     }));
   }, [setJobs]);
 
-  // Drain the next update from the queue for a given job, respecting MIN_STAGE_MS
+  // Drain the next update from the queue for a given job, respecting MIN_STAGE_MS.
+  // IMPORTANT: We clear stageTimerRef at the START of every callback so it is
+  // never stale — enqueueStageUpdate guards on this ref to know whether to kick
+  // off a new drain. If it's stale (old fired ID), new messages get stuck.
   const drainQueue = useCallback((job_id) => {
     const queue = stageQueueRef.current[job_id];
-    if (!queue || queue.length === 0) return;
+    if (!queue || queue.length === 0) {
+      // Queue is empty — clear ref so future enqueues can start a fresh drain
+      stageTimerRef.current[job_id] = null;
+      return;
+    }
+
+    const next = queue[0]; // peek
+    // Terminal states skip the minimum display delay — apply immediately
+    const isTerminal = next?.status === 'completed' || next?.status === 'error';
 
     const now = Date.now();
     const lastTime = lastStageTimeRef.current[job_id] || 0;
     const elapsed = now - lastTime;
-    const wait = Math.max(0, MIN_STAGE_MS - elapsed);
+    const wait = isTerminal ? 0 : Math.max(0, MIN_STAGE_MS - elapsed);
 
     stageTimerRef.current[job_id] = setTimeout(() => {
-      const next = stageQueueRef.current[job_id]?.shift();
-      if (!next) return;
-      applyStageUpdate(next);
+      // Clear FIRST so any new messages that arrive mid-callback
+      // will correctly trigger a fresh drainQueue call
+      stageTimerRef.current[job_id] = null;
+
+      const item = stageQueueRef.current[job_id]?.shift();
+      if (!item) return; // nothing to do
+
+      applyStageUpdate(item);
       lastStageTimeRef.current[job_id] = Date.now();
-      // Schedule next if more in queue
-      drainQueue(job_id);
+
+      // Continue draining if more items remain
+      if (stageQueueRef.current[job_id]?.length > 0) {
+        drainQueue(job_id);
+      }
     }, wait);
   }, [applyStageUpdate]);
 
-  // Enqueue a stage update (or apply immediately if terminal state)
+  // Enqueue a stage update. Terminal states (completed/error) are pushed to the
+  // front of any remaining processing stages so they are never held back.
   const enqueueStageUpdate = useCallback((msg) => {
     const { job_id } = msg;
-    // Terminal states (completed/error) always flush immediately after queue drains
     if (!stageQueueRef.current[job_id]) stageQueueRef.current[job_id] = [];
+
+    const isTerminal = msg.status === 'completed' || msg.status === 'error';
+    if (isTerminal) {
+      // Drop any queued processing stages still waiting — jump straight to terminal
+      stageQueueRef.current[job_id] = stageQueueRef.current[job_id].filter(
+        m => m.status === 'completed' || m.status === 'error'
+      );
+    }
     stageQueueRef.current[job_id].push(msg);
-    // If no timer running, start draining
+
+    // If no timer is currently running, kick off the drain
     if (!stageTimerRef.current[job_id]) {
       drainQueue(job_id);
     }
   }, [drainQueue]);
+
 
   // Cleanup timers and WebSocket on unmount
   useEffect(() => {
