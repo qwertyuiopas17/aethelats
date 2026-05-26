@@ -116,24 +116,24 @@ export default function TalentPoolView() {
       {/* Batch filter */}
       {uniqueBatches.length > 0 && (
         <div className="mb-6 flex items-center gap-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-white/40">Batch Filter</span>
-          <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.06] p-1">
+          <span className="text-xs font-bold uppercase tracking-widest text-white/40 shrink-0">Batch Filter</span>
+          <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.06] p-1 overflow-x-auto max-w-2xl">
             <button
               onClick={() => setBatchFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
                 batchFilter === 'all' ? 'bg-white text-black' : 'text-white/40 hover:text-white'
               }`}
             >
               All ({scans.length})
             </button>
-            {uniqueBatches.map(batchId => {
+            {uniqueBatches.slice(0, 8).map(batchId => {
               const count = scans.filter(s => s.batch_id === batchId).length;
               const shortId = batchId.slice(0, 6);
               return (
                 <button
                   key={batchId}
                   onClick={() => setBatchFilter(batchId)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all shrink-0 ${
                     batchFilter === batchId ? 'bg-white text-black' : 'text-white/40 hover:text-white'
                   }`}
                   title={`Batch ID: ${batchId}`}
@@ -142,6 +142,11 @@ export default function TalentPoolView() {
                 </button>
               );
             })}
+            {uniqueBatches.length > 8 && (
+              <span className="text-xs text-white/30 px-2 shrink-0">
+                +{uniqueBatches.length - 8} more
+              </span>
+            )}
           </div>
         </div>
       )}
