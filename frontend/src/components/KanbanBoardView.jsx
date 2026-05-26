@@ -146,7 +146,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders }) {
         )}
       </div>
 
-      {/* Footer: timestamp */}
+      {/* Footer: timestamp and batch */}
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-1 text-[10px] text-white/20">
           <Clock className="w-3 h-3" />
@@ -154,6 +154,11 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders }) {
             ? `In stage ${fmtDate(scan.stage_updated_at)}`
             : fmtDate(scan.timestamp)}
         </div>
+        {scan.batch_id && (
+          <div className="text-[9px] text-white/20 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05]">
+            Batch
+          </div>
+        )}
       </div>
     </div>
   );
@@ -210,8 +215,26 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const [draggingScan, setDraggingScan] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
 
-  // Keep in sync when parent refreshes
-  React.useEffect(() => { setScans(initialScans); }, [initialScans]);
+  // Keep in sync when parent refreshes - intelligent diffing to prevent unnecessary remounts
+  React.useEffect(() => {
+    setScans(prev => {
+      const prevMap = new Map(prev.map(s => [s.id, s]));
+      const newMap = new Map(initialScans.map(s => [s.id, s]));
+      
+      // Build updated array preserving unchanged references
+      const updated = [];
+      for (const [id, newScan] of newMap) {
+        const oldScan = prevMap.get(id);
+        if (!oldScan || JSON.stringify(oldScan) !== JSON.stringify(newScan)) {
+          updated.push(newScan);
+        } else {
+          updated.push(oldScan); // Preserve reference for unchanged records
+        }
+      }
+      
+      return updated;
+    });
+  }, [initialScans]);
 
   async function handleMove(scan, newStage) {
     if (movingId) return;
