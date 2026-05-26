@@ -45,7 +45,7 @@ function DNASparkCard({ skillMatches }) {
   if (!skillMatches || skillMatches.length === 0) {
     return (
       <div className="space-y-1">
-        <div className="flex items-end gap-1 h-12">
+        <div className="flex items-end gap-1 h-12 bg-violet-500/5 rounded px-1">
           {[20, 40, 60, 80, 50].map((height, idx) => (
             <div key={idx} className="flex-1 flex flex-col justify-end">
               <div
@@ -67,22 +67,22 @@ function DNASparkCard({ skillMatches }) {
   const heights = [100, 85, 70, 55, 40]; // Descending heights for visual hierarchy
   
   return (
-    <div className="space-y-1">
-      <div className="flex items-end gap-1 h-12">
+    <div className="space-y-1.5">
+      <div className="flex items-end gap-1 h-14 bg-violet-500/5 rounded px-1 py-1">
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || skill.gap || 'Unknown';
           const heightPercent = heights[idx] || 40;
           return (
-            <div key={idx} className="flex-1 flex flex-col justify-end" title={skillName}>
+            <div key={idx} className="flex-1 flex flex-col justify-end items-center gap-0.5" title={skillName}>
               <div
-                className="w-full bg-gradient-to-t from-violet-500/80 to-violet-400/60 rounded-sm transition-all hover:from-violet-500 hover:to-violet-400 cursor-help"
-                style={{ height: `${heightPercent}%` }}
+                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help shadow-sm"
+                style={{ height: `${heightPercent}%`, minHeight: '8px' }}
               />
             </div>
           );
         })}
       </div>
-      <div className="text-[9px] text-violet-300/60 truncate" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
+      <div className="text-[9px] text-violet-300/70 truncate leading-tight" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
         {top5.map(s => s.canonical_name || s.skill || 'Unknown').join(' • ')}
       </div>
     </div>
@@ -128,9 +128,6 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
       return;
     }
 
-    // Lock body scroll when modal opens
-    document.body.style.overflow = 'hidden';
-
     async function fetchResult() {
       setLoading(true);
       setError(null);
@@ -151,54 +148,53 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
     }
 
     fetchResult();
-
-    return () => {
-      // Unlock body scroll when modal closes
-      document.body.style.overflow = '';
-    };
   }, [isOpen, scanId, authHeaders]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="min-h-screen py-8 px-4 flex items-start justify-center">
-        <div className="relative w-full max-w-5xl bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[85vh]">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-            <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-            >
-              <X className="w-5 h-5 text-white/60" />
-            </button>
-          </div>
+    <div 
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-5xl bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+          <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <X className="w-5 h-5 text-white/60" />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {loading && (
-              <div className="flex items-center justify-center h-full min-h-[400px]">
-                <div className="text-white/60">Loading report...</div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading && (
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-white/60">Loading report...</div>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
+              <AlertTriangle className="w-5 h-5" />
+              <div>
+                <div className="font-semibold">Unable to load report</div>
+                <div className="text-sm text-red-300/80">{error}</div>
               </div>
-            )}
-            {error && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
-                <AlertTriangle className="w-5 h-5" />
-                <div>
-                  <div className="font-semibold">Unable to load report</div>
-                  <div className="text-sm text-red-300/80">{error}</div>
-                </div>
-              </div>
-            )}
-            {resultData && (
-              <ResultsView s={{
-                result: resultData.result,
-                jobRole: resultData.role_target,
-                fileName: resultData.file_name,
-              }} />
-            )}
-          </div>
+            </div>
+          )}
+          {resultData && (
+            <ResultsView s={{
+              result: resultData.result,
+              jobRole: resultData.role_target,
+              fileName: resultData.file_name,
+            }} />
+          )}
         </div>
       </div>
     </div>
