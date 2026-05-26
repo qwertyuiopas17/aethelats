@@ -44,10 +44,10 @@ function DNASparkCard({ skillMatches }) {
   // If no skills, show placeholder
   if (!skillMatches || skillMatches.length === 0) {
     return (
-      <div className="space-y-1">
-        <div className="flex items-end gap-1 h-12 bg-violet-500/5 rounded px-1">
-          {[20, 40, 60, 80, 50].map((height, idx) => (
-            <div key={idx} className="flex-1 flex flex-col justify-end">
+      <div className="space-y-1.5">
+        <div className="flex items-end gap-0.5 h-12 bg-violet-500/5 rounded px-2 py-1">
+          {[30, 50, 70, 60, 40].map((height, idx) => (
+            <div key={idx} className="flex-1 flex items-end justify-center">
               <div
                 className="w-full bg-gradient-to-t from-violet-500/20 to-violet-400/10 rounded-sm"
                 style={{ height: `${height}%` }}
@@ -56,34 +56,35 @@ function DNASparkCard({ skillMatches }) {
           ))}
         </div>
         <div className="text-[9px] text-violet-300/40 text-center">
-          No skill data available
+          No skill data
         </div>
       </div>
     );
   }
   
   const top5 = skillMatches.slice(0, 5);
-  // All skills have equal weight since there's no score field
-  const heights = [100, 85, 70, 55, 40]; // Descending heights for visual hierarchy
+  const heights = [100, 75, 90, 60, 80];
   
   return (
     <div className="space-y-1.5">
-      <div className="flex items-end gap-1 h-14 bg-violet-500/5 rounded px-1 py-1">
+      <div className="flex items-end gap-0.5 h-12 bg-violet-500/5 rounded px-2 py-1">
         {top5.map((skill, idx) => {
-          const skillName = skill.canonical_name || skill.skill || skill.gap || 'Unknown';
-          const heightPercent = heights[idx] || 40;
+          const skillName = skill.canonical_name || skill.skill || 'Unknown';
+          const heightPercent = heights[idx] || 50;
+          
           return (
-            <div key={idx} className="flex-1 flex flex-col justify-end items-center gap-0.5" title={skillName}>
+            <div key={idx} className="flex-1 flex items-end justify-center">
               <div
-                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help shadow-sm"
-                style={{ height: `${heightPercent}%`, minHeight: '8px' }}
+                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help"
+                style={{ height: `${heightPercent}%` }}
+                title={skillName}
               />
             </div>
           );
         })}
       </div>
-      <div className="text-[9px] text-violet-300/70 truncate leading-tight" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
-        {top5.map(s => s.canonical_name || s.skill || 'Unknown').join(' • ')}
+      <div className="text-[9px] text-violet-300/70 truncate leading-tight text-center px-1" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
+        {top5.map(s => (s.canonical_name || s.skill || 'Unknown').slice(0, 8)).join(' • ')}
       </div>
     </div>
   );
@@ -154,13 +155,14 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto"
       onClick={onClose}
     >
-      <div 
-        className="relative w-full max-w-5xl bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div 
+          className="relative w-full max-w-5xl bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh] my-8"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
           <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
@@ -196,6 +198,7 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
             }} />
           )}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -241,34 +244,15 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         ? JSON.parse(scan.result_json) 
         : scan.result_json;
       
-      // Try multiple possible field names
+      // skill_matches for DNA card
       skillMatches = result.skill_matches || result.skills_matched || result.skills || [];
-      missingSkills = result.missing_skills || result.missingSkills || result.gaps || [];
       
-      // Log to console for debugging - show actual data structure
-      if (skillMatches.length > 0) {
-        console.log(`[Card ${scan.id}] First skill match:`, skillMatches[0]);
-      }
-      if (missingSkills.length > 0) {
-        console.log(`[Card ${scan.id}] First missing skill:`, missingSkills[0]);
-      }
-      
-      console.log(`[Card ${scan.id}] Parsed result:`, {
-        hasSkillMatches: skillMatches.length > 0,
-        hasMissingSkills: missingSkills.length > 0,
-        skillMatchesCount: skillMatches.length,
-        missingSkillsCount: missingSkills.length,
-        resultKeys: Object.keys(result),
-        stage: stage,
-        skillMatchesSample: skillMatches.slice(0, 2),
-        missingSkillsSample: missingSkills.slice(0, 2)
-      });
+      // gaps for rejection reason (not missing_skills)
+      missingSkills = result.gaps || result.missing_skills || result.missingSkills || [];
       
     } catch (e) {
-      console.error(`[Card ${scan.id}] Failed to parse result_json:`, e, scan.result_json);
+      console.error(`[Card ${scan.id}] Failed to parse result_json:`, e);
     }
-  } else {
-    console.log(`[Card ${scan.id}] No result_json available`);
   }
 
   // AI suggestion logic
