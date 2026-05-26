@@ -45,11 +45,11 @@ function DNASparkCard({ skillMatches }) {
   if (!skillMatches || skillMatches.length === 0) {
     return (
       <div className="space-y-1.5">
-        <div className="flex items-end gap-0.5 h-12 bg-violet-500/5 rounded px-2 py-1">
+        <div className="flex items-end gap-1 h-16 bg-violet-500/5 rounded p-2">
           {[30, 50, 70, 60, 40].map((height, idx) => (
-            <div key={idx} className="flex-1 flex items-end justify-center">
+            <div key={idx} className="flex-1 flex items-end">
               <div
-                className="w-full bg-gradient-to-t from-violet-500/20 to-violet-400/10 rounded-sm"
+                className="w-full bg-gradient-to-t from-violet-500/20 to-violet-400/10 rounded-sm min-h-[8px]"
                 style={{ height: `${height}%` }}
               />
             </div>
@@ -67,15 +67,15 @@ function DNASparkCard({ skillMatches }) {
   
   return (
     <div className="space-y-1.5">
-      <div className="flex items-end gap-0.5 h-12 bg-violet-500/5 rounded px-2 py-1">
+      <div className="flex items-end gap-1 h-16 bg-violet-500/5 rounded p-2">
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
           const heightPercent = heights[idx] || 50;
           
           return (
-            <div key={idx} className="flex-1 flex items-end justify-center">
+            <div key={idx} className="flex-1 flex items-end">
               <div
-                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help"
+                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help min-h-[8px]"
                 style={{ height: `${heightPercent}%` }}
                 title={skillName}
               />
@@ -83,8 +83,8 @@ function DNASparkCard({ skillMatches }) {
           );
         })}
       </div>
-      <div className="text-[9px] text-violet-300/70 truncate leading-tight text-center px-1" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
-        {top5.map(s => (s.canonical_name || s.skill || 'Unknown').slice(0, 8)).join(' • ')}
+      <div className="text-[9px] text-violet-300/70 leading-tight text-center px-1 whitespace-nowrap overflow-hidden text-ellipsis" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
+        {top5.map(s => s.canonical_name || s.skill || 'Unknown').join(' • ')}
       </div>
     </div>
   );
@@ -460,6 +460,8 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const [draggingScan, setDraggingScan] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
   const [drawerScanId, setDrawerScanId] = useState(null);
+  const scrollContainerRef = React.useRef(null);
+  const autoScrollIntervalRef = React.useRef(null);
 
   // Keep in sync when parent refreshes - intelligent diffing to prevent unnecessary remounts
   React.useEffect(() => {
@@ -482,6 +484,58 @@ export default function KanbanBoardView({ scans: initialScans }) {
     });
   }, [initialScans]);
 
+  // Auto-scroll on drag near edges
+  const handleDragMove = React.useCallback((e) => {
+    if (!scrollContainerRef.current || !draggingScan) return;
+    
+    const container = scrollContainerRef.current;
+    const rect = container.getBoundingClientRect();
+    const scrollZone = 100; // pixels from edge to trigger scroll
+    const scrollSpeed = 15;
+    
+    const mouseX = e.clientX;
+    const distanceFromLeft = mouseX - rect.left;
+    const distanceFromRight = rect.right - mouseX;
+    
+    // Clear existing interval
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+    
+    // Scroll left
+    if (distanceFromLeft < scrollZone && distanceFromLeft > 0) {
+      autoScrollIntervalRef.current = setInterval(() => {
+        container.scrollLeft -= scrollSpeed;
+      }, 16);
+    }
+    // Scroll right
+    else if (distanceFromRight < scrollZone && distanceFromRight > 0) {
+      autoScrollIntervalRef.current = setInterval(() => {
+        container.scrollLeft += scrollSpeed;
+      }, 16);
+    }
+  }, [draggingScan]);
+
+  const stopAutoScroll = React.useCallback(() => {
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (draggingScan) {
+      document.addEventListener('dragover', handleDragMove);
+      document.addEventListener('dragend', stopAutoScroll);
+      return () => {
+        document.removeEventListener('dragover', handleDragMove);
+        document.removeEventListener('dragend', stopAutoScroll);
+        stopAutoScroll();
+      };
+    }
+  }, [draggingScan, handleDragMove, stopAutoScroll]);
+
   async function handleMove(scan, newStage) {
     if (movingId) return;
     if ((scan.kanban_stage || 'Sourced') === newStage) return;
@@ -489,7 +543,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
     setMoveError(null);
 
     // Optimistic update
-    setScans(prev => prev.map(s => s.id === scan.id ? { ...s, kanban_stage: newStage } : s));
+    setScans(prev => prev.map(s => s.id === scan.id ? { ...s, kanban_stage: newStage, stage_updated_at: new Date().toISOString() } : s));
 
     try {
       const res = await fetch(`${API_URL}/user/scans/${scan.id}/stage`, {
@@ -501,9 +555,12 @@ export default function KanbanBoardView({ scans: initialScans }) {
         const err = await res.json();
         throw new Error(err.detail || 'Failed to move candidate');
       }
+      const updated = await res.json();
+      // Update with server response
+      setScans(prev => prev.map(s => s.id === scan.id ? { ...s, ...updated } : s));
     } catch (e) {
       // Rollback on error
-      setScans(prev => prev.map(s => s.id === scan.id ? { ...s, kanban_stage: scan.kanban_stage } : s));
+      setScans(prev => prev.map(s => s.id === scan.id ? scan : s));
       setMoveError(e.message);
     } finally {
       setMovingId(null);
@@ -530,7 +587,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
         </div>
       )}
       
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4" ref={scrollContainerRef}>
         {STAGES.map(stage => (
           <KanbanColumn
             key={stage}
