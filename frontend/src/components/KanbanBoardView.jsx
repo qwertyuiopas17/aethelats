@@ -63,26 +63,27 @@ function DNASparkCard({ skillMatches }) {
   }
   
   const top5 = skillMatches.slice(0, 5);
-  const maxScore = Math.max(...top5.map(s => s.score || 0), 100);
+  // All skills have equal weight since there's no score field
+  const heights = [100, 85, 70, 55, 40]; // Descending heights for visual hierarchy
   
   return (
     <div className="space-y-1">
       <div className="flex items-end gap-1 h-12">
         {top5.map((skill, idx) => {
-          const score = skill.score || 0;
-          const heightPercent = (score / maxScore) * 100;
+          const skillName = skill.canonical_name || skill.skill || skill.gap || 'Unknown';
+          const heightPercent = heights[idx] || 40;
           return (
-            <div key={idx} className="flex-1 flex flex-col justify-end" title={`${skill.skill}: ${score}%`}>
+            <div key={idx} className="flex-1 flex flex-col justify-end" title={skillName}>
               <div
                 className="w-full bg-gradient-to-t from-violet-500/80 to-violet-400/60 rounded-sm transition-all hover:from-violet-500 hover:to-violet-400 cursor-help"
-                style={{ height: `${Math.max(heightPercent, 15)}%` }}
+                style={{ height: `${heightPercent}%` }}
               />
             </div>
           );
         })}
       </div>
-      <div className="text-[9px] text-violet-300/60 truncate" title={top5.map(s => `${s.skill}: ${s.score}%`).join(', ')}>
-        {top5.map(s => s.skill).join(' • ')}
+      <div className="text-[9px] text-violet-300/60 truncate" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
+        {top5.map(s => s.canonical_name || s.skill || 'Unknown').join(' • ')}
       </div>
     </div>
   );
@@ -95,6 +96,12 @@ function RejectionReason({ missingSkills, stage }) {
   const displaySkills = missingSkills.slice(0, 5);
   const hasMore = missingSkills.length > 5;
   
+  // Extract skill names from objects {gap: "Problem Solving", severity: "minor"}
+  const skillNames = displaySkills.map(s => {
+    if (typeof s === 'string') return s;
+    return s.gap || s.skill || s.canonical_name || 'Unknown';
+  });
+  
   return (
     <div className="mt-2 pt-2 border-t border-red-500/20 bg-red-500/5 -mx-3.5 -mb-3.5 px-3.5 pb-3 rounded-b-xl">
       <div className="text-[10px] text-red-400 font-semibold mb-1 flex items-center gap-1">
@@ -102,7 +109,7 @@ function RejectionReason({ missingSkills, stage }) {
         Rejection Reason
       </div>
       <div className="text-[11px] text-red-300/80 leading-relaxed">
-        <span className="font-medium">Missing:</span> {displaySkills.join(', ')}{hasMore ? '...' : ''}
+        <span className="font-medium">Missing:</span> {skillNames.join(', ')}{hasMore ? '...' : ''}
       </div>
     </div>
   );
@@ -120,6 +127,9 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
       setError(null);
       return;
     }
+
+    // Lock body scroll when modal opens
+    document.body.style.overflow = 'hidden';
 
     async function fetchResult() {
       setLoading(true);
@@ -141,47 +151,54 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
     }
 
     fetchResult();
+
+    return () => {
+      // Unlock body scroll when modal closes
+      document.body.style.overflow = '';
+    };
   }, [isOpen, scanId, authHeaders]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4 overflow-y-auto">
-      <div className="relative w-full max-w-5xl my-auto bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-          <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-          >
-            <X className="w-5 h-5 text-white/60" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="min-h-screen py-8 px-4 flex items-start justify-center">
+        <div className="relative w-full max-w-5xl bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[85vh]">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+            <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+            >
+              <X className="w-5 h-5 text-white/60" />
+            </button>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading && (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-white/60">Loading report...</div>
-            </div>
-          )}
-          {error && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
-              <AlertTriangle className="w-5 h-5" />
-              <div>
-                <div className="font-semibold">Unable to load report</div>
-                <div className="text-sm text-red-300/80">{error}</div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {loading && (
+              <div className="flex items-center justify-center h-full min-h-[400px]">
+                <div className="text-white/60">Loading report...</div>
               </div>
-            </div>
-          )}
-          {resultData && (
-            <ResultsView s={{
-              result: resultData.result,
-              jobRole: resultData.role_target,
-              fileName: resultData.file_name,
-            }} />
-          )}
+            )}
+            {error && (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
+                <AlertTriangle className="w-5 h-5" />
+                <div>
+                  <div className="font-semibold">Unable to load report</div>
+                  <div className="text-sm text-red-300/80">{error}</div>
+                </div>
+              </div>
+            )}
+            {resultData && (
+              <ResultsView s={{
+                result: resultData.result,
+                jobRole: resultData.role_target,
+                fileName: resultData.file_name,
+              }} />
+            )}
+          </div>
         </div>
       </div>
     </div>
