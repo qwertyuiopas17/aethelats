@@ -116,30 +116,33 @@ export default function TalentPoolView() {
       {/* Batch filter */}
       {uniqueBatches.length > 0 && (
         <div className="mb-6 flex items-center gap-3">
-          <span className="text-xs text-white/40">Filter by batch:</span>
-          <select
-            value={batchFilter}
-            onChange={e => setBatchFilter(e.target.value)}
-            className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all"
-          >
-            <option value="all">All Batches ({scans.length})</option>
-            {uniqueBatches.map(batchId => {
-              const count = scans.filter(s => s.batch_id === batchId).length;
-              return (
-                <option key={batchId} value={batchId}>
-                  Batch #{batchId.slice(0, 6)} ({count} candidates)
-                </option>
-              );
-            })}
-          </select>
-          {batchFilter !== 'all' && (
+          <span className="text-xs font-bold uppercase tracking-widest text-white/40">Batch Filter</span>
+          <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.06] p-1">
             <button
               onClick={() => setBatchFilter('all')}
-              className="text-xs text-white/40 hover:text-white/70 transition-colors"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                batchFilter === 'all' ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+              }`}
             >
-              Clear filter
+              All ({scans.length})
             </button>
-          )}
+            {uniqueBatches.map(batchId => {
+              const count = scans.filter(s => s.batch_id === batchId).length;
+              const shortId = batchId.slice(0, 6);
+              return (
+                <button
+                  key={batchId}
+                  onClick={() => setBatchFilter(batchId)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all ${
+                    batchFilter === batchId ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+                  }`}
+                  title={`Batch ID: ${batchId}`}
+                >
+                  #{shortId} ({count})
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
