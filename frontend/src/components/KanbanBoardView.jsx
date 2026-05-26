@@ -69,7 +69,8 @@ function DNASparkCard({ skillMatches, fitScore }) {
   // Base pattern: [100, 75, 90, 60, 80] scaled by fit_score percentage
   const baseHeights = [100, 75, 90, 60, 80];
   const scoreMultiplier = (fitScore || 50) / 100; // Default to 50% if no score
-  const scaledHeights = baseHeights.map(h => Math.max(15, h * scoreMultiplier)); // Min 15% height
+  // Apply exponential scaling to make differences more dramatic
+  const scaledHeights = baseHeights.map(h => Math.max(20, h * Math.pow(scoreMultiplier, 0.7))); // Min 20% height
   
   return (
     <div className="space-y-1.5">
