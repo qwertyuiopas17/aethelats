@@ -47,18 +47,24 @@ function DNASparkCard({ skillMatches }) {
   const maxScore = Math.max(...top5.map(s => s.score || 0), 1);
   
   return (
-    <div className="flex items-end gap-0.5 h-6">
-      {top5.map((skill, idx) => {
-        const heightPercent = ((skill.score || 0) / maxScore) * 100;
-        return (
-          <div
-            key={idx}
-            className="flex-1 bg-gradient-to-t from-violet-500/60 to-violet-400/40 rounded-sm transition-all hover:from-violet-500 hover:to-violet-400"
-            style={{ height: `${heightPercent}%`, minHeight: '4px' }}
-            title={`${skill.skill}: ${skill.score}%`}
-          />
-        );
-      })}
+    <div className="space-y-1">
+      <div className="flex items-end gap-1 h-8">
+        {top5.map((skill, idx) => {
+          const heightPercent = ((skill.score || 0) / maxScore) * 100;
+          return (
+            <div key={idx} className="flex-1 flex flex-col items-center gap-0.5">
+              <div
+                className="w-full bg-gradient-to-t from-violet-500/60 to-violet-400/40 rounded-sm transition-all hover:from-violet-500 hover:to-violet-400"
+                style={{ height: `${Math.max(heightPercent, 10)}%` }}
+                title={`${skill.skill}: ${skill.score}%`}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="text-[9px] text-violet-300/60 truncate">
+        {top5.map(s => s.skill).join(' • ')}
+      </div>
     </div>
   );
 }
@@ -71,10 +77,13 @@ function RejectionReason({ missingSkills, stage }) {
   const hasMore = missingSkills.length > 5;
   
   return (
-    <div className="mt-2 pt-2 border-t border-red-500/10">
-      <div className="text-[10px] text-red-400/80 font-medium mb-1">Missing:</div>
-      <div className="text-[10px] text-red-400/60">
-        {displaySkills.join(', ')}{hasMore ? '...' : ''}
+    <div className="mt-2 pt-2 border-t border-red-500/20 bg-red-500/5 -mx-3.5 -mb-3.5 px-3.5 pb-3 rounded-b-xl">
+      <div className="text-[10px] text-red-400 font-semibold mb-1 flex items-center gap-1">
+        <AlertTriangle className="w-3 h-3" />
+        Rejection Reason
+      </div>
+      <div className="text-[11px] text-red-300/80 leading-relaxed">
+        <span className="font-medium">Missing:</span> {displaySkills.join(', ')}{hasMore ? '...' : ''}
       </div>
     </div>
   );
@@ -118,10 +127,10 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-5xl h-[90vh] bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
+      <div className="relative w-full max-w-5xl max-h-[90vh] bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
           <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
           <button
             onClick={onClose}
@@ -134,7 +143,7 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading && (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full min-h-[400px]">
               <div className="text-white/60">Loading report...</div>
             </div>
           )}
@@ -193,11 +202,17 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
   try {
     if (scan.result_json) {
       const result = JSON.parse(scan.result_json);
-      skillMatches = result.skill_matches || [];
+      skillMatches = result.skill_matches || result.skills_matched || [];
       missingSkills = result.missing_skills || [];
+      
+      // Debug logging
+      if (skillMatches.length === 0 && result) {
+        console.log('[KanbanCard] No skill_matches found. Result keys:', Object.keys(result));
+        console.log('[KanbanCard] Full result:', result);
+      }
     }
   } catch (e) {
-    // Graceful degradation if result_json is malformed
+    console.error('[KanbanCard] Failed to parse result_json:', e);
   }
 
   // AI suggestion logic
