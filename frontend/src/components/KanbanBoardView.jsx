@@ -40,7 +40,8 @@ function ScorePill({ score }) {
 }
 
 // DNA Spark Card - Mini 5-bar chart showing top skill matches
-function DNASparkCard({ skillMatches }) {
+// Bar heights are scaled by fit_score to show candidate quality
+function DNASparkCard({ skillMatches, fitScore }) {
   // If no skills, show placeholder
   if (!skillMatches || skillMatches.length === 0) {
     return (
@@ -63,21 +64,26 @@ function DNASparkCard({ skillMatches }) {
   }
   
   const top5 = skillMatches.slice(0, 5);
-  const heights = [100, 75, 90, 60, 80];
+  
+  // Scale bar heights based on fit_score (0-100)
+  // Base pattern: [100, 75, 90, 60, 80] scaled by fit_score percentage
+  const baseHeights = [100, 75, 90, 60, 80];
+  const scoreMultiplier = (fitScore || 50) / 100; // Default to 50% if no score
+  const scaledHeights = baseHeights.map(h => Math.max(15, h * scoreMultiplier)); // Min 15% height
   
   return (
     <div className="space-y-1.5">
       <div className="flex items-end gap-1 h-16 bg-violet-500/5 rounded p-2">
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
-          const heightPercent = heights[idx] || 50;
+          const heightPercent = scaledHeights[idx] || 50;
           
           return (
             <div key={idx} className="flex-1 flex items-end">
               <div
                 className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help min-h-[8px]"
                 style={{ height: `${heightPercent}%` }}
-                title={skillName}
+                title={`${skillName} (Score: ${fitScore || 'N/A'})`}
               />
             </div>
           );
@@ -319,7 +325,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
           <TrendingUp className="w-3 h-3" />
           Skill DNA
         </div>
-        <DNASparkCard skillMatches={skillMatches} />
+        <DNASparkCard skillMatches={skillMatches} fitScore={scan.fit_score} />
       </div>
 
       {/* AI Suggestion */}
