@@ -64,27 +64,39 @@ function DNASparkCard({ skillMatches, fitScore }) {
   }
   
   const top5 = skillMatches.slice(0, 5);
-  
-  // Scale bar heights based on fit_score (0-100)
-  // Base pattern: [100, 75, 90, 60, 80] scaled by fit_score percentage
-  const baseHeights = [100, 75, 90, 60, 80];
-  const scoreMultiplier = (fitScore || 50) / 100; // Default to 50% if no score
-  // Apply exponential scaling to make differences more dramatic
-  const scaledHeights = baseHeights.map(h => Math.max(20, h * Math.pow(scoreMultiplier, 0.7))); // Min 20% height
-  
+
+  // Use real per-skill scores from evaluator if available (score 0-100, or relevance/match_score 0-1)
+  const hasRealScores = top5.some(s => s.score != null || s.relevance != null || s.match_score != null);
+  let barHeights;
+  if (hasRealScores) {
+    barHeights = top5.map(s => {
+      const raw = s.score ?? s.relevance ?? s.match_score ?? 0.5;
+      const normalized = raw > 1 ? raw : raw * 100; // handle both 0-1 and 0-100 ranges
+      return Math.max(15, Math.min(100, normalized));
+    });
+  } else {
+    // Fallback: scale a base pattern by overall fit_score
+    const baseHeights = [100, 75, 90, 60, 80];
+    const mult = (fitScore || 50) / 100;
+    barHeights = baseHeights.map(h => Math.max(20, h * Math.pow(mult, 0.7)));
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-end gap-1 h-16 bg-violet-500/5 rounded p-2">
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
-          const heightPercent = scaledHeights[idx] || 50;
-          
+          const heightPercent = barHeights[idx] || 50;
+          const rawScore = skill.score ?? skill.relevance ?? skill.match_score;
+          const displayScore = rawScore != null
+            ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
+            : fitScore;
           return (
             <div key={idx} className="flex-1 flex items-end">
               <div
                 className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help min-h-[8px]"
                 style={{ height: `${heightPercent}%` }}
-                title={`${skillName} (Score: ${fitScore || 'N/A'})`}
+                title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}
               />
             </div>
           );
@@ -118,6 +130,128 @@ function RejectionReason({ missingSkills, stage }) {
       </div>
       <div className="text-[11px] text-red-300/80 leading-relaxed">
         <span className="font-medium">Missing:</span> {skillNames.join(', ')}{hasMore ? '...' : ''}
+      </div>
+    </div>
+  );
+}
+
+// Batch Legend — clickable cohort color chips to isolate a batch across all stages
+function BatchLegend({ batches, activeBatch, onToggle }) {
+  if (!batches || batches.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold shrink-0">Cohort:</span>
+      {batches.map(({ batchId, color, count }) => (
+        <button
+          key={batchId}
+          onClick={() => onToggle(batchId)}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
+            activeBatch === batchId ? 'scale-105 shadow-lg' : 'opacity-60 hover:opacity-90'
+          }`}
+          style={{
+            backgroundColor: color + (activeBatch === batchId ? '30' : '15'),
+            borderColor: color + (activeBatch === batchId ? 'cc' : '40'),
+            color,
+          }}
+          title={`Filter to batch #${batchId.slice(0, 8)} (${count} candidates)`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          #{batchId.slice(0, 6)}
+          <span className="opacity-60">×{count}</span>
+        </button>
+      ))}
+      {activeBatch && (
+        <button
+          onClick={() => onToggle(null)}
+          className="text-[10px] text-white/40 hover:text-white/70 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+        >
+          Clear ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Velocity Bar — avg time-in-stage + stale candidate count
+function VelocityBar({ scans }) {
+  const now = Date.now();
+  const tracked = scans.filter(s => s.stage_updated_at);
+  if (tracked.length === 0) return null;
+
+  const avgDays = (tracked.reduce((sum, s) => sum + (now - new Date(s.stage_updated_at)) / 86400000, 0) / tracked.length).toFixed(1);
+  const staleCards = tracked.filter(s => {
+    const stage = s.kanban_stage || 'Sourced';
+    return (now - new Date(s.stage_updated_at)) / 86400000 >= 5 && stage !== 'Offer' && stage !== 'Rejected';
+  });
+
+  return (
+    <div className="flex flex-wrap items-center gap-4 mb-4 px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+        <div>
+          <div className="text-[9px] text-white/30 uppercase tracking-wider">Avg time in stage</div>
+          <div className="text-sm font-bold text-white">{avgDays}d</div>
+        </div>
+      </div>
+      {staleCards.length > 0 && (
+        <div className="flex items-center gap-2 pl-4 border-l border-white/[0.06]">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+          <div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">Stale (≥5d)</div>
+            <div className="text-sm font-bold text-amber-400">{staleCards.length} candidate{staleCards.length !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+      )}
+      <div className="flex items-center gap-2 pl-4 border-l border-white/[0.06]">
+        <div>
+          <div className="text-[9px] text-white/30 uppercase tracking-wider">Pipeline</div>
+          <div className="text-sm font-bold text-white">{scans.length} total</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Rejection Pattern Insight — aggregate most-common missing skills across ALL rejected cards
+function RejectionPatternInsight({ rejectedScans }) {
+  if (!rejectedScans || rejectedScans.length === 0) return null;
+
+  // Tally missing skills across all rejected candidates
+  const freq = {};
+  rejectedScans.forEach(scan => {
+    if (!scan.result_json) return;
+    try {
+      const result = typeof scan.result_json === 'string' ? JSON.parse(scan.result_json) : scan.result_json;
+      const gaps = result.gaps || result.missing_skills || result.missingSkills || [];
+      gaps.forEach(g => {
+        const name = typeof g === 'string' ? g : (g.gap || g.skill || g.canonical_name || '');
+        if (name) freq[name] = (freq[name] || 0) + 1;
+      });
+    } catch {}
+  });
+
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  if (sorted.length === 0) return null;
+
+  return (
+    <div className="mt-3 p-3 rounded-xl bg-red-500/5 border border-red-500/15">
+      <div className="text-[10px] text-red-400/80 font-semibold mb-2 uppercase tracking-wider">Pipeline Pattern</div>
+      <div className="space-y-1.5">
+        {sorted.map(([skill, count]) => (
+          <div key={skill} className="flex items-center justify-between gap-2">
+            <span className="text-[11px] text-red-300/80 truncate">{skill}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <div
+                className="h-1 rounded-full bg-red-400/60"
+                style={{ width: `${Math.max(16, (count / rejectedScans.length) * 48)}px` }}
+              />
+              <span className="text-[10px] text-red-400/60 font-mono">{count}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-[9px] text-red-400/40 mt-2">
+        Across {rejectedScans.length} rejected candidate{rejectedScans.length !== 1 ? 's' : ''}
       </div>
     </div>
   );
@@ -184,8 +318,14 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading && (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-white/60">Loading report...</div>
+            <div className="min-h-[400px] p-4 space-y-4 animate-pulse">
+              <div className="h-8 bg-white/5 rounded-lg w-2/3" />
+              <div className="h-4 bg-white/5 rounded w-1/3" />
+              <div className="grid grid-cols-3 gap-4 mt-6">
+                {[1,2,3].map(i => <div key={i} className="h-24 bg-white/5 rounded-xl" />)}
+              </div>
+              <div className="h-40 bg-white/5 rounded-xl" />
+              <div className="h-32 bg-white/5 rounded-xl" />
             </div>
           )}
           {error && (
@@ -230,6 +370,13 @@ function getSuggestedStage(score) {
 function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExpandClick }) {
   const stage = scan.kanban_stage || 'Sourced';
   const isMoving = movingId === scan.id;
+
+  // Stale detection — card in same active stage for 5+ days
+  const daysInStage = scan.stage_updated_at
+    ? (Date.now() - new Date(scan.stage_updated_at)) / 86400000
+    : null;
+  const isStale = daysInStage != null && daysInStage >= 5 && stage !== 'Offer' && stage !== 'Rejected';
+
   const [noteOpen, setNoteOpen] = useState(false);
   const [localNote, setLocalNote] = useState(scan.recruiter_notes || '');
   const [noteSaved, setNoteSaved] = useState(false);
@@ -296,6 +443,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         bg-white/[0.02] hover:bg-white/[0.04]
         ${STAGE_COLORS[stage]?.border || 'border-white/10'}
         ${isMoving ? 'opacity-50 scale-[0.98]' : ''}
+        ${isStale ? 'ring-1 ring-amber-400/40 shadow-[0_0_12px_rgba(251,191,36,0.08)]' : ''}
       `}
       style={batchColor ? { borderLeftWidth: '4px', borderLeftColor: batchColor } : {}}
     >
@@ -395,6 +543,12 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
             ? `In stage ${fmtDate(scan.stage_updated_at)}`
             : fmtDate(scan.timestamp)}
         </div>
+        {isStale && (
+          <div className="flex items-center gap-1 text-[9px] text-amber-400/80 font-semibold">
+            <AlertTriangle className="w-2.5 h-2.5" />
+            {Math.floor(daysInStage)}d stale
+          </div>
+        )}
         {scan.batch_id && (
           <div 
             className="text-[9px] font-bold px-2 py-0.5 rounded-full font-mono"
@@ -415,7 +569,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
   );
 }
 
-function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick }) {
+function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick, rejectedScans }) {
   const colors = STAGE_COLORS[stage];
   return (
     <div className="flex flex-col min-w-[220px] max-w-[260px] w-full flex-shrink-0">
@@ -455,6 +609,8 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
           />
         ))}
       </div>
+      {/* Rejection Pattern Insight — only shown on Rejected column */}
+      {stage === 'Rejected' && <RejectionPatternInsight rejectedScans={rejectedScans || cards} />}
     </div>
   );
 }
@@ -467,8 +623,21 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const [draggingScan, setDraggingScan] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
   const [drawerScanId, setDrawerScanId] = useState(null);
+  const [activeBatch, setActiveBatch] = useState(null);
   const scrollContainerRef = React.useRef(null);
   const autoScrollIntervalRef = React.useRef(null);
+
+  // Compute unique batches for the legend
+  const batches = React.useMemo(() => {
+    const map = {};
+    scans.forEach(s => {
+      if (s.batch_id) {
+        if (!map[s.batch_id]) map[s.batch_id] = { batchId: s.batch_id, color: getBatchColor(s.batch_id), count: 0 };
+        map[s.batch_id].count++;
+      }
+    });
+    return Object.values(map);
+  }, [scans]);
 
   // Keep in sync when parent refreshes - intelligent diffing to prevent unnecessary remounts
   React.useEffect(() => {
@@ -580,10 +749,16 @@ export default function KanbanBoardView({ scans: initialScans }) {
     setDraggingScan(null);
   }
 
+  // Filter by active batch cohort (null = show all)
+  const filteredScans = activeBatch ? scans.filter(s => s.batch_id === activeBatch) : scans;
+
   const grouped = STAGES.reduce((acc, stage) => {
-    acc[stage] = scans.filter(s => (s.kanban_stage || 'Sourced') === stage);
+    acc[stage] = filteredScans.filter(s => (s.kanban_stage || 'Sourced') === stage);
     return acc;
   }, {});
+
+  // All rejected scans (unfiltered) for pattern insight
+  const allRejected = scans.filter(s => (s.kanban_stage || 'Sourced') === 'Rejected');
 
   return (
     <div>
@@ -593,7 +768,14 @@ export default function KanbanBoardView({ scans: initialScans }) {
           {moveError}
         </div>
       )}
-      
+
+      <VelocityBar scans={scans} />
+      <BatchLegend
+        batches={batches}
+        activeBatch={activeBatch}
+        onToggle={(id) => setActiveBatch(prev => prev === id ? null : id)}
+      />
+
       <div className="flex gap-4 overflow-x-auto pb-4" ref={scrollContainerRef}>
         {STAGES.map(stage => (
           <KanbanColumn
@@ -608,6 +790,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
             setDragOverStage={setDragOverStage}
             authHeaders={authHeaders}
             onExpandClick={setDrawerScanId}
+            rejectedScans={allRejected}
           />
         ))}
       </div>
