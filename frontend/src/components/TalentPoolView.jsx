@@ -45,6 +45,7 @@ export default function TalentPoolView() {
   const [error, setError]       = useState(null);
   const [search, setSearch]     = useState('');
   const [view, setView]         = useState('board'); // 'board' | 'list'
+  const [batchFilter, setBatchFilter] = useState('all'); // 'all' | specific batch_id
 
   useEffect(() => {
     setLoading(true);
@@ -56,10 +57,14 @@ export default function TalentPoolView() {
   }, []);
 
   const filtered = scans.filter(s =>
-    !search || s.role_target?.toLowerCase().includes(search.toLowerCase()) ||
+    (!search || s.role_target?.toLowerCase().includes(search.toLowerCase()) ||
     s.file_name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.candidate_id?.toLowerCase().includes(search.toLowerCase())
+    s.candidate_id?.toLowerCase().includes(search.toLowerCase())) &&
+    (batchFilter === 'all' || s.batch_id === batchFilter)
   );
+
+  // Get unique batch IDs for filter dropdown
+  const uniqueBatches = [...new Set(scans.filter(s => s.batch_id).map(s => s.batch_id))];
 
   return (
     <div className="p-4 sm:p-8 animate-fade-in">
@@ -107,6 +112,36 @@ export default function TalentPoolView() {
           className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 pl-10 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all"
         />
       </div>
+
+      {/* Batch filter */}
+      {uniqueBatches.length > 0 && (
+        <div className="mb-6 flex items-center gap-3">
+          <span className="text-xs text-white/40">Filter by batch:</span>
+          <select
+            value={batchFilter}
+            onChange={e => setBatchFilter(e.target.value)}
+            className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.05] transition-all"
+          >
+            <option value="all">All Batches ({scans.length})</option>
+            {uniqueBatches.map(batchId => {
+              const count = scans.filter(s => s.batch_id === batchId).length;
+              return (
+                <option key={batchId} value={batchId}>
+                  Batch #{batchId.slice(0, 6)} ({count} candidates)
+                </option>
+              );
+            })}
+          </select>
+          {batchFilter !== 'all' && (
+            <button
+              onClick={() => setBatchFilter('all')}
+              className="text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              Clear filter
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (

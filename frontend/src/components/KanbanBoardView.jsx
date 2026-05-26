@@ -155,8 +155,11 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders }) {
             : fmtDate(scan.timestamp)}
         </div>
         {scan.batch_id && (
-          <div className="text-[9px] text-white/20 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05]">
-            Batch
+          <div 
+            className="text-[9px] text-white/30 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] font-mono"
+            title={`Batch ID: ${scan.batch_id}`}
+          >
+            #{scan.batch_id.slice(0, 6)}
           </div>
         )}
       </div>
