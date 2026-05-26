@@ -41,28 +41,47 @@ function ScorePill({ score }) {
 
 // DNA Spark Card - Mini 5-bar chart showing top skill matches
 function DNASparkCard({ skillMatches }) {
-  if (!skillMatches || skillMatches.length === 0) return null;
+  // If no skills, show placeholder
+  if (!skillMatches || skillMatches.length === 0) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-end gap-1 h-12">
+          {[20, 40, 60, 80, 50].map((height, idx) => (
+            <div key={idx} className="flex-1 flex flex-col justify-end">
+              <div
+                className="w-full bg-gradient-to-t from-violet-500/20 to-violet-400/10 rounded-sm"
+                style={{ height: `${height}%` }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="text-[9px] text-violet-300/40 text-center">
+          No skill data available
+        </div>
+      </div>
+    );
+  }
   
   const top5 = skillMatches.slice(0, 5);
-  const maxScore = Math.max(...top5.map(s => s.score || 0), 1);
+  const maxScore = Math.max(...top5.map(s => s.score || 0), 100);
   
   return (
     <div className="space-y-1">
-      <div className="flex items-end gap-1 h-8">
+      <div className="flex items-end gap-1 h-12">
         {top5.map((skill, idx) => {
-          const heightPercent = ((skill.score || 0) / maxScore) * 100;
+          const score = skill.score || 0;
+          const heightPercent = (score / maxScore) * 100;
           return (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-0.5">
+            <div key={idx} className="flex-1 flex flex-col justify-end" title={`${skill.skill}: ${score}%`}>
               <div
-                className="w-full bg-gradient-to-t from-violet-500/60 to-violet-400/40 rounded-sm transition-all hover:from-violet-500 hover:to-violet-400"
-                style={{ height: `${Math.max(heightPercent, 10)}%` }}
-                title={`${skill.skill}: ${skill.score}%`}
+                className="w-full bg-gradient-to-t from-violet-500/80 to-violet-400/60 rounded-sm transition-all hover:from-violet-500 hover:to-violet-400 cursor-help"
+                style={{ height: `${Math.max(heightPercent, 15)}%` }}
               />
             </div>
           );
         })}
       </div>
-      <div className="text-[9px] text-violet-300/60 truncate">
+      <div className="text-[9px] text-violet-300/60 truncate" title={top5.map(s => `${s.skill}: ${s.score}%`).join(', ')}>
         {top5.map(s => s.skill).join(' • ')}
       </div>
     </div>
@@ -127,42 +146,44 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
-      <div className="relative w-full max-w-5xl max-h-[90vh] bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-          <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-          >
-            <X className="w-5 h-5 text-white/60" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="relative w-full max-w-5xl my-8 bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+            <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+            >
+              <X className="w-5 h-5 text-white/60" />
+            </button>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading && (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-white/60">Loading report...</div>
-            </div>
-          )}
-          {error && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
-              <AlertTriangle className="w-5 h-5" />
-              <div>
-                <div className="font-semibold">Unable to load report</div>
-                <div className="text-sm text-red-300/80">{error}</div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {loading && (
+              <div className="flex items-center justify-center h-full min-h-[400px]">
+                <div className="text-white/60">Loading report...</div>
               </div>
-            </div>
-          )}
-          {resultData && (
-            <ResultsView s={{
-              result: resultData.result,
-              jobRole: resultData.role_target,
-              fileName: resultData.file_name,
-            }} />
-          )}
+            )}
+            {error && (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
+                <AlertTriangle className="w-5 h-5" />
+                <div>
+                  <div className="font-semibold">Unable to load report</div>
+                  <div className="text-sm text-red-300/80">{error}</div>
+                </div>
+              </div>
+            )}
+            {resultData && (
+              <ResultsView s={{
+                result: resultData.result,
+                jobRole: resultData.role_target,
+                fileName: resultData.file_name,
+              }} />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -199,20 +220,35 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
   // Parse result_json for DNA spark card and rejection reason
   let skillMatches = [];
   let missingSkills = [];
-  try {
-    if (scan.result_json) {
-      const result = JSON.parse(scan.result_json);
-      skillMatches = result.skill_matches || result.skills_matched || [];
-      missingSkills = result.missing_skills || [];
+  
+  // Always show the Skill DNA box, even if empty
+  const hasResultJson = scan.result_json && scan.result_json !== 'null';
+  
+  if (hasResultJson) {
+    try {
+      const result = typeof scan.result_json === 'string' 
+        ? JSON.parse(scan.result_json) 
+        : scan.result_json;
       
-      // Debug logging
-      if (skillMatches.length === 0 && result) {
-        console.log('[KanbanCard] No skill_matches found. Result keys:', Object.keys(result));
-        console.log('[KanbanCard] Full result:', result);
-      }
+      // Try multiple possible field names
+      skillMatches = result.skill_matches || result.skills_matched || result.skills || [];
+      missingSkills = result.missing_skills || result.missingSkills || [];
+      
+      // Log to console for debugging
+      console.log(`[Card ${scan.id}] Parsed result:`, {
+        hasSkillMatches: skillMatches.length > 0,
+        hasMissingSkills: missingSkills.length > 0,
+        skillMatchesCount: skillMatches.length,
+        missingSkillsCount: missingSkills.length,
+        resultKeys: Object.keys(result),
+        stage: stage
+      });
+      
+    } catch (e) {
+      console.error(`[Card ${scan.id}] Failed to parse result_json:`, e, scan.result_json);
     }
-  } catch (e) {
-    console.error('[KanbanCard] Failed to parse result_json:', e);
+  } else {
+    console.log(`[Card ${scan.id}] No result_json available`);
   }
 
   // AI suggestion logic
@@ -273,16 +309,14 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       {/* Role */}
       <div className="text-xs text-white/40 mb-3 truncate">{scan.role_target}</div>
 
-      {/* DNA Spark Card - Top 5 skill matches with prominent styling */}
-      {skillMatches.length > 0 && (
-        <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20">
-          <div className="text-[10px] text-violet-300 mb-1.5 flex items-center gap-1 font-semibold">
-            <TrendingUp className="w-3 h-3" />
-            Skill DNA
-          </div>
-          <DNASparkCard skillMatches={skillMatches} />
+      {/* DNA Spark Card - Always show, with placeholder if no data */}
+      <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20">
+        <div className="text-[10px] text-violet-300 mb-1.5 flex items-center gap-1 font-semibold">
+          <TrendingUp className="w-3 h-3" />
+          Skill DNA
         </div>
-      )}
+        <DNASparkCard skillMatches={skillMatches} />
+      </div>
 
       {/* AI Suggestion */}
       {showSuggestion && (
