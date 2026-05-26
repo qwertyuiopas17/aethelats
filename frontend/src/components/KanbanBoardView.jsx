@@ -146,44 +146,42 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="relative w-full max-w-5xl my-8 bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-            <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-            >
-              <X className="w-5 h-5 text-white/60" />
-            </button>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4 overflow-y-auto">
+      <div className="relative w-full max-w-5xl my-auto bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+          <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <X className="w-5 h-5 text-white/60" />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {loading && (
-              <div className="flex items-center justify-center h-full min-h-[400px]">
-                <div className="text-white/60">Loading report...</div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading && (
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-white/60">Loading report...</div>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
+              <AlertTriangle className="w-5 h-5" />
+              <div>
+                <div className="font-semibold">Unable to load report</div>
+                <div className="text-sm text-red-300/80">{error}</div>
               </div>
-            )}
-            {error && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300">
-                <AlertTriangle className="w-5 h-5" />
-                <div>
-                  <div className="font-semibold">Unable to load report</div>
-                  <div className="text-sm text-red-300/80">{error}</div>
-                </div>
-              </div>
-            )}
-            {resultData && (
-              <ResultsView s={{
-                result: resultData.result,
-                jobRole: resultData.role_target,
-                fileName: resultData.file_name,
-              }} />
-            )}
-          </div>
+            </div>
+          )}
+          {resultData && (
+            <ResultsView s={{
+              result: resultData.result,
+              jobRole: resultData.role_target,
+              fileName: resultData.file_name,
+            }} />
+          )}
         </div>
       </div>
     </div>
@@ -232,16 +230,25 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       
       // Try multiple possible field names
       skillMatches = result.skill_matches || result.skills_matched || result.skills || [];
-      missingSkills = result.missing_skills || result.missingSkills || [];
+      missingSkills = result.missing_skills || result.missingSkills || result.gaps || [];
       
-      // Log to console for debugging
+      // Log to console for debugging - show actual data structure
+      if (skillMatches.length > 0) {
+        console.log(`[Card ${scan.id}] First skill match:`, skillMatches[0]);
+      }
+      if (missingSkills.length > 0) {
+        console.log(`[Card ${scan.id}] First missing skill:`, missingSkills[0]);
+      }
+      
       console.log(`[Card ${scan.id}] Parsed result:`, {
         hasSkillMatches: skillMatches.length > 0,
         hasMissingSkills: missingSkills.length > 0,
         skillMatchesCount: skillMatches.length,
         missingSkillsCount: missingSkills.length,
         resultKeys: Object.keys(result),
-        stage: stage
+        stage: stage,
+        skillMatchesSample: skillMatches.slice(0, 2),
+        missingSkillsSample: missingSkills.slice(0, 2)
       });
       
     } catch (e) {
