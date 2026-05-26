@@ -176,7 +176,7 @@ function getSuggestedStage(score) {
   return null;
 }
 
-function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExpandClick, selectedBatchId }) {
+function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExpandClick }) {
   const stage = scan.kanban_stage || 'Sourced';
   const isMoving = movingId === scan.id;
   const [noteOpen, setNoteOpen] = useState(false);
@@ -186,7 +186,6 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
 
   // Batch stripe color
   const batchColor = scan.batch_id ? getBatchColor(scan.batch_id) : null;
-  const isFiltered = selectedBatchId && scan.batch_id !== selectedBatchId;
 
   // Parse result_json for DNA spark card and rejection reason
   let skillMatches = [];
@@ -235,7 +234,6 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         bg-white/[0.02] hover:bg-white/[0.04]
         ${STAGE_COLORS[stage]?.border || 'border-white/10'}
         ${isMoving ? 'opacity-50 scale-[0.98]' : ''}
-        ${isFiltered ? 'opacity-30' : ''}
       `}
       style={batchColor ? { borderLeftWidth: '4px', borderLeftColor: batchColor } : {}}
     >
@@ -260,12 +258,12 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       {/* Role */}
       <div className="text-xs text-white/40 mb-3 truncate">{scan.role_target}</div>
 
-      {/* DNA Spark Card - Top 5 skill matches */}
+      {/* DNA Spark Card - Top 5 skill matches with prominent styling */}
       {skillMatches.length > 0 && (
-        <div className="mb-3">
-          <div className="text-[10px] text-white/30 mb-1 flex items-center gap-1">
+        <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20">
+          <div className="text-[10px] text-violet-300 mb-1.5 flex items-center gap-1 font-semibold">
             <TrendingUp className="w-3 h-3" />
-            Top Skills
+            Skill DNA
           </div>
           <DNASparkCard skillMatches={skillMatches} />
         </div>
@@ -292,10 +290,12 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       {scan.has_result && (
         <button
           onClick={() => onExpandClick(scan.id)}
-          className="w-full mt-2 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08]
-                     text-[10px] text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-all"
+          className="w-full mt-2 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg 
+                     bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/30
+                     text-[11px] font-semibold text-blue-300 hover:text-blue-200 hover:from-blue-500/20 hover:to-violet-500/20 
+                     transition-all shadow-sm hover:shadow-md"
         >
-          <Maximize2 className="w-3 h-3" />
+          <Maximize2 className="w-3.5 h-3.5" />
           View Full Report
         </button>
       )}
@@ -337,9 +337,15 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         </div>
         {scan.batch_id && (
           <div 
-            className="text-[9px] text-white/30 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] font-mono"
+            className="text-[9px] font-bold px-2 py-0.5 rounded-full font-mono"
             title={`Batch ID: ${scan.batch_id}`}
-            style={batchColor ? { borderColor: batchColor + '40' } : {}}
+            style={batchColor ? { 
+              backgroundColor: batchColor + '20',
+              borderWidth: '1px',
+              borderStyle: 'solid',
+              borderColor: batchColor + '60',
+              color: batchColor
+            } : {}}
           >
             #{scan.batch_id.slice(0, 6)}
           </div>
@@ -349,7 +355,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
   );
 }
 
-function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick, selectedBatchId }) {
+function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick }) {
   const colors = STAGE_COLORS[stage];
   return (
     <div className="flex flex-col min-w-[220px] max-w-[260px] w-full flex-shrink-0">
@@ -386,7 +392,6 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
             onDragStart={onDragStart}
             authHeaders={authHeaders}
             onExpandClick={onExpandClick}
-            selectedBatchId={selectedBatchId}
           />
         ))}
       </div>
@@ -401,7 +406,6 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const [moveError, setMoveError] = useState(null);
   const [draggingScan, setDraggingScan] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
-  const [selectedBatchId, setSelectedBatchId] = useState(null);
   const [drawerScanId, setDrawerScanId] = useState(null);
 
   // Keep in sync when parent refreshes - intelligent diffing to prevent unnecessary remounts
@@ -424,27 +428,6 @@ export default function KanbanBoardView({ scans: initialScans }) {
       return updated;
     });
   }, [initialScans]);
-
-  // Compute batch statistics
-  const batchStats = React.useMemo(() => {
-    const stats = new Map();
-    scans.forEach(scan => {
-      if (!scan.batch_id) return;
-      if (!stats.has(scan.batch_id)) {
-        stats.set(scan.batch_id, {
-          batchId: scan.batch_id,
-          color: getBatchColor(scan.batch_id),
-          total: 0,
-          stageCounts: {},
-        });
-      }
-      const stat = stats.get(scan.batch_id);
-      stat.total++;
-      const stage = scan.kanban_stage || 'Sourced';
-      stat.stageCounts[stage] = (stat.stageCounts[stage] || 0) + 1;
-    });
-    return Array.from(stats.values());
-  }, [scans]);
 
   async function handleMove(scan, newStage) {
     if (movingId) return;
@@ -481,59 +464,12 @@ export default function KanbanBoardView({ scans: initialScans }) {
   }
 
   const grouped = STAGES.reduce((acc, stage) => {
-    acc[stage] = scans.filter(s => {
-      const matchesStage = (s.kanban_stage || 'Sourced') === stage;
-      const matchesBatch = !selectedBatchId || s.batch_id === selectedBatchId;
-      return matchesStage && matchesBatch;
-    });
+    acc[stage] = scans.filter(s => (s.kanban_stage || 'Sourced') === stage);
     return acc;
   }, {});
 
   return (
     <div>
-      {/* Batch Legend */}
-      {batchStats.length > 0 && (
-        <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.08]">
-          <div className="text-xs font-bold text-white/60 mb-3 uppercase tracking-wider">Batch Cohorts</div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedBatchId(null)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                !selectedBatchId
-                  ? 'bg-white/10 text-white border border-white/20'
-                  : 'bg-white/[0.03] text-white/50 border border-white/[0.08] hover:bg-white/[0.06]'
-              }`}
-            >
-              All Batches ({scans.length})
-            </button>
-            {batchStats.map(batch => (
-              <button
-                key={batch.batchId}
-                onClick={() => setSelectedBatchId(batch.batchId === selectedBatchId ? null : batch.batchId)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                  selectedBatchId === batch.batchId
-                    ? 'bg-white/10 text-white'
-                    : 'bg-white/[0.03] text-white/70 hover:bg-white/[0.06]'
-                }`}
-                style={{
-                  borderColor: batch.color + (selectedBatchId === batch.batchId ? '' : '40'),
-                  borderLeftWidth: '3px',
-                }}
-                title={`Batch ${batch.batchId.slice(0, 8)}`}
-              >
-                <span className="font-mono">#{batch.batchId.slice(0, 6)}</span>
-                <span className="ml-2 text-white/40">({batch.total})</span>
-                {selectedBatchId === batch.batchId && (
-                  <span className="ml-2 text-[10px] text-white/50">
-                    {Object.entries(batch.stageCounts).map(([stage, count]) => `${count} in ${stage}`).join(', ')}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {moveError && (
         <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-red-500/[0.06] border border-red-500/15 text-red-300 text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -555,7 +491,6 @@ export default function KanbanBoardView({ scans: initialScans }) {
             setDragOverStage={setDragOverStage}
             authHeaders={authHeaders}
             onExpandClick={setDrawerScanId}
-            selectedBatchId={selectedBatchId}
           />
         ))}
       </div>
