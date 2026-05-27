@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FileText, Clock, AlertTriangle, MessageSquare, Check, X, Maximize2, TrendingUp } from 'lucide-react';
 import { API_URL } from './constants';
 import { useAuth } from '../context/AuthContext';
@@ -378,9 +378,31 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
   const isStale = daysInStage != null && daysInStage >= 5 && stage !== 'Offer' && stage !== 'Rejected';
 
   const [noteOpen, setNoteOpen] = useState(false);
-  const [localNote, setLocalNote] = useState(scan.recruiter_notes || '');
+  const [localNote, setLocalNote] = useState('');
   const [noteSaved, setNoteSaved] = useState(false);
-  const noteTimerRef = React.useRef(null);
+  const noteTimerRef = useRef(null);
+
+  // Interview Guide state
+  const [guideLoading, setGuideLoading] = useState(false);
+  const [guideQuestions, setGuideQuestions] = useState(null);
+  const [guideError, setGuideError] = useState(null);
+
+  // Pre-load saved guide from recruiter_notes on mount
+  useEffect(() => {
+    if (scan.recruiter_notes && scan.recruiter_notes.startsWith('[INTERVIEW GUIDE]')) {
+      const lines = scan.recruiter_notes.split('\n').slice(1);
+      const parsed = lines
+        .filter(l => l.trim())
+        .map((line, idx) => {
+          const match = line.match(/^Q(\d+) \[([^\]]+)\]: (.+)$/);
+          if (match) return { number: parseInt(match[1]), area: match[2], question: match[3] };
+          return { number: idx + 1, area: 'General', question: line };
+        });
+      if (parsed.length > 0) setGuideQuestions(parsed);
+    } else {
+      setLocalNote(scan.recruiter_notes || '');
+    }
+  }, [scan.id, scan.recruiter_notes]);
 
   // Batch stripe color
   const batchColor = scan.batch_id ? getBatchColor(scan.batch_id) : null;
@@ -494,6 +516,77 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       {/* Rejection Reason - Missing skills for rejected candidates */}
       <RejectionReason missingSkills={missingSkills} stage={stage} />
 
+      {/* Interview Guide Generator */}
+      {scan.has_result && (
+        <div className="mt-2">
+          {!guideQuestions ? (
+            <button
+              onClick={async () => {
+                setGuideLoading(true);
+                setGuideError(null);
+                try {
+                  const res = await fetch(`${API_URL}/user/scans/${scan.id}/interview-guide`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                  });
+                  if (!res.ok) throw new Error(await res.text());
+                  const data = await res.json();
+                  setGuideQuestions(data.guide);
+                } catch (e) {
+                  setGuideError('Failed to generate. Try again.');
+                } finally {
+                  setGuideLoading(false);
+                }
+              }}
+              disabled={guideLoading}
+              className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg
+                         bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20
+                         text-[11px] font-semibold text-amber-300 hover:text-amber-200
+                         hover:from-amber-500/20 hover:to-orange-500/20 transition-all
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {guideLoading ? (
+                <>
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <span className="text-xs">✦</span>
+                  Generate Interview Guide
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="mt-1 rounded-lg bg-amber-500/5 border border-amber-500/15 p-2.5">
+              <div className="text-[10px] text-amber-400 font-semibold mb-2 flex items-center gap-1">
+                <span>✦</span> Interview Guide
+              </div>
+              <ol className="space-y-2">
+                {guideQuestions.map((q) => (
+                  <li key={q.number} className="text-[10px] text-white/70 leading-relaxed">
+                    <span className="text-amber-400/80 font-mono font-bold mr-1">Q{q.number}</span>
+                    <span className="text-amber-300/60 text-[9px] mr-1">[{q.area}]</span>
+                    {q.question}
+                  </li>
+                ))}
+              </ol>
+              <button
+                onClick={() => setGuideQuestions(null)}
+                className="mt-2 text-[9px] text-white/30 hover:text-white/60 transition-colors"
+              >
+                Hide guide
+              </button>
+            </div>
+          )}
+          {guideError && (
+            <p className="text-[10px] text-red-400/80 mt-1 text-center">{guideError}</p>
+          )}
+        </div>
+      )}
+
       {/* Expand button - Opens full report drawer */}
       {scan.has_result && (
         <button
@@ -569,14 +662,36 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
   );
 }
 
-function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick, rejectedScans }) {
+function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick, rejectedScans, heatmapData }) {
   const colors = STAGE_COLORS[stage];
+
+  // Density-based visual config for bias heatmap
+  const densityConfig = {
+    none:     { ring: '',                                                                         dot: colors.dot,           label: null },
+    medium:   { ring: 'ring-1 ring-amber-400/30',                                                dot: 'bg-amber-400/70',    label: `${heatmapData?.bias_count} bias signal${heatmapData?.bias_count !== 1 ? 's' : ''}` },
+    high:     { ring: 'ring-1 ring-amber-400/60 shadow-[0_0_14px_rgba(251,191,36,0.1)]',        dot: 'bg-amber-400 animate-pulse', label: `High: ${heatmapData?.bias_count} signals` },
+    critical: { ring: 'ring-1 ring-red-400/60 shadow-[0_0_16px_rgba(239,68,68,0.12)]',         dot: 'bg-red-400 animate-pulse',   label: `⚠ ${heatmapData?.bias_count} bias signals` },
+  };
+  const density = heatmapData?.density || 'none';
+  const { ring, dot, label } = densityConfig[density];
+
+  const heatmapTooltip = {
+    none: null,
+    medium: 'Bias signals detected in this stage — review candidates',
+    high: 'High bias signal density — some candidates may face discriminatory screening',
+    critical: 'Warning: Multiple high-severity bias signals in Rejected — possible discriminatory pattern',
+  }[density];
+
   return (
-    <div className="flex flex-col min-w-[220px] max-w-[260px] w-full flex-shrink-0">
+    <div className={`flex flex-col min-w-[220px] max-w-[260px] w-full flex-shrink-0 rounded-xl transition-all duration-500 ${ring}`}
+         title={heatmapTooltip || undefined}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-3 px-1">
-        <div className={`w-2 h-2 rounded-full ${colors.dot}`} />
+        <div className={`w-2 h-2 rounded-full ${dot}`} />
         <span className="text-xs font-bold uppercase tracking-widest text-white/60">{stage}</span>
+        {label && (
+          <span className="text-[9px] text-amber-400/70 font-mono truncate">{label}</span>
+        )}
         <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${colors.badge}`}>
           {cards.length}
         </span>
@@ -624,11 +739,28 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const [dragOverStage, setDragOverStage] = useState(null);
   const [drawerScanId, setDrawerScanId] = useState(null);
   const [activeBatch, setActiveBatch] = useState(null);
-  const scrollContainerRef = React.useRef(null);
-  const autoScrollIntervalRef = React.useRef(null);
+  const [biasHeatmap, setBiasHeatmap] = useState({});
+  const scrollContainerRef = useRef(null);
+  const autoScrollIntervalRef = useRef(null);
+
+  // Fetch bias heatmap on mount
+  useEffect(() => {
+    const fetchHeatmap = async () => {
+      try {
+        const res = await fetch(`${API_URL}/user/scans/bias-heatmap`, {
+          headers: authHeaders(),
+        });
+        if (res.ok) setBiasHeatmap(await res.json());
+      } catch (e) {
+        console.warn('[BiasHeatmap] Failed to load:', e);
+      }
+    };
+    fetchHeatmap();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Compute unique batches for the legend
-  const batches = React.useMemo(() => {
+  const batches = useMemo(() => {
     const map = {};
     scans.forEach(s => {
       if (s.batch_id) {
@@ -640,7 +772,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
   }, [scans]);
 
   // Keep in sync when parent refreshes - intelligent diffing to prevent unnecessary remounts
-  React.useEffect(() => {
+  useEffect(() => {
     setScans(prev => {
       const prevMap = new Map(prev.map(s => [s.id, s]));
       const newMap = new Map(initialScans.map(s => [s.id, s]));
@@ -661,7 +793,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
   }, [initialScans]);
 
   // Auto-scroll on drag near edges
-  const handleDragMove = React.useCallback((e) => {
+  const handleDragMove = useCallback((e) => {
     if (!scrollContainerRef.current || !draggingScan) return;
     
     const container = scrollContainerRef.current;
@@ -693,14 +825,14 @@ export default function KanbanBoardView({ scans: initialScans }) {
     }
   }, [draggingScan]);
 
-  const stopAutoScroll = React.useCallback(() => {
+  const stopAutoScroll = useCallback(() => {
     if (autoScrollIntervalRef.current) {
       clearInterval(autoScrollIntervalRef.current);
       autoScrollIntervalRef.current = null;
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (draggingScan) {
       document.addEventListener('dragover', handleDragMove);
       document.addEventListener('dragend', stopAutoScroll);
@@ -791,6 +923,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
             authHeaders={authHeaders}
             onExpandClick={setDrawerScanId}
             rejectedScans={allRejected}
+            heatmapData={biasHeatmap[stage] || null}
           />
         ))}
       </div>
