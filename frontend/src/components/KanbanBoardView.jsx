@@ -104,53 +104,31 @@ function DNASparkCard({ skillMatches, fitScore }) {
             <div key={idx} className="flex-1 h-full relative group/bar" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
               <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-90 group-hover/bar:opacity-100 transition-opacity">
                  <defs>
-                   {/* Monochrome Grey/White Glass Shard Gradient */}
+                   {/* Solid High-Contrast Grey/White Gradient */}
                    <linearGradient id={`shard-${idx}`} x1="0" y1="1" x2="0" y2="0">
-                     <stop offset="0%" stopColor="rgba(255,255,255,0.02)" />
-                     <stop offset="50%" stopColor="rgba(255,255,255,0.2)" />
-                     <stop offset="100%" stopColor="rgba(255,255,255,0.8)" />
+                     <stop offset="0%" stopColor="#71717a" />
+                     <stop offset="100%" stopColor="#ffffff" />
                    </linearGradient>
-                   <filter id={`glow-${idx}`} x="-30%" y="-30%" width="160%" height="160%">
-                     <feGaussianBlur stdDeviation="3" result="blur" />
+                   <filter id={`glow-${idx}`} x="-20%" y="-20%" width="140%" height="140%">
+                     <feGaussianBlur stdDeviation="2" result="blur" />
                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
                    </filter>
                  </defs>
                  
-                 {/* Diamond Wireframe background for each slot */}
-                 <pattern id={`diamond-${idx}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                   <path d="M10 0 L20 10 L10 20 L0 10 Z" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-                 </pattern>
-                 <rect x="0" y="0" width="100" height="100" fill={`url(#diamond-${idx})`} />
+                 <rect x="0" y="0" width="100" height="100" fill="rgba(255,255,255,0.03)" />
 
                  <rect 
-                   x="5" y={100 - displayHeight} 
-                   width="90" height={displayHeight} 
+                   x="10" y={100 - displayHeight} 
+                   width="80" height={displayHeight} 
                    fill={`url(#shard-${idx})`} 
                    className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
-                   filter={`url(#glow-${idx})`} 
                  />
                  <rect 
-                   x="5" y={100 - displayHeight} 
-                   width="90" height={displayHeight} 
+                   x="10" y={100 - displayHeight} 
+                   width="80" height={displayHeight} 
                    fill="none" 
-                   stroke="rgba(255,255,255,0.6)" 
-                   strokeWidth="1" 
-                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] mix-blend-overlay" 
-                 />
-                 
-                 {/* 3D Polygon overlay cuts to make it look like a vector crystal */}
-                 <path 
-                   d={`M5,${100 - displayHeight} L50,${100 - displayHeight + 15} L95,${100 - displayHeight}`} 
-                   fill="none" 
-                   stroke="rgba(255,255,255,0.3)" 
+                   stroke="#ffffff" 
                    strokeWidth="1.5" 
-                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
-                 />
-                 <path 
-                   d={`M50,${100 - displayHeight + 15} L50,100`} 
-                   fill="none" 
-                   stroke="rgba(255,255,255,0.15)" 
-                   strokeWidth="1" 
                    className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
                  />
                </svg>
@@ -517,8 +495,8 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         onDragStart(scan);
       }}
       onDragEnd={() => onDragStart(null)}
-      className={`group relative rounded-[16px] p-4 bg-black/60 backdrop-blur-lg shadow-[inset_0_1px_3px_rgba(255,255,255,0.06)] overflow-hidden transition-all duration-300 ${
-        isMoving ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-white/[0.04] hover:border-white/[0.12] hover:shadow-[0_8px_30px_rgb(0,0,0,0.8)]'
+      className={`group relative rounded-[16px] p-4 bg-black overflow-hidden transition-all duration-300 ${
+        isMoving ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-[#222] hover:border-white/30 hover:shadow-[0_4px_20px_rgba(255,255,255,0.1)]'
       }`}
     >
       {/* Subtle Diamond Overlay for Card */}
@@ -738,7 +716,7 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
   }[density];
 
   return (
-    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-[#020202]/80 backdrop-blur-2xl border border-white/[0.03] p-4 transition-all duration-500 shadow-[0_8px_40px_rgba(0,0,0,0.6)] ${ring}`}
+    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-[#0c0c0c] shadow-[inset_0_4px_30px_rgba(0,0,0,1)] border-b border-white/[0.05] p-4 transition-all duration-500 ${ring}`}
          title={heatmapTooltip || undefined}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-4 px-1">
