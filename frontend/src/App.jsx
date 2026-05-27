@@ -245,8 +245,10 @@ function AuthenticatedApp({ s }) {
           <NavItem icon={<Users className="w-4 h-4" />}
             label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
           {user?.role !== 'candidate' && <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />}
-          <NavItem icon={<Activity className="w-4 h-4" />}
-            label="AI Coach" active={s.step === 'coach'} onClick={() => goTo('coach')} />
+          {user?.role === 'candidate' && (
+            <NavItem icon={<Activity className="w-4 h-4" />}
+              label="AI Coach" active={s.step === 'coach'} onClick={() => goTo('coach')} />
+          )}
           {user?.role !== 'candidate' && (
             <NavItem icon={<Layers className="w-4 h-4" />}
               label="Batch Upload" active={s.step === 'batch'} 
