@@ -64,10 +64,13 @@ export default function ResultsView({ s, readOnly = false }) {
   return (
     <div className="p-8 pb-20 max-w-6xl animate-fade-in">
       {biasProxies.length > 0 && !s.fairnessConfirmed && (
-        <div className="mb-4 rounded-2xl warning-card-yellow px-6 py-4 flex items-start gap-4 no-print animate-fade-in-up">
-          <AlertTriangle className="w-5 h-5 text-black shrink-0 mt-0.5" />
-          <div className="flex-1"><div className="font-semibold text-black mb-0.5">Fairness Review Required</div><p className="text-xs text-black/80">{biasProxies.length} bias proxies detected. Acknowledge before proceeding.</p></div>
-          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2 rounded-xl bg-black/10 hover:bg-black/20 border border-black/20 text-black text-xs font-bold transition-colors shrink-0">Review →</button>
+        <div className="mb-4 rounded-sm border border-[#555] bg-[#111] px-6 py-4 flex items-start gap-4 no-print animate-fade-in-up">
+          <AlertTriangle className="w-5 h-5 text-white shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="font-mono font-bold text-white mb-1 uppercase tracking-widest">FAIRNESS_REVIEW_REQUIRED</div>
+            <p className="text-xs text-white/80">{biasProxies.length} bias proxies detected. Acknowledge before proceeding.</p>
+          </div>
+          <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2.5 rounded-sm bg-white hover:bg-white/90 text-black text-[10px] font-mono tracking-widest uppercase transition-colors shrink-0 font-bold">REVIEW →</button>
         </div>
       )}
       {s.fairnessConfirmed && (
@@ -126,15 +129,15 @@ export default function ResultsView({ s, readOnly = false }) {
         
         {/* 2-Column Grid container for secondary metrics on mobile */}
         <div className="grid grid-cols-2 gap-3 md:col-span-2 md:gap-4">
-          <div className="glass-card-hover rounded-2xl p-4 sm:p-6 animate-fade-in-up stagger-2">
-            <div className="flex items-center justify-between mb-2 sm:mb-3"><span className="text-[11px] sm:text-sm font-semibold text-white tracking-tight">Tech Aptitude</span><BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" /></div>
-            <div className="flex items-baseline gap-1.5 sm:gap-3 mb-2"><span className="text-3xl sm:text-5xl font-black text-white">{animTech}</span><span className="text-[10px] sm:text-sm text-[#22c55e] font-semibold tracking-tight">+4% avg</span></div>
-            <AnimatedBar value={radar.technical_depth || 0} delay={200} color="bg-white/40" />
+          <div className="glass-card-hover rounded-sm sm:rounded-md p-5 sm:p-6 sm:px-8 border border-[#222]">
+            <div className="flex items-center justify-between mb-2 sm:mb-3"><span className="label-mono">TECH_APTITUDE</span><BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" /></div>
+            <div className="flex items-baseline gap-2 mb-3 sm:mb-4"><span className="text-4xl sm:text-5xl font-mono font-black text-white tracking-tighter">{animTech}</span><span className="text-xs sm:text-sm font-mono font-bold text-white uppercase tracking-widest">+{Math.floor(radar.technical_depth / 20)}% avg</span></div>
+            <AnimatedBar value={radar.technical_depth} color="bg-white" delay={150} />
           </div>
-          <div className="glass-card-hover rounded-2xl p-4 sm:p-6 animate-fade-in-up stagger-3">
-            <div className="flex items-center justify-between mb-2 sm:mb-3"><span className="text-[11px] sm:text-sm font-semibold text-white tracking-tight">Leadership</span><Users className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" /></div>
-            <div className="flex items-baseline gap-1.5 sm:gap-3 mb-2"><span className="text-3xl sm:text-5xl font-black text-white">{animLead}</span><span className="text-[10px] sm:text-sm text-white/90 font-semibold tracking-tight">-1% avg</span></div>
-            <AnimatedBar value={radar.project_complexity || 0} delay={300} color="bg-white/30" />
+          <div className="glass-card-hover rounded-sm sm:rounded-md p-5 sm:p-6 sm:px-8 border border-[#222]">
+            <div className="flex items-center justify-between mb-2 sm:mb-3"><span className="label-mono">LEADERSHIP</span><Users className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" /></div>
+            <div className="flex items-baseline gap-2 mb-3 sm:mb-4"><span className="text-4xl sm:text-5xl font-mono font-black text-white tracking-tighter">{animLead}</span><span className="text-xs sm:text-sm font-mono font-bold text-white/80 uppercase tracking-widest">-{Math.floor((100 - radar.project_complexity) / 10)}% avg</span></div>
+            <AnimatedBar value={radar.project_complexity} color="bg-[#444]" delay={250} />
           </div>
         </div>
       </div>
@@ -150,9 +153,9 @@ export default function ResultsView({ s, readOnly = false }) {
       )}
 
       {/* Cognitive & Behavioral Analysis */}
-      <section className="mb-6 animate-fade-in-up stagger-4">
-        <div className="glass-card glass-card-hover rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-5">Cognitive & Behavioral Analysis</h3>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <div className="glass-card-hover rounded-sm p-6 sm:p-8 border border-[#222]">
+          <h3 className="text-lg font-mono font-bold text-white mb-5 uppercase tracking-widest">COGNITIVE_&_BEHAVIORAL_ANALYSIS</h3>
           {[{ label: 'Strategic Thinking', value: radar.problem_solving || 85, level: 'Superior' },
             { label: 'Adaptability', value: radar.impact_evidence || 78, level: 'Proficient' },
             { label: 'Risk Tolerance', value: radar.domain_knowledge || 82, level: 'Moderate' }
@@ -164,7 +167,7 @@ export default function ResultsView({ s, readOnly = false }) {
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
       {/* Reasoning (Bot 4 Analysis Paragraph) */}
       {result.summary && (

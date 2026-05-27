@@ -28,8 +28,8 @@ function AuthInput({ id, label, type = 'text', value, onChange, icon: Icon, auto
         autoComplete={autoComplete}
         required={required}
         disabled={disabled}
-        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 pl-10 text-sm text-white
-          placeholder-white/25 focus:outline-none focus:border-white/30 focus:bg-white/[0.06]
+        className="w-full bg-white/[0.04] border border-[#222] rounded-sm px-4 py-3 pl-10 text-sm text-white
+          placeholder-white/25 focus:outline-none focus:border-white focus:bg-[#111]
           transition-all duration-200 disabled:opacity-40"
       />
       {isPassword && (
@@ -58,7 +58,7 @@ function RoleSelector({ value, onChange }) {
               ? 'border-white/30 bg-white/[0.08]'
               : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]'
           }`}>
-          <div className="text-xs font-bold text-white mb-0.5">{r.label}</div>
+          <div className="text-[10px] font-mono tracking-widest uppercase text-white mb-0.5">{r.label}</div>
           <div className="text-[10px] text-white/40">{r.desc}</div>
         </button>
       ))}
@@ -72,9 +72,9 @@ function RoleSelector({ value, onChange }) {
 function ErrorBanner({ message }) {
   if (!message) return null;
   return (
-    <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/[0.08] border border-red-500/20 animate-fade-in">
-      <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-      <p className="text-xs text-red-300">{message}</p>
+    <div className="flex items-start gap-2 p-3 rounded-sm bg-[#111] border border-[#333] animate-fade-in">
+      <AlertCircle className="w-4 h-4 text-white shrink-0 mt-0.5" />
+      <p className="text-xs text-white/80">{message}</p>
     </div>
   );
 }
@@ -203,13 +203,13 @@ function OTPScreen({ email, onBack, onSuccess }) {
         type="submit"
         disabled={!isComplete || loading}
         id="auth-verify-otp-btn"
-        className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-black
-          text-sm font-bold hover:bg-white/90 active:scale-[0.98] transition-all
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-sm btn-premium text-[11px] font-mono tracking-widest uppercase
+          active:scale-[0.98] transition-all
           disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {loading
-          ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Verifying…</>
-          : <><ChevronRight className="w-4 h-4" /> Verify & Sign In</>
+          ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> VERIFYING…</>
+          : <><ChevronRight className="w-4 h-4" /> VERIFY_&_SIGN_IN</>
         }
       </button>
 
@@ -257,11 +257,11 @@ function LoginForm({ onSwitch }) {
       <ErrorBanner message={authError} />
 
       <button type="submit" disabled={loading} id="auth-login-btn"
-        className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-black
-          text-sm font-bold hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-wait">
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-sm btn-premium text-[11px] font-mono tracking-widest uppercase
+          active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-wait">
         {loading
-          ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Signing in…</>
-          : <><ChevronRight className="w-4 h-4" /> Sign In</>
+          ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> SIGNING_IN…</>
+          : <><ChevronRight className="w-4 h-4" /> SIGN_IN</>
         }
       </button>
 
@@ -313,11 +313,11 @@ function RegisterForm({ onSwitch, onOTPRequired }) {
       <ErrorBanner message={authError} />
 
       <button type="submit" disabled={loading} id="auth-register-btn"
-        className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-black
-          text-sm font-bold hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-wait">
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-sm btn-premium text-[11px] font-mono tracking-widest uppercase
+          active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-wait">
         {loading
-          ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> Creating account…</>
-          : <><Zap className="w-4 h-4" /> Create Free Account</>
+          ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> CREATING_ACCOUNT…</>
+          : <><Zap className="w-4 h-4" /> CREATE_FREE_ACCOUNT</>
         }
       </button>
 

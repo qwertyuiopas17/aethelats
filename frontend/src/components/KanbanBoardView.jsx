@@ -10,17 +10,17 @@ const STAGES = ['Sourced', 'Screening', 'Interview', 'Offer', 'Rejected'];
 const STAGE_COLORS = {
   Sourced:   { border: 'border-white/[0.04]', dot: 'bg-white/30',        badge: 'bg-white/[0.04] text-white/40' },
   Screening: { border: 'border-white/[0.04]', dot: 'bg-white/30',        badge: 'bg-white/[0.04] text-white/40' },
-  Interview: { border: 'border-white/[0.04]', dot: 'bg-white/30',        badge: 'bg-white/[0.04] text-white/40' },
-  Offer:     { border: 'border-white/[0.04]', dot: 'bg-emerald-500/50',  badge: 'bg-emerald-500/10 text-emerald-400/80' },
-  Rejected:  { border: 'border-white/[0.04]', dot: 'bg-red-500/50',      badge: 'bg-red-500/10 text-red-400/80' },
+  Interview: { border: 'border-white/[0.04]', dot: 'bg-white/50',        badge: 'bg-white/[0.08] text-white/60' },
+  Offer:     { border: 'border-white/[0.04]', dot: 'bg-white',           badge: 'bg-white text-black' },
+  Rejected:  { border: 'border-[#333]',       dot: 'bg-[#444]',          badge: 'bg-[#222] text-[#888]' },
 };
 
 // Batch color generation - consistent hash-based colors
 function getBatchColor(batchId) {
   if (!batchId) return null;
   const colors = [
-    '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
-    '#06b6d4', '#6366f1', '#f43f5e', '#84cc16', '#a855f7'
+    '#ffffff', '#e4e4e7', '#d4d4d8', '#a1a1aa', '#71717a',
+    '#52525b', '#3f3f46', '#27272a', '#18181b', '#09090b'
   ];
   let hash = 0;
   for (let i = 0; i < batchId.length; i++) {
@@ -30,11 +30,11 @@ function getBatchColor(batchId) {
 }
 
 function ScorePill({ score }) {
-  const color = score >= 75 ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
-              : score >= 50 ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20'
-              : 'text-red-400 bg-red-400/10 border-red-400/20';
+  const color = score >= 75 ? 'text-black bg-white border-white'
+              : score >= 50 ? 'text-white bg-[#333] border-[#555]'
+              : 'text-[#888] bg-[#111] border-[#333]';
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${color}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-[10px] font-mono font-bold border ${color}`}>
       {score}
     </span>
   );
@@ -505,7 +505,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         onDragStart(scan);
       }}
       onDragEnd={() => onDragStart(null)}
-      className={`group relative rounded-[16px] p-4 bg-black overflow-hidden transition-all duration-300 ${
+      className={`group relative rounded-sm p-4 bg-black overflow-hidden transition-all duration-300 ${
         isMoving ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-[#222] hover:border-white/30 hover:shadow-[0_4px_20px_rgba(255,255,255,0.1)]'
       }`}
     >
@@ -727,7 +727,7 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
   }[density];
 
   return (
-    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-[#0c0c0c] shadow-[inset_0_4px_30px_rgba(0,0,0,1)] border-b border-white/[0.05] p-4 transition-all duration-500 ${ring}`}
+    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-sm bg-[#0c0c0c] shadow-[inset_0_4px_30px_rgba(0,0,0,1)] border border-[#222] p-4 transition-all duration-500 ${ring}`}
          title={heatmapTooltip || undefined}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-4 px-1">

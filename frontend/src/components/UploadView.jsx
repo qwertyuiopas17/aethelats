@@ -35,9 +35,9 @@ export default function UploadView({ s }) {
     <div className="p-4 sm:p-8 animate-fade-in">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div>
-          <div className="mb-1 flex items-center gap-2"><span className="text-white/80 text-xs">◈</span><span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Compliance Engine</span></div>
-          <h1 className="text-3xl font-bold text-white mb-3">
-            {isCandidate ? 'Audit Your Resume' : 'Resume Bias Audit'}
+          <div className="mb-1 flex items-center gap-2"><span className="text-white/80 text-xs">◈</span><span className="label-mono">COMPLIANCE_ENGINE</span></div>
+          <h1 className="text-3xl font-mono font-bold text-white mb-3 uppercase tracking-widest">
+            {isCandidate ? 'AUDIT_YOUR_RESUME' : 'RESUME_BIAS_AUDIT'}
           </h1>
           <p className="text-white/90 text-sm max-w-xl leading-relaxed mb-8">
             {isCandidate
@@ -46,9 +46,9 @@ export default function UploadView({ s }) {
             }
           </p>
           <div className="mb-6 max-w-xl">
-            <label className="block text-xs font-bold uppercase tracking-widest text-white mb-2 flex items-center gap-2">Target Role
-              {s.detectingRole && <span className="flex items-center gap-1.5 text-white/90 font-normal normal-case tracking-normal"><RefreshCw className="w-3 h-3 animate-spin" />Detecting...</span>}
-              {!s.detectingRole && s.jobRole && s.selectedFile && <span className="flex items-center gap-1 text-white font-normal normal-case tracking-normal"><Check className="w-3 h-3" />Detected</span>}
+            <label className="label-mono mb-2 flex items-center gap-2">TARGET_ROLE
+              {s.detectingRole && <span className="flex items-center gap-1.5 text-white/90 font-mono tracking-widest"><RefreshCw className="w-3 h-3 animate-spin" />DETECTING...</span>}
+              {!s.detectingRole && s.jobRole && s.selectedFile && <span className="flex items-center gap-1 text-white font-mono tracking-widest"><Check className="w-3 h-3" />DETECTED</span>}
             </label>
             <input type="text" value={s.jobRole} onChange={e => s.setJobRole(e.target.value)} placeholder={s.detectingRole ? 'Detecting...' : 'e.g. Full Stack Engineer'} disabled={s.detectingRole}
               className="w-full glass-input rounded-xl px-4 py-3 text-sm text-white placeholder-white/20" />
@@ -94,11 +94,11 @@ export default function UploadView({ s }) {
               <div className={'w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all duration-500 border ' + (s.dragOver ? 'bg-white/10 border-white/20 scale-110 shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'bg-white/[0.02] border-white/[0.05] group-hover:border-white/20 group-hover:bg-white/[0.05] group-hover:scale-105')}>
                 <UploadCloud className="w-8 h-8 text-white group-hover:text-white transition-colors duration-500" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2 tracking-tight text-center">Drag & Drop Resumes</h3>
+              <h3 className="text-lg font-mono font-bold text-white mb-2 tracking-widest uppercase text-center">DRAG_&_DROP_RESUMES</h3>
               <p className="text-white/90 text-sm mb-5 text-center max-w-sm px-4">
                 Supported formats: PDF, DOCX, TXT. System automatically redacts Personally Identifiable Information (PII) prior to analysis.
               </p>
-              <button className="px-6 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase btn-premium shrink-0">Select Files</button>
+              <button className="px-6 py-2.5 rounded-sm text-[11px] font-mono tracking-widest uppercase btn-premium shrink-0">SELECT_FILES</button>
             </div>
           ) : (
             <div className="rounded-2xl border border-white/10 glass-card glass-card-hover p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
@@ -107,7 +107,7 @@ export default function UploadView({ s }) {
                   <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-white/90" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white mb-0.5 truncate">{s.selectedFile.name}</div>
+                  <div className="font-mono font-bold tracking-wide text-white mb-1 truncate">{s.selectedFile.name}</div>
                   <div className="text-xs text-white/80 truncate">{(s.selectedFile.size / 1024).toFixed(1)} KB · Ready</div>
                 </div>
               </div>
@@ -116,8 +116,8 @@ export default function UploadView({ s }) {
                   <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button onClick={s.startScan} disabled={s.detectingRole || !s.jobRole}
-                  className={'flex-1 sm:flex-none justify-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-white/90 transition-all active:scale-95 flex items-center gap-2 ' + (s.detectingRole || !s.jobRole ? 'opacity-40 cursor-not-allowed' : '')}>
-                  <Zap className="w-4 h-4" />Analyze
+                  className={'flex-1 sm:flex-none justify-center px-6 py-2.5 rounded-sm btn-premium text-[11px] font-mono tracking-widest uppercase flex items-center gap-2 ' + (s.detectingRole || !s.jobRole ? 'opacity-40 cursor-not-allowed' : '')}>
+                  <Zap className="w-4 h-4" />ANALYZE
                 </button>
               </div>
             </div>
@@ -136,15 +136,15 @@ export default function UploadView({ s }) {
         <div className="space-y-4">
           <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow scroll-animate">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white">Audit Engine Status</div>
-              <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />ONLINE
+              <div className="label-mono">AUDIT_ENGINE_STATUS</div>
+              <span className="flex items-center gap-1.5 text-[10px] text-white font-mono font-bold tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />ONLINE
               </span>
             </div>
             <div className="text-xs text-white/40">Compliance pipeline ready. Upload a resume to begin analysis.</div>
           </div>
           <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow scroll-animate">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-4">Recent Scans</div>
+            <div className="label-mono mb-4">RECENT_SCANS</div>
             {scansLoading && (
               <div className="flex items-center gap-2 text-xs text-white/30 py-4">
                 <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
@@ -164,7 +164,7 @@ export default function UploadView({ s }) {
                   <div className="text-xs text-white/40 flex items-center gap-1">
                     <Clock className="w-2.5 h-2.5" />{fmtTime(scan.timestamp)}
                     <span className="mx-1">·</span>
-                    <span className={`font-bold ${ scan.fit_score >= 70 ? 'text-emerald-400' : scan.fit_score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{scan.fit_score}</span>
+                    <span className="font-mono font-bold text-white">{scan.fit_score}</span>
                   </div>
                 </div>
                 <span className="text-white/20 group-hover:text-white/50 transition-colors">→</span>
@@ -175,20 +175,20 @@ export default function UploadView({ s }) {
       </div>
       <div className="mt-6 glass-card glass-card-hover rounded-2xl p-5 scroll-animate">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white">Audit Parameters</div>
-          <button className="text-xs text-white/80 flex items-center gap-1 hover:text-white transition-colors">⚙ Advanced</button>
+          <div className="label-mono">AUDIT_PARAMETERS</div>
+          <button className="text-[10px] font-mono tracking-widest text-white/80 flex items-center gap-1 hover:text-white transition-colors">⚙ ADVANCED</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
-            <div><div className="text-sm font-semibold text-white">PII Redaction</div><div className="text-xs text-white/80 mt-0.5">Remove names, addresses, emails</div></div>
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-[#222] hover-border-brighten">
+            <div><div className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">SYS::PII_REDACTION</div><div className="text-xs text-white/80 mt-1">Remove names, addresses, emails</div></div>
             <ToggleSwitch active={s.piiRedaction} onToggle={() => s.setPiiRedaction(v => !v)} />
           </div>
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
-            <div><div className="text-sm font-semibold text-white">Institution Masking</div><div className="text-xs text-white/80 mt-0.5">Obscure university/company names</div></div>
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-[#222] hover-border-brighten">
+            <div><div className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">SYS::INST_MASKING</div><div className="text-xs text-white/80 mt-1">Obscure university/company names</div></div>
             <ToggleSwitch active={s.instMasking} onToggle={() => s.setInstMasking(v => !v)} />
           </div>
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
-            <div><div className="text-sm font-semibold text-white">Gendered Language</div><div className="text-xs text-white/80 mt-0.5">Flag potentially biased semantics</div></div>
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-[#222] hover-border-brighten">
+            <div><div className="text-[11px] font-mono font-bold uppercase tracking-widest text-white">SYS::GENDERED_LANG</div><div className="text-xs text-white/80 mt-1">Flag potentially biased semantics</div></div>
             <ToggleSwitch active={s.genderedLang} onToggle={() => s.setGenderedLang(v => !v)} />
           </div>
         </div>

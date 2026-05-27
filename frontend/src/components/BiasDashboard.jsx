@@ -4,19 +4,19 @@ import { BarChart2, RefreshCw, Shield, TrendingUp, TrendingDown, AlertTriangle, 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://unded-17-aethel-backend-v3.hf.space';
 
 // ── Animated bar ───────────────────────────────────────────────────
-function DeltaBar({ value, max = 30 }) {
-  const abs = Math.abs(value || 0);
-  const pct = Math.min(100, (abs / max) * 100);
+function BiasBar({ value, max }) {
   const isPositive = value >= 0;
+  const width = Math.min((Math.abs(value) / max) * 100, 100);
+  
   return (
-    <div className="flex items-center gap-3 w-1/2">
-      <span className={`text-sm font-bold w-14 shrink-0 text-right ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-        {isPositive ? '+' : ''}{(value || 0).toFixed(1)}
+    <div className="flex items-center gap-3 w-full">
+      <span className={`text-[11px] font-mono font-bold tracking-widest w-14 shrink-0 text-right text-white`}>
+        {value > 0 ? '+' : ''}{value.toFixed(1)}
       </span>
-      <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ${isPositive ? 'bg-emerald-400/70' : 'bg-red-400/70'}`}
-          style={{ width: `${pct}%` }}
+      <div className="flex-1 h-1.5 bg-white/[0.04] rounded-sm overflow-hidden relative">
+        <div 
+          className={`h-full rounded-sm transition-all duration-700 ${isPositive ? 'bg-white' : 'bg-[#555]'}`}
+          style={{ width: `${width}%`, marginLeft: isPositive ? '0' : 'auto', marginRight: isPositive ? 'auto' : '0' }}
         />
       </div>
     </div>
@@ -39,10 +39,10 @@ function VerdictBadge({ verdict }) {
   const low = verdict === 'LOW BIAS';
   const mod = verdict === 'MODERATE BIAS';
   return (
-    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-      low ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400' :
-      mod ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400' :
-            'bg-red-400/10 border-red-400/30 text-red-400'
+    <span className={`text-[10px] font-mono tracking-widest px-2.5 py-1 rounded-sm border ${
+      low ? 'bg-white text-black border-white' :
+      mod ? 'bg-[#333] text-white border-[#555]' :
+            'bg-[#111] text-[#888] border-[#222]'
     }`}>
       {verdict}
     </span>
@@ -176,7 +176,7 @@ export default function BiasDashboard() {
               label="Aethel Total Bias"
               value={aethel ? `${aethel.total_bias} pts` : '—'}
               sub="sum of |Δ| across signals"
-              accent={aethel?.total_bias <= 5 ? 'text-emerald-400' : aethel?.total_bias <= 15 ? 'text-yellow-400' : 'text-red-400'}
+              accent="text-white"
             />
             <StatCard
               label="Models Tracked"
@@ -188,15 +188,15 @@ export default function BiasDashboard() {
               label="Aethel Verdict"
               value={aethel?.verdict || '—'}
               sub={aethel?.verdict === 'LOW BIAS' ? '< 5 pts total' : aethel?.verdict === 'MODERATE BIAS' ? '5–15 pts total' : '> 15 pts total'}
-              accent={aethel?.verdict === 'LOW BIAS' ? 'text-emerald-400' : aethel?.verdict === 'MODERATE BIAS' ? 'text-yellow-400' : 'text-red-400'}
+              accent="text-white"
             />
           </div>
 
           {/* ── Overall verdict banner ── */}
-          <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
+          <div className="glass-card rounded-sm p-4 flex items-center gap-3">
             {aethel?.verdict === 'LOW BIAS'
-              ? <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-              : <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0" />
+              ? <CheckCircle className="w-5 h-5 text-white shrink-0" />
+              : <AlertTriangle className="w-5 h-5 text-[#888] shrink-0" />
             }
             <p className="text-sm text-white/80">{data?.verdict}</p>
           </div>
@@ -207,17 +207,17 @@ export default function BiasDashboard() {
               const m = models[modelName];
               const isAethel = modelName === 'aethel';
               return (
-                <div key={modelName} className={`glass-card rounded-2xl p-5 ${isAethel ? 'border border-emerald-400/20' : ''}`}>
+                <div key={modelName} className={`glass-card rounded-sm p-5 border ${isAethel ? 'border-white' : 'border-[#222]'}`}>
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        {isAethel && <Shield className="w-4 h-4 text-emerald-400" />}
-                        <span className="font-bold text-white capitalize">
-                          {isAethel ? 'FairAI (Aethel)' : modelName}
+                        {isAethel && <Shield className="w-4 h-4 text-white" />}
+                        <span className="font-mono font-bold tracking-widest text-white uppercase">
+                          {isAethel ? 'FAIRAI_(AETHEL)' : modelName}
                         </span>
                         {isAethel && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 uppercase tracking-widest">
-                            Bias-Blind
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-white border border-white text-black uppercase tracking-widest">
+                            BIAS-BLIND
                           </span>
                         )}
                       </div>
@@ -234,10 +234,7 @@ export default function BiasDashboard() {
 
                   <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between">
                     <span className="text-xs text-white/40">Total bias score</span>
-                    <span className={`text-lg font-black ${
-                      m.total_bias <= 5 ? 'text-emerald-400' :
-                      m.total_bias <= 15 ? 'text-yellow-400' : 'text-red-400'
-                    }`}>
+                    <span className="text-lg font-mono font-black text-white">
                       {m.total_bias} pts
                     </span>
                   </div>
