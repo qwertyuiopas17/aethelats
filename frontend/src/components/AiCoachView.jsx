@@ -31,9 +31,10 @@ function TypingIndicator() {
 function Message({ msg }) {
   const isUser = msg.role === 'user';
   return (
-    <div className={`flex items-end gap-3 animate-fade-in-up ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex items-end gap-3 animate-fade-in-up transition-all duration-500 ease-out ${isUser ? 'flex-row-reverse' : ''}`}
+         style={{ animationFillMode: 'both' }}>
       {/* Avatar */}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.05)] ${
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-transform duration-500 hover:scale-110 ${
         isUser
           ? 'bg-white/[0.05] border border-white/[0.15]'
           : 'bg-white/[0.02] border border-white/[0.1]'
@@ -45,7 +46,7 @@ function Message({ msg }) {
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[80%] px-5 py-4 rounded-3xl text-[13px] leading-relaxed whitespace-pre-wrap shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl ${
+      <div className={`max-w-[80%] px-5 py-4 rounded-3xl text-[13px] leading-relaxed whitespace-pre-wrap shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 hover:shadow-[0_8px_40px_rgba(255,255,255,0.05)] ${
         isUser
           ? 'rounded-br-sm bg-white/10 border border-white/[0.15] text-white'
           : 'rounded-bl-sm bg-[#0c0c0c]/80 border border-white/[0.06] text-white/90'
@@ -77,7 +78,14 @@ export default function AiCoachView({ s }) {
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Prevent jarring scroll on first message
+    if (messages.length <= 1 && !loading) return;
+    
+    // Slight delay to ensure DOM has updated before scrolling
+    const timer = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 50);
+    return () => clearTimeout(timer);
   }, [messages, loading]);
 
   // Send a welcome message the first time the coach opens with a result
@@ -273,7 +281,7 @@ export default function AiCoachView({ s }) {
         </div>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 space-y-8 relative z-10" style={{ scrollBehavior: 'smooth' }}>
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 space-y-8 relative z-10">
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center h-full gap-5 text-center animate-fade-in-up">
               <div className="w-20 h-20 rounded-3xl glass-card flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.05)] relative overflow-hidden group">
