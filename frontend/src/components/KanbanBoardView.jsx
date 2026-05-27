@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Clock, AlertTriangle, MessageSquare, Check, X, Maximize2, TrendingUp } from 'lucide-react';
 import { API_URL } from './constants';
 import { useAuth } from '../context/AuthContext';
@@ -7,11 +8,11 @@ import ResultsView from './ResultsView';
 const STAGES = ['Sourced', 'Screening', 'Interview', 'Offer', 'Rejected'];
 
 const STAGE_COLORS = {
-  Sourced:   { border: 'border-white/[0.05]',         dot: 'bg-white/30',        badge: 'bg-white/5 text-white/50' },
-  Screening: { border: 'border-blue-500/20',      dot: 'bg-blue-400',        badge: 'bg-blue-500/10 text-blue-300' },
-  Interview: { border: 'border-violet-500/20',    dot: 'bg-violet-400',      badge: 'bg-violet-500/10 text-violet-300' },
-  Offer:     { border: 'border-emerald-500/20',   dot: 'bg-emerald-400',     badge: 'bg-emerald-500/10 text-emerald-300' },
-  Rejected:  { border: 'border-red-500/15',       dot: 'bg-red-400/60',      badge: 'bg-red-500/10 text-red-400/80' },
+  Sourced:   { border: 'border-white/[0.04]', dot: 'bg-white/30',        badge: 'bg-white/[0.04] text-white/40' },
+  Screening: { border: 'border-white/[0.04]', dot: 'bg-white/30',        badge: 'bg-white/[0.04] text-white/40' },
+  Interview: { border: 'border-white/[0.04]', dot: 'bg-white/30',        badge: 'bg-white/[0.04] text-white/40' },
+  Offer:     { border: 'border-white/[0.04]', dot: 'bg-emerald-500/50',  badge: 'bg-emerald-500/10 text-emerald-400/80' },
+  Rejected:  { border: 'border-white/[0.04]', dot: 'bg-red-500/50',      badge: 'bg-red-500/10 text-red-400/80' },
 };
 
 // Batch color generation - consistent hash-based colors
@@ -42,21 +43,20 @@ function ScorePill({ score }) {
 // DNA Spark Card - Mini 5-bar chart showing top skill matches
 // Bar heights are scaled by fit_score to show candidate quality
 function DNASparkCard({ skillMatches, fitScore }) {
-  // If no skills, show placeholder
   if (!skillMatches || skillMatches.length === 0) {
     return (
-      <div className="space-y-1.5">
-        <div className="flex items-end gap-1 h-16 bg-violet-500/5 rounded p-2">
+      <div className="space-y-1.5 mt-2">
+        <div className="flex items-end gap-[2px] h-12 bg-white/[0.01] rounded border border-white/[0.03] p-1.5">
           {[30, 50, 70, 60, 40].map((height, idx) => (
             <div key={idx} className="flex-1 flex items-end">
               <div
-                className="w-full bg-gradient-to-t from-violet-500/20 to-violet-400/10 rounded-sm min-h-[8px]"
+                className="w-full bg-white/[0.04] rounded-[1px] min-h-[4px]"
                 style={{ height: `${height}%` }}
               />
             </div>
           ))}
         </div>
-        <div className="text-[9px] text-violet-300/40 text-center">
+        <div className="text-[9px] text-white/20 text-center uppercase tracking-widest font-mono">
           No skill data
         </div>
       </div>
@@ -65,25 +65,24 @@ function DNASparkCard({ skillMatches, fitScore }) {
   
   const top5 = skillMatches.slice(0, 5);
 
-  // Use real per-skill scores from evaluator if available (score 0-100, or relevance/match_score 0-1)
   const hasRealScores = top5.some(s => s.score != null || s.relevance != null || s.match_score != null);
   let barHeights;
   if (hasRealScores) {
     barHeights = top5.map(s => {
       const raw = s.score ?? s.relevance ?? s.match_score ?? 0.5;
-      const normalized = raw > 1 ? raw : raw * 100; // handle both 0-1 and 0-100 ranges
+      const normalized = raw > 1 ? raw : raw * 100; 
       return Math.max(15, Math.min(100, normalized));
     });
   } else {
-    // Fallback: scale a base pattern by overall fit_score
     const baseHeights = [100, 75, 90, 60, 80];
     const mult = (fitScore || 50) / 100;
     barHeights = baseHeights.map(h => Math.max(20, h * Math.pow(mult, 0.7)));
   }
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-end gap-1 h-16 bg-violet-500/5 rounded p-2">
+    <div className="space-y-1.5 mt-2">
+      <div className="flex items-end gap-[2px] h-12 bg-white/[0.01] rounded border border-white/[0.03] p-1.5 relative overflow-hidden">
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-white/[0.02] pointer-events-none" />
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
           const heightPercent = barHeights[idx] || 50;
@@ -92,9 +91,10 @@ function DNASparkCard({ skillMatches, fitScore }) {
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
             : fitScore;
           return (
-            <div key={idx} className="flex-1 h-full flex items-end bg-violet-500/10 rounded-sm overflow-hidden border border-violet-500/10 relative group">
+            <div key={idx} className="flex-1 h-full flex items-end group relative">
+              <div className="absolute top-0 bottom-0 left-0 right-0 bg-white/[0.02] rounded-t-[1px] z-0" />
               <div
-                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 transition-all group-hover:from-violet-400 group-hover:to-violet-300 cursor-help min-h-[4px]"
+                className="w-full bg-white/70 transition-all duration-300 group-hover:bg-white cursor-help min-h-[4px] relative z-10 rounded-[1px]"
                 style={{ height: `${heightPercent}%` }}
                 title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}
               />
@@ -102,34 +102,33 @@ function DNASparkCard({ skillMatches, fitScore }) {
           );
         })}
       </div>
-      <div className="text-[9px] text-violet-300/70 leading-tight text-center px-1 whitespace-nowrap overflow-hidden text-ellipsis" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
+      <div className="text-[9px] text-white/40 leading-tight text-center px-1 whitespace-nowrap overflow-hidden text-ellipsis font-mono tracking-wide" title={top5.map(s => s.canonical_name || s.skill || 'Unknown').join(', ')}>
         {top5.map(s => s.canonical_name || s.skill || 'Unknown').join(' • ')}
       </div>
     </div>
   );
 }
 
-// Rejection Reason - Shows missing skills for rejected candidates
+// Rejection Reason - Minimalist
 function RejectionReason({ missingSkills, stage }) {
   if (stage !== 'Rejected' || !missingSkills || missingSkills.length === 0) return null;
   
   const displaySkills = missingSkills.slice(0, 5);
   const hasMore = missingSkills.length > 5;
   
-  // Extract skill names from objects {gap: "Problem Solving", severity: "minor"}
   const skillNames = displaySkills.map(s => {
     if (typeof s === 'string') return s;
     return s.gap || s.skill || s.canonical_name || 'Unknown';
   });
   
   return (
-    <div className="mt-2 pt-2 border-t border-red-500/20 bg-red-500/5 -mx-3.5 -mb-3.5 px-3.5 pb-3 rounded-b-xl">
-      <div className="text-[10px] text-red-400 font-semibold mb-1 flex items-center gap-1">
-        <AlertTriangle className="w-3 h-3" />
-        Rejection Reason
+    <div className="mt-3 pl-2 border-l-2 border-red-500/40">
+      <div className="text-[9px] text-red-400/60 font-semibold mb-0.5 uppercase tracking-wider flex items-center gap-1">
+        <AlertTriangle className="w-2.5 h-2.5" />
+        Missing Skills
       </div>
-      <div className="text-[11px] text-red-300/80 leading-relaxed">
-        <span className="font-medium">Missing:</span> {skillNames.join(', ')}{hasMore ? '...' : ''}
+      <div className="text-[10px] text-white/50 leading-snug">
+        {skillNames.join(', ')}{hasMore ? '...' : ''}
       </div>
     </div>
   );
@@ -294,14 +293,14 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto"
       onClick={onClose}
     >
       <div className="min-h-screen flex items-center justify-center p-4">
         <div 
-          className="relative w-full max-w-5xl bg-gradient-to-br from-[#0a0a0f] to-[#1a1a2e] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh] my-8"
+          className="relative w-full max-w-5xl bg-[#0a0a0a] rounded-2xl border border-white/[0.06] shadow-2xl flex flex-col max-h-[90vh] my-8"
           onClick={(e) => e.stopPropagation()}
         >
         {/* Header */}
@@ -342,12 +341,13 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
               result: resultData.result,
               jobRole: resultData.role_target,
               fileName: resultData.file_name,
-            }} />
+            }} readOnly={true} />
           )}
         </div>
       </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -490,10 +490,10 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       {/* Role */}
       <div className="text-xs text-white/40 mb-3 truncate">{scan.role_target}</div>
 
-      {/* DNA Spark Card - Always show, with placeholder if no data */}
-      <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/5 border border-violet-500/20">
-        <div className="text-[10px] text-violet-300 mb-1.5 flex items-center gap-1 font-semibold">
-          <TrendingUp className="w-3 h-3" />
+      {/* DNA Spark Card - Minimalist */}
+      <div className="mb-3">
+        <div className="text-[10px] text-white/50 mb-1 flex items-center gap-1 font-semibold uppercase tracking-wider">
+          <TrendingUp className="w-3 h-3 text-white/30" />
           Skill DNA
         </div>
         <DNASparkCard skillMatches={skillMatches} fitScore={scan.fit_score} />
@@ -518,7 +518,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
 
       {/* Interview Guide Generator */}
       {scan.has_result && (
-        <div className="mt-2">
+        <div className="mt-3 border-t border-white/[0.04] pt-3">
           {!guideQuestions ? (
             <button
               onClick={async () => {
@@ -540,44 +540,42 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
               }}
               disabled={guideLoading}
               className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg
-                         bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20
-                         text-[11px] font-semibold text-amber-300 hover:text-amber-200
-                         hover:from-amber-500/20 hover:to-orange-500/20 transition-all
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                         bg-white/[0.02] border border-white/[0.06]
+                         text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/[0.06]
+                         transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {guideLoading ? (
                 <>
-                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <svg className="w-3 h-3 animate-spin text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" />
                   </svg>
                   Generating...
                 </>
               ) : (
                 <>
-                  <span className="text-xs">✦</span>
+                  <span className="text-[10px]">✦</span>
                   Generate Interview Guide
                 </>
               )}
             </button>
           ) : (
-            <div className="mt-1 rounded-lg bg-amber-500/5 border border-amber-500/15 p-2.5">
-              <div className="text-[10px] text-amber-400 font-semibold mb-2 flex items-center gap-1">
-                <span>✦</span> Interview Guide
+            <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3">
+              <div className="text-[10px] text-white/80 font-semibold mb-2 flex items-center gap-1.5 tracking-wide uppercase">
+                <span className="text-white/40">✦</span> Interview Guide
               </div>
-              <ol className="space-y-2">
+              <ol className="space-y-2.5">
                 {guideQuestions.map((q) => (
-                  <li key={q.number} className="text-[10px] text-white/70 leading-relaxed">
-                    <span className="text-amber-400/80 font-mono font-bold mr-1">Q{q.number}</span>
-                    <span className="text-amber-300/60 text-[9px] mr-1">[{q.area}]</span>
+                  <li key={q.number} className="text-[10px] text-white/80 leading-relaxed pl-1.5 border-l-2 border-white/[0.06]">
+                    <span className="text-white/40 font-mono text-[9px] block mb-0.5">Q{q.number} • {q.area}</span>
                     {q.question}
                   </li>
                 ))}
               </ol>
               <button
                 onClick={() => setGuideQuestions(null)}
-                className="mt-2 text-[9px] text-white/30 hover:text-white/60 transition-colors"
+                className="mt-3 text-[9px] text-white/40 hover:text-white/80 transition-colors uppercase tracking-widest font-semibold"
               >
-                Hide guide
+                Hide
               </button>
             </div>
           )}
@@ -591,10 +589,10 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       {scan.has_result && (
         <button
           onClick={() => onExpandClick(scan.id)}
-          className="w-full mt-2 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg 
-                     bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-white/5
-                     text-[11px] font-semibold text-blue-300 hover:text-blue-200 hover:from-blue-500/20 hover:to-violet-500/20 
-                     transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:shadow-md"
+          className="w-full mt-2 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg 
+                     bg-white/[0.02] border border-white/[0.06]
+                     text-[11px] font-medium text-white/60 hover:text-white hover:bg-white/[0.06] 
+                     transition-all"
         >
           <Maximize2 className="w-3.5 h-3.5" />
           View Full Report

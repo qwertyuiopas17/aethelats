@@ -9,7 +9,7 @@ import SkillKnowledgeGraph from './SkillKnowledgeGraph';
 import { SEVERITY_STYLE, BIAS_TYPE_LABELS } from './constants';
 import { useAuth } from '../context/AuthContext';
 
-export default function ResultsView({ s }) {
+export default function ResultsView({ s, readOnly = false }) {
   const { user } = useAuth();
   const isCandidate = user?.role === 'candidate';
   const isRecruiter = !isCandidate;
@@ -323,9 +323,9 @@ export default function ResultsView({ s }) {
       {/* Recruiter-only: counterfactual, model comparison, compliance */}
       {isRecruiter && (
         <>
-          <BiasStabilitySection cfResult={s.cfResult} isRunning={s.runningCF} onRunTest={s.handleCounterfactualTest} isDemo={s.isDemo} />
-          <ModelComparisonPanel compResult={s.compResult} isRunning={s.runningComp} onRunTest={s.handleModelComparison} isDemo={s.isDemo} />
-          <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />
+          {!readOnly && <BiasStabilitySection cfResult={s.cfResult} isRunning={s.runningCF} onRunTest={s.handleCounterfactualTest} isDemo={s.isDemo} />}
+          {!readOnly && <ModelComparisonPanel compResult={s.compResult} isRunning={s.runningComp} onRunTest={s.handleModelComparison} isDemo={s.isDemo} />}
+          {s.cfResult?.fairness_metrics && <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />}
           <ComplianceDashboard result={result} cfResult={s.cfResult} />
           <ResearchCitationsSection />
         </>
