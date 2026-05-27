@@ -56,7 +56,7 @@
 
 ---
 
-## 🧠 What is Aethel?
+## What is Aethel?
 
 Aethel is a **research-grade AI hiring compliance engine** built on a single founding principle:
 
@@ -68,13 +68,59 @@ This is not a keyword matcher. It is not a job board. Aethel is a **process-leve
 
 ---
 
-## ❓ Is Hiring Bias Real in India? (What the Data Says)
+
+## Table of Contents
+- [What is Aethel?](#what-is-aethel)
+- [The Aethel Platform](#the-aethel-platform)
+- [The Science & Research](#the-science--research-deep-dive)
+- [Architecture & Engineering](#architecture--engineering)
+
+
+## The Aethel Platform
+
+Aethel is a complete, two-sided hiring platform built to replace biased legacy ATS workflows. 
+
+### 1. The Recruiter Workspace (Kanban ATS)
+<p align="center">
+  <img src="docs/kanban-dashboard.png" width="100%" />
+</p>
+
+We built a drag-and-drop pipeline management system that actually surfaces candidate skills instead of burying them in PDFs.
+- **Candidate DNA Spark-Cards**: A 5-bar skill fingerprint on every card. See exactly where a candidate spikes before you even click their profile.
+- **Pipeline Velocity**: Built-in time-in-stage metrics. If a candidate sits for 5+ days, they get an amber warning ring so nobody falls through the cracks.
+- **Batch Cohorts**: Filter the entire board to a specific cohort using the color-coded legend. 
+- **Rejection Intelligence**: Aethel automatically reads the "Rejected" column and tells you exactly which skills your pipeline is missing, so you can fix your job descriptions.
+
+**Batch Processing & Ranking**
+Stop reading resumes one by one. Drop a cohort of 50 resumes into Aethel. It extracts the text, strips the PII, scores them blindly against your specific job description, and ranks them by `fit_score`. The top candidates bubble up instantly.
+
+**Multi-Model Bias Auditing**
+Aethel doesn't just score candidates; it actively audits *other* LLMs. The Bias Dashboard runs the exact same resume through GPT-4, Claude 3, and Llama 3 side-by-side. It exposes exactly how much those generic models penalize your candidates for career gaps or regional colleges compared to Aethel's fair baseline.
+
+### 2. The Candidate Workspace (Empowerment & Transparency)
+We believe candidates deserve to know exactly how they are evaluated. 
+
+- **Score Transparency**: Candidates get full access to see their own `fit_score` and the exact skills Aethel extracted from their resume.
+- **Bias Report**: Candidates can see if they triggered any bias proxy flags (e.g., career gaps, location markers) and see how Aethel's Counterfactual Engine neutralized that penalty.
+- **AI Coach (Coming Soon)**: An interactive chatbot that acts as a personal career strategist. It analyzes the specific gaps between the candidate's resume and target job descriptions, providing actionable, tailored coaching to strengthen their profile.
+
+### Enterprise Security & Access
+- **Role-Based Routing**: Strict separation between Candidate and Recruiter views.
+- **Verification Gate**: Premium enterprise features (like Batch Mode and the Bias Dashboard) are strictly locked behind a work-email and LinkedIn verification system.
+
+## The Science & Research (Deep Dive)
+
+Aethel is built on rigorous academic research and empirical data. Read below to understand the exact bias vectors we neutralize.
+
+<details>
+<summary><b>Is Hiring Bias Real in India? (What the Data Says)</b></summary>
+<br>
 
 Before claiming to solve a problem, it must exist. In India, it does — and it is documented by real placement data, industry reports, and audit studies.
 
 ---
 
-### 🏫 1. Institution Prestige Bias — The IIT vs. Everyone Else Gap
+### 1. Institution Prestige Bias — The IIT vs. Everyone Else Gap
 
 This is the bias vector that affects **the largest number of Indian candidates** — the 99%+ of engineers who did not attend an IIT.
 
@@ -92,7 +138,7 @@ This is the bias vector that affects **the largest number of Indian candidates**
 
 ---
 
-### 👩 2. Gender & Maternity Penalty — India-Specific Data
+### 2. Gender & Maternity Penalty — India-Specific Data
 
 **Gender pay gap in Indian tech (2024, sourced from Business Standard / industry reports):**
 
@@ -111,7 +157,7 @@ This is the bias vector that affects **the largest number of Indian candidates**
 
 ---
 
-### 🗣️ 3. English Language & Accent Bias
+### 3. English Language & Accent Bias
 
 India has **22 scheduled languages** and hundreds of dialects. Yet corporate India — especially MNCs and product-based tech companies — uses English as the sole hiring language, creating a proxy filter that is not about job skill:
 
@@ -124,7 +170,7 @@ Aethel strips communication-style signals from scoring context and focuses purel
 
 ---
 
-### 📍 4. Location & Tier-2 City Bias
+### 4. Location & Tier-2 City Bias
 
 India's hiring ecosystem is overwhelmingly concentrated in 5–6 metro cities. Candidates from Tier-2 and Tier-3 cities face compounding disadvantages:
 
@@ -137,7 +183,7 @@ Aethel replaces city/address with `[LOCATION]` before scoring, making location i
 
 ---
 
-### 📋 5. AMCAT, CoCubes & eLitmus — The "Tier-2 Tax"
+### 5. AMCAT, CoCubes & eLitmus — The "Tier-2 Tax"
 
 These platforms were *designed* to level the playing field for non-IIT students. In practice:
 
@@ -172,33 +218,16 @@ This is the bias vector that affects **the largest number of Indian candidates**
 
 ---
 
-### 👩 3. Gender & Maternity Penalty — Documented Indian Evidence
-
-- **40%** of professional women in India report experiencing bias or discriminatory behavior in hiring or the workplace (Economic Times survey)
-- The **2017 Maternity Benefit Act amendment** (extending paid leave to 26 weeks) — a progressive policy — **backfired in practice**: research documents employers actively avoiding hiring women of childbearing age to avoid the perceived cost, a trend documented in studies and reported in Business Standard and Policy Circle
-- Indian corporate career models assume **linear, uninterrupted employment**. A 7-month maternity gap is treated identically to a 7-month unemployment gap in every mainstream ATS — despite the former being a **legally protected right under Indian law**
-- The **"leaky pipeline"**: Women are hired in large numbers at entry level but representation drops sharply at every level above it — often traced to missed promotions and projects during or after maternity breaks
-
----
-
-### 📋 4. AMCAT, CoCubes & eLitmus — The "Tier-2 Tax"
-
-These platforms were *designed* to level the playing field by letting non-IIT students prove aptitude. In practice, they perpetuate a different form of bias:
-
-- **The halo effect persists:** Even when a Tier-2 student scores well on AMCAT, recruiters still subconsciously favour IIT/BITS resumes — the test score is a tiebreaker, not a leveller
-- **Low-quality job funnel:** High AMCAT scores predominantly lead to service-based companies and mass recruiters offering ₹3–4 LPA. Top product-based companies do not use AMCAT as a primary filter — they rely on campus presence at elite institutions
-- **Aptitude ≠ skill:** These tests measure reasoning and quantitative aptitude — skills shaped by access to coaching (FIITJEE, Allen, etc.), which correlates with socioeconomic class and Tier-1 city access, not raw engineering ability
-- **No contextual evaluation:** AMCAT gives a 3-digit score with zero explanation of *why* a candidate scored what they did — unlike Aethel's fully explainable, factor-by-factor scorecard
-
-> **The system is circular:** IIT students get IIT because they had coaching. They get jobs because recruiters go to IIT campuses. LLMs trained on hiring data learn that IIT = hire. Candidates with identical skills from NITs or state colleges are filtered out before any human ever sees them. **Aethel breaks this loop.**
-
----
-
 > **The bias is not hypothetical. It is measured. It is active. And it is embedded in every LLM used for hiring in India today.**
 
 ---
 
-## 🎯 What Aethel Does
+</details>
+<br>
+
+<details>
+<summary><b>What Aethel Does</b></summary>
+<br>
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -216,7 +245,7 @@ These platforms were *designed* to level the playing field by letting non-IIT st
 │  ✦  India-specific bias vectors: IIT/NIT swap, maternity gap, Tier-2    │
 │     city, caste-proxy names (Priya Kumari vs Arjun Sharma)              │
 │                                                                         │
-│  🆕 NEW — May 2026                                                      │
+│   NEW — May 2026                                                      │
 │  ✦  Downloads a 5-section PDF Bias Audit Report (LL 144 ready)         │
 │  ✦  Bias Analytics Dashboard — aggregate bias trends across all scans  │
 │  ✦  FairAI signals show evidence quotes (same depth as Llama/Gemma)    │
@@ -225,7 +254,12 @@ These platforms were *designed* to level the playing field by letting non-IIT st
 
 ---
 
-## 🇮🇳 Why India-Specific Bias Vectors Matter
+</details>
+<br>
+
+<details>
+<summary><b>Why India-Specific Bias Vectors Matter</b></summary>
+<br>
 
 Global tools like Textio, Pymetrics, and Workday are built for US/EU compliance frameworks. **India has no equivalent hiring-AI regulation yet** — which means:
 
@@ -256,7 +290,12 @@ No competing tool — global or Indian — tests any of these vectors.
 
 ---
 
-## ⚔️ How Aethel Compares to Existing Tools
+</details>
+<br>
+
+<details>
+<summary><b>How Aethel Compares to Existing Tools</b></summary>
+<br>
 
 | Tool | What it does | What it misses | Aethel's edge |
 |---|---|---|---|
@@ -280,7 +319,12 @@ Aethel is the only tool that:
 
 ---
 
-## 🔬 How Bias is Calculated — The Counterfactual Engine
+</details>
+<br>
+
+<details>
+<summary><b>How Bias is Calculated - The Counterfactual Engine</b></summary>
+<br>
 
 Aethel doesn't *assume* bias. It **measures** it using **real demographic mutation tests** — the same methodology used in peer-reviewed academic papers and required by EU AI Act Article 9.
 
@@ -289,15 +333,15 @@ Aethel doesn't *assume* bias. It **measures** it using **real demographic mutati
 ```
 Original Resume (Priya Kumari, NIT Trichy, Nagpur, 7-month maternity gap)
       │
-      ├──▶  Variant A: College → "IIT Bombay"         (institution-prestige bias)
+      ├──  Variant A: College → "IIT Bombay"         (institution-prestige bias)
       │
-      ├──▶  Variant B: Maternity gap removed           (employment-continuity bias)
+      ├──  Variant B: Maternity gap removed           (employment-continuity bias)
       │
-      ├──▶  Variant C: Name → "Arjun Sharma"           (gender + caste-proxy bias)
+      ├──  Variant C: Name → "Arjun Sharma"           (gender + caste-proxy bias)
       │
-      ├──▶  Variant D: Address → "Koramangala, Bengaluru" (metro-location bias)
+      ├──  Variant D: Address → "Koramangala, Bengaluru" (metro-location bias)
       │
-      └──▶  Variant E: All combined                    (intersectional amplification)
+      └──  Variant E: All combined                    (intersectional amplification)
 ```
 
 Each variant is **identical in technical content** — same skills, same projects, same companies. Only the demographic signal changes.
@@ -334,7 +378,12 @@ If `amplification_detected = True`, the model exhibits **compound discrimination
 
 ---
 
-## 📋 Bias Methodology — Complete Specification
+</details>
+<br>
+
+<details>
+<summary><b>Bias Methodology - Complete Specification</b></summary>
+<br>
 
 > **Note:** This section documents Aethel's actual implementation. Where features are aspirational (planned but not yet coded), they are explicitly marked. Transparency about limitations is a feature, not a liability.
 
@@ -419,25 +468,25 @@ percentile = (COUNT(score < current) / 200) * 100
 
 | Samples for Role | Percentile Trust Level | Confidence Interval | Recommendation |
 |---|---|---|---|
-| **< 10** | ❌ Provisional (mock) | ±50% (very wide) | Display with disclaimer "Sample is too small for reliability" |
-| **10–50** | ⚠️ Emerging | ±15% | "Results based on limited pool — interpret cautiously" |
-| **50–200** | ✅ Reliable | ±5% | "Results are statistically sound" |
-| **200+** | ✅ Production | ±2% | "High confidence in this percentile" |
+| **< 10** |  Provisional (mock) | ±50% (very wide) | Display with disclaimer "Sample is too small for reliability" |
+| **10–50** |  Emerging | ±15% | "Results based on limited pool — interpret cautiously" |
+| **50–200** |  Reliable | ±5% | "Results are statistically sound" |
+| **200+** |  Production | ±2% | "High confidence in this percentile" |
 
 **Current Status:** Not yet implemented in code (aspirational). Currently returns raw percentile without CI bounds. [TODO: Add confidence interval calculation to `/stats` response]
 
 ---
 
-### D. The 4 Regulatory Fairness Metrics (Aspirational ⏳)
+### D. The 4 Regulatory Fairness Metrics (Aspirational )
 
 > **Implementation Status:** Currently listed in README as features but NOT YET computed or returned in API responses. This is a prioritised implementation gap.
 
 | Metric | Regulation | What It Measures | Formula | Pass / Fail Threshold | Current Status |
 |---|---|---|---|---|---|
-| **Disparate Impact Ratio** | EEOC 4/5ths Rule (USA) | Whether minorities face systematically different outcomes | `min(group_scores) / max(group_scores)` | ≥ 0.80 = pass | ❌ Not calculated |
-| **Score Stability (σ)** | NIST AI Risk Management | Whether scores vary wildly across similar inputs | `stdev(variant_deltas)` | ≤ 5.0 pts = pass | ❌ Not calculated |
-| **Bias Amplification Index** | EU AI Act Article 9 | Whether combined biases exceed individual ones | `max_combined_delta / baseline_score` | ≤ 0.15 = pass | ❌ Not calculated |
-| **Max Score Deviation** | NYC Local Law 144 | Single largest bias (any one demographic signal) | `max(abs(delta_1, delta_2, ...))` | ≤ 5 pts = pass | ⚠️ Partial (individual deltas calculated, not aggregated) |
+| **Disparate Impact Ratio** | EEOC 4/5ths Rule (USA) | Whether minorities face systematically different outcomes | `min(group_scores) / max(group_scores)` | ≥ 0.80 = pass |  Not calculated |
+| **Score Stability (σ)** | NIST AI Risk Management | Whether scores vary wildly across similar inputs | `stdev(variant_deltas)` | ≤ 5.0 pts = pass |  Not calculated |
+| **Bias Amplification Index** | EU AI Act Article 9 | Whether combined biases exceed individual ones | `max_combined_delta / baseline_score` | ≤ 0.15 = pass |  Not calculated |
+| **Max Score Deviation** | NYC Local Law 144 | Single largest bias (any one demographic signal) | `max(abs(delta_1, delta_2, ...))` | ≤ 5 pts = pass |  Partial (individual deltas calculated, not aggregated) |
 
 **Why Not Yet Implemented?** Requires frontend UI to display metrics clearly (pass/fail badges). Currently focusing on core pipeline stability.
 
@@ -554,13 +603,13 @@ timestamp (DATETIME)              — When the analysis was run (UTC)
 ```
 
 **What's NEVER Stored:**
-- ❌ Candidate name
-- ❌ Email address or phone
-- ❌ University / institution name
-- ❌ Address / location
-- ❌ Gender / pronouns
-- ❌ Resume text (original or sanitised)
-- ❌ Link to specific candidate profiles
+-  Candidate name
+-  Email address or phone
+-  University / institution name
+-  Address / location
+-  Gender / pronouns
+-  Resume text (original or sanitised)
+-  Link to specific candidate profiles
 
 **Data Lifecycle:**
 | Stage | Duration | Action |
@@ -599,7 +648,279 @@ This is a fundamental LLM limitation, not a flaw in Aethel's methodology.
 
 ---
 
-## 🏗️ System Architecture — The 4-Bot Pipeline
+</details>
+<br>
+
+<details>
+<summary><b>Why Mainstream LLMs Are Biased</b></summary>
+<br>
+
+Aethel compares itself against **3 production-grade LLMs** on every resume. The results are consistent:
+
+| Bias Source | What happens in untreated LLMs |
+|---|---|
+| **Training data** | Historical hiring data on the internet reflects decades of discrimination. Models learn to replicate it. |
+| **Institution prestige** | Every LLM has absorbed that "IIT graduate" is high-signal. Replacing NIT Trichy with IIT Bombay always raises the score — by 9–12 pts on tested models. |
+| **Name encoding** | Names encode caste, gender, and ethnicity. LLMs trained on biased data reproduce biased callback patterns. |
+| **Employment gaps** | Generic LLMs conflate gaps with underperformance, ignoring legally protected reasons (maternity, caregiving, illness). |
+| **Keyword stuffing rewarded** | Untreated LLMs score listed-but-unproven skills highly — rewarding candidates who game the system. |
+
+### How Aethel neutralises each bias
+
+| Bias Type | Aethel Countermeasure |
+|-----------|----------------------|
+| Name / caste proxy | PII stripped **before** any LLM sees the resume |
+| Institution prestige | Replaced with `[INSTITUTION]` by GLiNER NER |
+| Employment gaps | Explicit prompt rule: *"NEVER penalise employment gaps — legally protected"* |
+| Keyword stuffing | Contextual vs Declarative scoring — skills without evidence score low |
+| Graduation year (age) | Years replaced with `[YEAR]` |
+| Gender pronouns | Replaced with they/their/them |
+| City / location | Replaced with `[LOCATION]` |
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>Live Comparison - Aethel vs Mainstream LLMs (Real Test Data)</b></summary>
+<br>
+
+> The following results are from an **actual run** of the `/compare-models` endpoint on a real resume for a Customer Service Representative role. This is not a simulation.
+
+### The Candidate
+
+A Year 11 student with part-time work, volunteer positions, and retail/sports experience applying for a Customer Service Representative role. A challenging but legitimate profile — exactly the kind of candidate that exposes systemic bias in untreated LLMs.
+
+### Side-by-Side Results
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      AETHEL (BOT 4 — FINE-TUNED PHI-3.5)          ★ YOUR MODEL │
+├────────────────────┬──────────────────────────────────────────────────────────┤
+│ Overall Score      │  65 / 100                                                 │
+│ Recommendation     │    HIRE                                                 │
+│ Institution Bias   │  +0  (PASS — zero drift when institution changes)         │
+│ Gap Bias           │  +0  (PASS — zero drift when employment gap added)        │
+│ Name Bias          │  +0  (PASS — zero drift when name changes)                │
+│ Technical Aptitude │  80 / 100  (+4% above pool average)                      │
+│ Match Score        │  98% Match  ·  Verified Candidate Profile                 │
+│ Cognitive Profile  │  Strategic Thinking: Superior · Adaptability: Proficient  │
+│ Skill Graph        │  CRM · Teamwork · Communication · Empathy                 │
+│                    │  Conflict Resolution · Customer Service · Problem Solving  │
+│ Output Depth       │  7 panels — radar, cognitive, skill graph, behavioral     │
+│                    │  profile, percentile rank, strengths, full narrative       │
+└────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                             LLAMA 3.3 70B  (Groq)                               │
+├────────────────────┬──────────────────────────────────────────────────────────┤
+│ Overall Score      │  60 / 100  (5 pts below Aethel)                          │
+│ Recommendation     │    SCHEDULE SCREENING CALL                             │
+│ Radar Variance     │  technical_depth: +45  ·  project_complexity: +55        │
+│                    │  (High per-dimension variance — unreliable sub-scores)    │
+│ Cognitive Profile  │    Not generated                                        │
+│ Skill Graph        │    Not generated                                        │
+│ Output Depth       │  1 sentence — "lacks technical depth..."                 │
+└────────────────────┴──────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                     GEMMA 2 9B  (Groq)                                          │
+├────────────────────┬──────────────────────────────────────────────────────────┤
+│ Overall Score      │  65 / 100  (matches Aethel)                              │
+│ Recommendation     │    SCHEDULE SCREENING CALL                             │
+│ Institution Bias   │    -20 pts  (FAIL — same resume scores 45 if non-IIT) │
+│ Gap Bias           │    -20 pts  (FAIL — penalises employment gaps by 20 pt)│
+│ Name Bias          │    -20 pts  (FAIL — name change costs candidate 20 pts)│
+│ Composite Bias     │    ALL THREE demographic signals FAILED                 │
+│ Cognitive Profile  │    Not generated                                        │
+│ Output Depth       │  2 sentences — generic summary only                      │
+└────────────────────┴──────────────────────────────────────────────────────────┘
+```
+
+### What these numbers mean
+
+**Gemma 2 9B fails all 3 bias tests — by 20 points each:**
+```
+Same resume. Same skills. Same experience.
+
+Candidate A  (non-IIT + career gap + non-dominant name):
+  Gemma score:  65 - 20 - 20 - 20 = 25 / 100  ← fails to shortlist
+
+Candidate B  (IIT + no gaps + dominant name):
+  Gemma score:  65 + 20 + 20 + 20 = 105 / 100 ← instant strong hire
+
+Aethel score for both:  65 / 100  ← identical, as it should be
+```
+
+This -20 pt penalty per demographic signal is illegal under EEOC guidelines, EU AI Act Art. 9, and NYC Local Law 144. Aethel is the only tool that surfaces this to the recruiter with actual numbers.
+
+| Dimension | Aethel | Llama 3.3 70B | Gemma 2 9B |
+|-----------|--------|---------------|-------------|
+| Overall score | **65** | 60 | 65 |
+| Recommendation | **Hire**  | Screening Call  | Screening Call  |
+| Inst. bias delta | **+0**  | +0  | **-20**  |
+| Gap bias delta | **+0**  | +0  | **-20**  |
+| Name bias delta | **+0**  | +0  | **-20**  |
+| Radar stability | **Low variance**  | High variance  | High variance  |
+| Cognitive profile | **Yes**  | No  | No  |
+| Skill knowledge graph | **Yes (7 nodes)**  | No  | No  |
+| Output panels | **7** | 1 | 1 |
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>JD Bias Detection</b></summary>
+<br>
+
+Aethel audits job descriptions for bias — including India-specific patterns no global tool covers:
+
+| Bias Category | Example Phrases | Research Basis |
+|---|---|---|
+| **Institution gatekeeping** | "IIT/NIT preferred", "Tier-1 college required" | Systematic exclusion of 900+ Indian engineering colleges |
+| **Masculine-coded** | rockstar, ninja, dominant, crushing it | Gaucher et al. (2011) — reduces female applications by up to 40% |
+| **Continuity bias** | "no career gaps", "continuous employment required" | Penalizes maternity/caregiving leave — may violate Maternity Benefit Act |
+| **Language bias** | "native English speaker", "fluent English required" | Disadvantages vernacular-medium educated candidates |
+| **Culture fit** | "culture fit", "culture add" | Documented proxy for caste, religion, and language homogeneity in Indian teams |
+| **Age-discriminatory** | "recent graduate", "young professional", "digital native" | EEOC Age Discrimination Act |
+| **Socioeconomic** | "Ivy League required", unpaid internship referenced | Filters by family wealth, not skill |
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>Proof-of-Work Link Analysis</b></summary>
+<br>
+
+Aethel fetches **live, verifiable signals** from a candidate's online presence — completely bias-blind:
+
+```
+  GitHub      →  public_repos, followers, top_repo stars, languages
+  LeetCode    →  problems_solved (Easy/Medium/Hard), global rank
+  Codeforces  →  rating, max_rating, rank
+  HuggingFace →  published_models count
+  + LinkedIn, Kaggle, HackerRank, Medium, Stack Overflow, Behance, etc.
+```
+
+GitHub stars have no demographic signal. This is verification that bypasses every bias vector simultaneously.
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>Contextual vs Declarative Skill Scoring</b></summary>
+<br>
+
+```
+DECLARATIVE  (weak signal):
+  "Skills: Python, React, AWS, Docker, PostgreSQL"
+  impact_score = 20–40
+
+CONTEXTUAL  (strong signal):
+  "Optimised ETL pipeline in Python + Airflow, reducing AWS costs by 15%"
+  impact_score = 70–95
+```
+
+Resumes where >60% of skills are declarative are flagged as **keyword stuffing**. This is the tactic Jobscan actively encourages — Aethel penalizes it.
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>API Endpoints</b></summary>
+<br>
+
+```
+POST /analyze              →  Full bias-blind resume analysis
+POST /detect-role          →  Auto-detect candidate's target role from resume
+POST /counterfactual-test  →  Real demographic mutation test (4 fairness metrics)
+POST /analyze-jd           →  Job description bias audit
+POST /analyze-links        →  Proof-of-work link analysis (GitHub, LeetCode, etc.)
+POST /compare-models       →  Aethel vs mainstream LLM bias comparison
+GET  /health               →  System status + loaded features
+GET  /stats                →  Score pool distribution + percentile baseline
+```
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>Honest Limitations</b></summary>
+<br>
+
+This tool is research-grade. Its limitations should be understood:
+
+| Limitation | Detail |
+|---|---|
+| **No ground-truth validation** | Aethel's scores have not yet been benchmarked against a human expert panel. The *delta* between models (counterfactual bias measurement) is methodologically sound; the absolute score should be treated as an indicator, not a ground truth. |
+| **Blind eval is not perfectly blind** | Even after stripping name, college, and location, LLMs may still infer demographic signals from other content (specific clubs, vernacular patterns). This is a limitation of any LLM-based approach. |
+| **API-cost tradeoff** | Running 4–5 demographic mutations requires multiple LLM calls, which adds latency. In production, consider caching or batching for high-volume use. |
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>Research & Regulatory Basis</b></summary>
+<br>
+
+| Framework | What Aethel Implements |
+|---|---|
+| **EEOC 4/5ths Rule** (USA) | Disparate Impact Ratio ≥ 0.80 |
+| **EU AI Act Article 9** (2024) | Bias Amplification Index ≤ 0.15 |
+| **NYC Local Law 144** (2023) | Max Score Deviation ≤ 5 pts |
+| **India Maternity Benefit Act** (2017) | Explicit penalty removal for maternity/caregiver gaps |
+| **Gaucher et al. (2011)** | Masculine-coded JD word detection |
+| **Bertrand & Mullainathan (2004)** | Name-based scoring mutation test |
+
+---
+
+</details>
+<br>
+
+<details>
+<summary><b>Feature Comparison</b></summary>
+<br>
+
+```
+Feature                          │ AMCAT/CoCubes │ Jobscan  │ Aethel ★
+─────────────────────────────────┼───────────────┼──────────┼──────────
+PII stripped before scoring      │      ✗        │    ✗     │    ✓
+Institution bias test (IIT swap) │      ✗        │    ✗     │    ✓
+Maternity gap audit              │      ✗        │    ✗     │    ✓
+Name-based demographic test      │      ✗        │    ✗     │    ✓
+City / Tier-2 bias detection     │      ✗        │    ✗     │    ✓
+Skill assessment (aptitude)      │      ✓        │    ✗     │    ✓
+Contextual skill scoring         │      ✗        │    ✗     │    ✓
+Measured counterfactual deltas   │      ✗        │    ✗     │    ✓
+Resume  JD match scoring        │      ✗        │    ✓     │    ✓
+JD language bias audit           │      ✗        │  Partial │    ✓
+Lateral hire support             │      ✓        │    ✗     │    ✓
+Compares itself to rival LLMs    │      ✗        │    ✗     │    ✓
+Fully explainable scores         │      ✗        │  Partial │    ✓
+Free for candidates              │      ✗        │    ✗     │    ✓
+```
+
+---
+
+</details>
+<br>
+
+## Architecture & Engineering
+
+## System Architecture — The 4-Bot Pipeline
 
 ### Infrastructure Overview
 
@@ -716,7 +1037,7 @@ The GPU stays warm for 5 minutes after the last request (`scaledown_window=300`)
 
 ---
 
-## 🧬 Model Architecture — Deep Dive
+## Model Architecture — Deep Dive
 
 ### Bot 1 — GLiNER (Zero-shot NER Anonymiser)
 - Architecture: **Bidirectional encoder** with span-level entity classification
@@ -775,166 +1096,7 @@ Pre-formatter → T5 Inference → JSON validator → Rule-based fallback (if ne
 
 ---
 
-## 📊 Why Mainstream LLMs Are Biased
-
-Aethel compares itself against **3 production-grade LLMs** on every resume. The results are consistent:
-
-| Bias Source | What happens in untreated LLMs |
-|---|---|
-| **Training data** | Historical hiring data on the internet reflects decades of discrimination. Models learn to replicate it. |
-| **Institution prestige** | Every LLM has absorbed that "IIT graduate" is high-signal. Replacing NIT Trichy with IIT Bombay always raises the score — by 9–12 pts on tested models. |
-| **Name encoding** | Names encode caste, gender, and ethnicity. LLMs trained on biased data reproduce biased callback patterns. |
-| **Employment gaps** | Generic LLMs conflate gaps with underperformance, ignoring legally protected reasons (maternity, caregiving, illness). |
-| **Keyword stuffing rewarded** | Untreated LLMs score listed-but-unproven skills highly — rewarding candidates who game the system. |
-
-### How Aethel neutralises each bias
-
-| Bias Type | Aethel Countermeasure |
-|-----------|----------------------|
-| Name / caste proxy | PII stripped **before** any LLM sees the resume |
-| Institution prestige | Replaced with `[INSTITUTION]` by GLiNER NER |
-| Employment gaps | Explicit prompt rule: *"NEVER penalise employment gaps — legally protected"* |
-| Keyword stuffing | Contextual vs Declarative scoring — skills without evidence score low |
-| Graduation year (age) | Years replaced with `[YEAR]` |
-| Gender pronouns | Replaced with they/their/them |
-| City / location | Replaced with `[LOCATION]` |
-
----
-
-## 📊 Live Comparison — Aethel vs Mainstream LLMs (Real Test Data)
-
-> The following results are from an **actual run** of the `/compare-models` endpoint on a real resume for a Customer Service Representative role. This is not a simulation.
-
-### The Candidate
-
-A Year 11 student with part-time work, volunteer positions, and retail/sports experience applying for a Customer Service Representative role. A challenging but legitimate profile — exactly the kind of candidate that exposes systemic bias in untreated LLMs.
-
-### Side-by-Side Results
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                      AETHEL (BOT 4 — FINE-TUNED PHI-3.5)          ★ YOUR MODEL │
-├────────────────────┬──────────────────────────────────────────────────────────┤
-│ Overall Score      │  65 / 100                                                 │
-│ Recommendation     │  ✅  HIRE                                                 │
-│ Institution Bias   │  +0  (PASS — zero drift when institution changes)         │
-│ Gap Bias           │  +0  (PASS — zero drift when employment gap added)        │
-│ Name Bias          │  +0  (PASS — zero drift when name changes)                │
-│ Technical Aptitude │  80 / 100  (+4% above pool average)                      │
-│ Match Score        │  98% Match  ·  Verified Candidate Profile                 │
-│ Cognitive Profile  │  Strategic Thinking: Superior · Adaptability: Proficient  │
-│ Skill Graph        │  CRM · Teamwork · Communication · Empathy                 │
-│                    │  Conflict Resolution · Customer Service · Problem Solving  │
-│ Output Depth       │  7 panels — radar, cognitive, skill graph, behavioral     │
-│                    │  profile, percentile rank, strengths, full narrative       │
-└────────────────────┴──────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                             LLAMA 3.3 70B  (Groq)                               │
-├────────────────────┬──────────────────────────────────────────────────────────┤
-│ Overall Score      │  60 / 100  (5 pts below Aethel)                          │
-│ Recommendation     │  ⚠️  SCHEDULE SCREENING CALL                             │
-│ Radar Variance     │  technical_depth: +45  ·  project_complexity: +55        │
-│                    │  (High per-dimension variance — unreliable sub-scores)    │
-│ Cognitive Profile  │  ❌  Not generated                                        │
-│ Skill Graph        │  ❌  Not generated                                        │
-│ Output Depth       │  1 sentence — "lacks technical depth..."                 │
-└────────────────────┴──────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     GEMMA 2 9B  (Groq)                                          │
-├────────────────────┬──────────────────────────────────────────────────────────┤
-│ Overall Score      │  65 / 100  (matches Aethel)                              │
-│ Recommendation     │  ⚠️  SCHEDULE SCREENING CALL                             │
-│ Institution Bias   │  🚨  -20 pts  (FAIL — same resume scores 45 if non-IIT) │
-│ Gap Bias           │  🚨  -20 pts  (FAIL — penalises employment gaps by 20 pt)│
-│ Name Bias          │  🚨  -20 pts  (FAIL — name change costs candidate 20 pts)│
-│ Composite Bias     │  🚨  ALL THREE demographic signals FAILED                 │
-│ Cognitive Profile  │  ❌  Not generated                                        │
-│ Output Depth       │  2 sentences — generic summary only                      │
-└────────────────────┴──────────────────────────────────────────────────────────┘
-```
-
-### What these numbers mean
-
-**Gemma 2 9B fails all 3 bias tests — by 20 points each:**
-```
-Same resume. Same skills. Same experience.
-
-Candidate A  (non-IIT + career gap + non-dominant name):
-  Gemma score:  65 - 20 - 20 - 20 = 25 / 100  ← fails to shortlist
-
-Candidate B  (IIT + no gaps + dominant name):
-  Gemma score:  65 + 20 + 20 + 20 = 105 / 100 ← instant strong hire
-
-Aethel score for both:  65 / 100  ← identical, as it should be
-```
-
-This -20 pt penalty per demographic signal is illegal under EEOC guidelines, EU AI Act Art. 9, and NYC Local Law 144. Aethel is the only tool that surfaces this to the recruiter with actual numbers.
-
-| Dimension | Aethel | Llama 3.3 70B | Gemma 2 9B |
-|-----------|--------|---------------|-------------|
-| Overall score | **65** | 60 | 65 |
-| Recommendation | **Hire** ✅ | Screening Call ⚠️ | Screening Call ⚠️ |
-| Inst. bias delta | **+0** ✅ | +0 ✅ | **-20** 🚨 |
-| Gap bias delta | **+0** ✅ | +0 ✅ | **-20** 🚨 |
-| Name bias delta | **+0** ✅ | +0 ✅ | **-20** 🚨 |
-| Radar stability | **Low variance** ✅ | High variance ⚠️ | High variance ⚠️ |
-| Cognitive profile | **Yes** ✅ | No ❌ | No ❌ |
-| Skill knowledge graph | **Yes (7 nodes)** ✅ | No ❌ | No ❌ |
-| Output panels | **7** | 1 | 1 |
-
----
-
-## 🔍 JD Bias Detection
-
-Aethel audits job descriptions for bias — including India-specific patterns no global tool covers:
-
-| Bias Category | Example Phrases | Research Basis |
-|---|---|---|
-| **Institution gatekeeping** | "IIT/NIT preferred", "Tier-1 college required" | Systematic exclusion of 900+ Indian engineering colleges |
-| **Masculine-coded** | rockstar, ninja, dominant, crushing it | Gaucher et al. (2011) — reduces female applications by up to 40% |
-| **Continuity bias** | "no career gaps", "continuous employment required" | Penalizes maternity/caregiving leave — may violate Maternity Benefit Act |
-| **Language bias** | "native English speaker", "fluent English required" | Disadvantages vernacular-medium educated candidates |
-| **Culture fit** | "culture fit", "culture add" | Documented proxy for caste, religion, and language homogeneity in Indian teams |
-| **Age-discriminatory** | "recent graduate", "young professional", "digital native" | EEOC Age Discrimination Act |
-| **Socioeconomic** | "Ivy League required", unpaid internship referenced | Filters by family wealth, not skill |
-
----
-
-## 🌐 Proof-of-Work Link Analysis
-
-Aethel fetches **live, verifiable signals** from a candidate's online presence — completely bias-blind:
-
-```
-  GitHub      →  public_repos, followers, top_repo stars, languages
-  LeetCode    →  problems_solved (Easy/Medium/Hard), global rank
-  Codeforces  →  rating, max_rating, rank
-  HuggingFace →  published_models count
-  + LinkedIn, Kaggle, HackerRank, Medium, Stack Overflow, Behance, etc.
-```
-
-GitHub stars have no demographic signal. This is verification that bypasses every bias vector simultaneously.
-
----
-
-## 📐 Contextual vs Declarative Skill Scoring
-
-```
-DECLARATIVE  (weak signal):
-  "Skills: Python, React, AWS, Docker, PostgreSQL"
-  impact_score = 20–40
-
-CONTEXTUAL  (strong signal):
-  "Optimised ETL pipeline in Python + Airflow, reducing AWS costs by 15%"
-  impact_score = 70–95
-```
-
-Resumes where >60% of skills are declarative are flagged as **keyword stuffing**. This is the tactic Jobscan actively encourages — Aethel penalizes it.
-
----
-
-## 🧾 Tech Stack
+## Tech Stack
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -956,70 +1118,7 @@ Resumes where >60% of skills are declarative are flagged as **keyword stuffing**
 
 ---
 
-## 📡 API Endpoints
-
-```
-POST /analyze              →  Full bias-blind resume analysis
-POST /detect-role          →  Auto-detect candidate's target role from resume
-POST /counterfactual-test  →  Real demographic mutation test (4 fairness metrics)
-POST /analyze-jd           →  Job description bias audit
-POST /analyze-links        →  Proof-of-work link analysis (GitHub, LeetCode, etc.)
-POST /compare-models       →  Aethel vs mainstream LLM bias comparison
-GET  /health               →  System status + loaded features
-GET  /stats                →  Score pool distribution + percentile baseline
-```
-
----
-
-## ⚖️ Honest Limitations
-
-This tool is research-grade. Its limitations should be understood:
-
-| Limitation | Detail |
-|---|---|
-| **No ground-truth validation** | Aethel's scores have not yet been benchmarked against a human expert panel. The *delta* between models (counterfactual bias measurement) is methodologically sound; the absolute score should be treated as an indicator, not a ground truth. |
-| **Blind eval is not perfectly blind** | Even after stripping name, college, and location, LLMs may still infer demographic signals from other content (specific clubs, vernacular patterns). This is a limitation of any LLM-based approach. |
-| **API-cost tradeoff** | Running 4–5 demographic mutations requires multiple LLM calls, which adds latency. In production, consider caching or batching for high-volume use. |
-
----
-
-## 📜 Research & Regulatory Basis
-
-| Framework | What Aethel Implements |
-|---|---|
-| **EEOC 4/5ths Rule** (USA) | Disparate Impact Ratio ≥ 0.80 |
-| **EU AI Act Article 9** (2024) | Bias Amplification Index ≤ 0.15 |
-| **NYC Local Law 144** (2023) | Max Score Deviation ≤ 5 pts |
-| **India Maternity Benefit Act** (2017) | Explicit penalty removal for maternity/caregiver gaps |
-| **Gaucher et al. (2011)** | Masculine-coded JD word detection |
-| **Bertrand & Mullainathan (2004)** | Name-based scoring mutation test |
-
----
-
-## 🌟 Feature Comparison
-
-```
-Feature                          │ AMCAT/CoCubes │ Jobscan  │ Aethel ★
-─────────────────────────────────┼───────────────┼──────────┼──────────
-PII stripped before scoring      │      ✗        │    ✗     │    ✓
-Institution bias test (IIT swap) │      ✗        │    ✗     │    ✓
-Maternity gap audit              │      ✗        │    ✗     │    ✓
-Name-based demographic test      │      ✗        │    ✗     │    ✓
-City / Tier-2 bias detection     │      ✗        │    ✗     │    ✓
-Skill assessment (aptitude)      │      ✓        │    ✗     │    ✓
-Contextual skill scoring         │      ✗        │    ✗     │    ✓
-Measured counterfactual deltas   │      ✗        │    ✗     │    ✓
-Resume ↔ JD match scoring        │      ✗        │    ✓     │    ✓
-JD language bias audit           │      ✗        │  Partial │    ✓
-Lateral hire support             │      ✓        │    ✗     │    ✓
-Compares itself to rival LLMs    │      ✗        │    ✗     │    ✓
-Fully explainable scores         │      ✗        │  Partial │    ✓
-Free for candidates              │      ✗        │    ✗     │    ✓
-```
-
----
-
-## 🚀 Deployment Architecture
+## Deployment Architecture
 
 Aethel runs on a **zero-cost, zero-maintenance** infrastructure stack:
 
@@ -1036,7 +1135,7 @@ Aethel runs on a **zero-cost, zero-maintenance** infrastructure stack:
 
 
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 aethelats/

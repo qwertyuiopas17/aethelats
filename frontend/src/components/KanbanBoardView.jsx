@@ -7,11 +7,11 @@ import ResultsView from './ResultsView';
 const STAGES = ['Sourced', 'Screening', 'Interview', 'Offer', 'Rejected'];
 
 const STAGE_COLORS = {
-  Sourced:   { border: 'border-white/10',         dot: 'bg-white/30',        badge: 'bg-white/5 text-white/50' },
-  Screening: { border: 'border-blue-500/30',      dot: 'bg-blue-400',        badge: 'bg-blue-500/10 text-blue-300' },
-  Interview: { border: 'border-violet-500/30',    dot: 'bg-violet-400',      badge: 'bg-violet-500/10 text-violet-300' },
-  Offer:     { border: 'border-emerald-500/30',   dot: 'bg-emerald-400',     badge: 'bg-emerald-500/10 text-emerald-300' },
-  Rejected:  { border: 'border-red-500/20',       dot: 'bg-red-400/60',      badge: 'bg-red-500/10 text-red-400/80' },
+  Sourced:   { border: 'border-white/[0.05]',         dot: 'bg-white/30',        badge: 'bg-white/5 text-white/50' },
+  Screening: { border: 'border-blue-500/20',      dot: 'bg-blue-400',        badge: 'bg-blue-500/10 text-blue-300' },
+  Interview: { border: 'border-violet-500/20',    dot: 'bg-violet-400',      badge: 'bg-violet-500/10 text-violet-300' },
+  Offer:     { border: 'border-emerald-500/20',   dot: 'bg-emerald-400',     badge: 'bg-emerald-500/10 text-emerald-300' },
+  Rejected:  { border: 'border-red-500/15',       dot: 'bg-red-400/60',      badge: 'bg-red-500/10 text-red-400/80' },
 };
 
 // Batch color generation - consistent hash-based colors
@@ -92,9 +92,9 @@ function DNASparkCard({ skillMatches, fitScore }) {
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
             : fitScore;
           return (
-            <div key={idx} className="flex-1 flex items-end">
+            <div key={idx} className="flex-1 flex items-end bg-violet-500/10 rounded-sm overflow-hidden border border-violet-500/10 relative group">
               <div
-                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 rounded-sm transition-all hover:from-violet-600 hover:to-violet-500 cursor-help min-h-[8px]"
+                className="w-full bg-gradient-to-t from-violet-500 to-violet-400 transition-all group-hover:from-violet-400 group-hover:to-violet-300 cursor-help min-h-[4px]"
                 style={{ height: `${heightPercent}%` }}
                 title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}
               />
@@ -499,9 +499,9 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         <button
           onClick={() => onExpandClick(scan.id)}
           className="w-full mt-2 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg 
-                     bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/30
+                     bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-white/5
                      text-[11px] font-semibold text-blue-300 hover:text-blue-200 hover:from-blue-500/20 hover:to-violet-500/20 
-                     transition-all shadow-sm hover:shadow-md"
+                     transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:shadow-md"
         >
           <Maximize2 className="w-3.5 h-3.5" />
           View Full Report
