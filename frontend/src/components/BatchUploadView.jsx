@@ -157,7 +157,8 @@ function RankedResults({ jobs, onViewResult }) {
 export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchId, setBatchId, ws, setWs }) {
   const { authHeaders } = useAuth();
   const [files, setFiles] = useState([]);        // selected File objects
-  const [jobRole, setJobRole] = useState('');
+  const jobRole = s.jobRole;
+  const setJobRole = s.setJobRole;
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [batchError, setBatchError] = useState(null);
@@ -312,6 +313,11 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
       const fd = new FormData();
       files.forEach(f => fd.append('files', f));
       fd.append('role', jobRole);
+      
+      // Send JD skills to backend so all resumes in the batch are scored against them
+      if (s.jdResult?.required_skills?.length > 0) {
+        fd.append('jd_skills', s.jdResult.required_skills.join(','));
+      }
 
       const res = await fetch(`${API_URL}/batch-analyze`, {
         method: 'POST',

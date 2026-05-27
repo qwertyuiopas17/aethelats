@@ -3,7 +3,7 @@ import { API_URL, SCAN_LOGS, DEMO_RESULT, DEMO_CF_RESULT, DEMO_MULTIMODEL, DEMO_
 import { useAuth } from '../context/AuthContext';
 
 export function useAppState() {
-  const { authHeaders } = useAuth();
+  const { authHeaders, isLoggedIn } = useAuth();
   const getHashStep = () => window.location.hash.replace('#', '') || 'landing';
   const [step, setStepInternal] = useState(getHashStep());
 
@@ -25,6 +25,13 @@ export function useAppState() {
     }
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Prevent state leakage between accounts
+  useEffect(() => {
+    if (!isLoggedIn) reset();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [dragOver, setDragOver] = useState(false);
