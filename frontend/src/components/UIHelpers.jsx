@@ -51,7 +51,16 @@ export function NavItem({ icon, label, active, onClick }) {
 
 export function ToggleSwitch({ active, onToggle }) {
   return (
-    <div className={'toggle-track' + (active ? ' active' : '')} onClick={onToggle} />
+    <div 
+      className={`w-9 h-4 rounded-sm border transition-all duration-300 flex items-center px-[1px] cursor-pointer ${
+        active ? 'bg-white border-white' : 'bg-[#050505] border-[#444]'
+      }`} 
+      onClick={onToggle}
+    >
+      <div className={`w-3 h-3 transition-all duration-300 rounded-sm ${
+        active ? 'translate-x-5 bg-black shadow-sm' : 'translate-x-0 bg-[#444]'
+      }`} />
+    </div>
   );
 }
 

@@ -39,38 +39,38 @@ function JobRow({ job, onViewResult }) {
   const isFailed = job.status === 'error';
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4 border-b border-white/[0.05] last:border-0 hover:bg-white/[0.02] transition-colors group animate-fade-in">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 border-b border-[#222] last:border-0 hover:bg-[#111] transition-colors group animate-fade-in bg-black">
       {/* File icon */}
-      <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
-        <FileText className="w-4 h-4 text-white/60" />
+      <div className="w-8 h-8 rounded border border-[#333] bg-[#0a0a0a] flex items-center justify-center shrink-0">
+        <FileText className="w-3.5 h-3.5 text-white/50" />
       </div>
 
       {/* Filename + status */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-white truncate">{job.filename}</div>
+        <div className="text-[13px] font-mono font-medium text-white/90 truncate">{job.filename}</div>
         {isProcessing && (
           <div className="flex flex-col gap-0.5 mt-1">
-            <span className="text-[10px] font-semibold text-blue-300 uppercase tracking-wider">
-              {job.stage_name || 'Processing…'}
+            <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest">
+              &gt; {job.stage_name || 'PROCESSING'}
             </span>
             {job.stage_detail && (
-              <span className="text-[10px] text-white/40 truncate">{job.stage_detail}</span>
+              <span className="text-[9px] font-mono text-white/40 truncate">{job.stage_detail}</span>
             )}
           </div>
         )}
         {isDone && (
-          <div className="text-xs text-white/40 mt-0.5 flex items-center gap-2">
+          <div className="text-[10px] font-mono text-white/40 mt-1 flex items-center gap-2">
             <span className={`font-bold ${score >= 70 ? 'text-emerald-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-              Score: {score}/100
+              SCORE: {score}/100
             </span>
-            {proxies > 0 && <span className="text-yellow-400">⚠ {proxies} bias signal{proxies > 1 ? 's' : ''}</span>}
+            {proxies > 0 && <span className="text-yellow-400">⚠ {proxies} BIAS_SIGNALS</span>}
           </div>
         )}
-        {isFailed && <div className="text-xs text-red-400/80 mt-0.5 truncate">{job.error || 'Processing failed'}</div>}
+        {isFailed && <div className="text-[10px] font-mono text-red-400/80 mt-1 truncate">ERR: {job.error || 'PROCESSING_FAILED'}</div>}
       </div>
 
       {/* Status badge */}
-      <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${STATUS_COLORS[job.status]}`}>
+      <span className={`shrink-0 text-[9px] font-mono font-bold uppercase tracking-widest px-2 py-1 border ${STATUS_COLORS[job.status]}`}>
         {isProcessing && <RefreshCw className="w-2.5 h-2.5 inline mr-1 animate-spin" />}
         {STATUS_LABEL[job.status]}
       </span>
@@ -79,9 +79,9 @@ function JobRow({ job, onViewResult }) {
       {isDone && (
         <button
           onClick={() => onViewResult(job)}
-          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/[0.06] border border-white/[0.10] text-white hover:bg-white/[0.10] transition-all"
+          className="shrink-0 px-4 py-1.5 rounded-sm text-[10px] font-mono font-bold bg-white text-black hover:bg-emerald-400 transition-all uppercase tracking-widest"
         >
-          View →
+          View_Report
         </button>
       )}
     </div>
@@ -95,55 +95,55 @@ function RankedResults({ jobs, onViewResult }) {
   const sorted = [...done].sort((a, b) => (b.result?.fit_score || 0) - (a.result?.fit_score || 0));
 
   return (
-    <section className="mt-6 animate-fade-in-up">
-      <div className="flex items-center gap-2 mb-3">
-        <Award className="w-4 h-4 text-yellow-400" />
-        <h3 className="text-sm font-bold text-white uppercase tracking-widest">Ranked Results — {sorted.length} candidates</h3>
+    <section className="mt-8 animate-fade-in-up">
+      <div className="flex items-center gap-2 mb-4">
+        <Award className="w-4 h-4 text-emerald-400" />
+        <h3 className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">RANKED_RESULTS [{sorted.length}]</h3>
       </div>
-      <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="border border-[#333] rounded-xl bg-black overflow-hidden">
         {/* Header */}
-        <div className="hidden sm:grid grid-cols-12 gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-white/40">
-          <div className="col-span-1">#</div>
-          <div className="col-span-5">Candidate</div>
-          <div className="col-span-2 text-center">Score</div>
-          <div className="col-span-2 text-center">Bias</div>
-          <div className="col-span-2 text-right">Action</div>
+        <div className="hidden sm:grid grid-cols-12 gap-3 px-5 py-3 border-b border-[#333] bg-[#0a0a0a] text-[10px] font-mono font-bold uppercase tracking-widest text-white/50">
+          <div className="col-span-1">RANK</div>
+          <div className="col-span-5">CANDIDATE_ID</div>
+          <div className="col-span-2 text-center">SCORE</div>
+          <div className="col-span-2 text-center">SYS_BIAS</div>
+          <div className="col-span-2 text-right">ACTION</div>
         </div>
         {sorted.map((job, idx) => {
           const score = job.result?.fit_score || 0;
           const proxies = job.result?.bias_proxies?.length || 0;
           return (
-            <div key={job.job_id} className="grid grid-cols-12 gap-3 px-5 py-4 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors items-center">
+            <div key={job.job_id} className="grid grid-cols-12 gap-3 px-5 py-4 border-b border-[#222] last:border-0 hover:bg-[#111] transition-colors items-center bg-black">
               {/* Rank */}
               <div className="col-span-1">
-                {idx === 0 && <span className="text-yellow-400 font-black text-sm">🥇</span>}
-                {idx === 1 && <span className="text-white/60 font-black text-sm">🥈</span>}
-                {idx === 2 && <span className="text-orange-400/80 font-black text-sm">🥉</span>}
-                {idx > 2 && <span className="text-white/30 text-sm font-bold">#{idx + 1}</span>}
+                {idx === 0 && <span className="text-yellow-400 font-mono font-bold text-xs">[ 01 ]</span>}
+                {idx === 1 && <span className="text-white/80 font-mono font-bold text-xs">[ 02 ]</span>}
+                {idx === 2 && <span className="text-orange-400/80 font-mono font-bold text-xs">[ 03 ]</span>}
+                {idx > 2 && <span className="text-white/30 font-mono font-bold text-xs">[ {(idx + 1).toString().padStart(2, '0')} ]</span>}
               </div>
               {/* Name */}
-              <div className="col-span-5 text-sm text-white font-medium truncate">{job.filename}</div>
+              <div className="col-span-5 text-xs font-mono text-white/90 truncate">{job.filename}</div>
               {/* Score */}
               <div className="col-span-2 text-center">
-                <span className={`text-lg font-black ${score >= 70 ? 'text-emerald-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <span className={`text-sm font-mono font-black ${score >= 70 ? 'text-emerald-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                   {score}
                 </span>
-                <span className="text-white/30 text-xs">/100</span>
+                <span className="text-white/30 text-[10px] font-mono">/100</span>
               </div>
               {/* Bias */}
               <div className="col-span-2 text-center">
                 {proxies === 0
-                  ? <span className="text-emerald-400 text-xs font-bold">✓ Clean</span>
-                  : <span className="text-yellow-400 text-xs font-bold">⚠ {proxies}</span>
+                  ? <span className="text-emerald-400 text-[10px] font-mono font-bold">CLEAN</span>
+                  : <span className="text-yellow-400 text-[10px] font-mono font-bold">WARN: {proxies}</span>
                 }
               </div>
               {/* Action */}
               <div className="col-span-2 text-right">
                 <button
                   onClick={() => onViewResult(job)}
-                  className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.10] text-white hover:bg-white/[0.10] transition-all"
+                  className="text-[10px] font-mono font-bold px-4 py-1.5 rounded-sm bg-[#111] border border-[#444] text-white hover:bg-white hover:text-black hover:border-white transition-all uppercase tracking-widest"
                 >
-                  Full Report
+                  Report
                 </button>
               </div>
             </div>
@@ -523,13 +523,13 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
 
       {/* Role Input */}
       <div className="mb-6 max-w-xl">
-        <label className="block text-xs font-bold uppercase tracking-widest text-white mb-2">Target Role</label>
+        <label className="block text-[10px] font-mono font-bold tracking-widest text-white/50 mb-2">TARGET_ROLE</label>
         <input
           type="text"
           value={jobRole}
           onChange={e => setJobRole(e.target.value)}
           placeholder="e.g. Product Manager, Full Stack Engineer…"
-          className="w-full glass-input rounded-xl px-4 py-3 text-sm text-white placeholder-white/20"
+          className="w-full bg-black border border-[#333] focus:border-emerald-500/50 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 transition-colors"
         />
       </div>
 
@@ -544,23 +544,30 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
             style={{ display: 'none' }}
             onChange={e => addFiles(e.target.files)}
           />
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
-            className={`rounded-2xl border border-dashed cursor-pointer transition-all duration-300 flex flex-col items-center justify-center py-14 group overflow-hidden mb-4 ${
-              dragOver ? 'border-white/40 bg-white/[0.04]' : 'border-white/10 bg-black hover:border-white/25 hover:bg-white/[0.02]'
-            }`}
-          >
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border transition-all duration-300 ${
-              dragOver ? 'bg-white/10 border-white/20 scale-110' : 'bg-white/[0.02] border-white/[0.05] group-hover:border-white/15'
-            }`}>
-              <Users className="w-8 h-8 text-white" />
+          <div className="relative border-t border-l border-r border-[#222] mt-8 pt-4 px-2 pb-2">
+            <div className="absolute -top-3 left-4 bg-black px-2 text-[10px] font-mono font-bold text-white/40 tracking-widest">[ INPUT_ZONE ]</div>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+              className={`border border-dashed cursor-pointer transition-all duration-300 flex flex-col items-center justify-center py-14 group overflow-hidden bg-black relative ${
+                dragOver ? 'border-emerald-500/80 shadow-[inset_0_0_20px_rgba(52,211,153,0.1)]' : 'border-[#333] hover:border-emerald-500/50'
+              }`}
+            >
+              {dragOver && <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMjBMIDIwIDBNMjAgMjBMMCAwIiBzdHJva2U9InJnYmEoNTIsMjExLDE1MywwLjA1KSIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==')] opacity-50" />}
+              
+              <div className={`w-16 h-16 flex items-center justify-center mb-4 transition-all duration-300 ${
+                dragOver ? 'scale-110' : 'group-hover:scale-105'
+              }`}>
+                <Users className={`w-8 h-8 ${dragOver ? 'text-emerald-400' : 'text-white/60'}`} />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1 tracking-wide">Drop Resumes</h3>
+              <p className="text-[10px] font-mono text-white/40 mb-6 tracking-widest">PDF, JPG, PNG | MAX 20 FILES</p>
+              <button className="px-8 py-2.5 rounded text-xs font-bold tracking-widest uppercase bg-white text-black hover:bg-emerald-400 transition-colors">Select Files</button>
+              
+              <div className="absolute bottom-2 right-4 text-[9px] font-mono text-white/20">CAP: 20_FILES</div>
             </div>
-            <h3 className="text-lg font-bold text-white mb-1">Drop up to 20 Resumes</h3>
-            <p className="text-white/50 text-sm mb-4">PDF, JPG, PNG — each processes through the full AI pipeline</p>
-            <button className="px-6 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase btn-premium">Select Files</button>
           </div>
 
           {/* File list */}
@@ -617,22 +624,24 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
 
       {/* Audit Parameters */}
       {jobs.length === 0 && (
-        <div className="mb-8 glass-card glass-card-hover rounded-2xl p-5 scroll-animate">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white">Audit Parameters</div>
-            <button className="text-xs text-white/80 flex items-center gap-1 hover:text-white transition-colors">⚙ Advanced</button>
+        <div className="mb-8 rounded-xl p-5 border border-[#222] bg-black scroll-animate mt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-[10px] font-mono font-bold tracking-widest text-white/50">AUDIT_PARAMETERS</div>
+            <button className="text-[10px] font-mono text-white/40 hover:text-white transition-colors flex items-center gap-1">
+              <span className="opacity-50">#</span> ADVANCED
+            </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
-              <div><div className="text-sm font-semibold text-white">PII Redaction</div><div className="text-xs text-white/80 mt-0.5">Remove names, addresses, emails</div></div>
+            <div className="flex items-center justify-between p-4 rounded bg-[#0a0a0a] border border-[#222] hover:border-[#444] transition-colors">
+              <div><div className="text-[11px] font-mono font-bold text-white">SYS:PII_REDACTION</div><div className="text-[10px] text-white/40 mt-1">Remove names, addresses</div></div>
               <ToggleSwitch active={s.piiRedaction} onToggle={() => s.setPiiRedaction(v => !v)} />
             </div>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
-              <div><div className="text-sm font-semibold text-white">Institution Masking</div><div className="text-xs text-white/80 mt-0.5">Obscure university/company names</div></div>
+            <div className="flex items-center justify-between p-4 rounded bg-[#0a0a0a] border border-[#222] hover:border-[#444] transition-colors">
+              <div><div className="text-[11px] font-mono font-bold text-white">SYS:INST_MASKING</div><div className="text-[10px] text-white/40 mt-1">Obscure university names</div></div>
               <ToggleSwitch active={s.instMasking} onToggle={() => s.setInstMasking(v => !v)} />
             </div>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover-border-brighten">
-              <div><div className="text-sm font-semibold text-white">Gendered Language</div><div className="text-xs text-white/80 mt-0.5">Flag potentially biased semantics</div></div>
+            <div className="flex items-center justify-between p-4 rounded bg-[#0a0a0a] border border-[#222] hover:border-[#444] transition-colors">
+              <div><div className="text-[11px] font-mono font-bold text-white">SYS:GENDERED_LANG</div><div className="text-[10px] text-white/40 mt-1">Flag biased semantics</div></div>
               <ToggleSwitch active={s.genderedLang} onToggle={() => s.setGenderedLang(v => !v)} />
             </div>
           </div>

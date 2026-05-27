@@ -63,11 +63,11 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
   }, [jobs]);
 
   return (
-    <div className="glass-card rounded-2xl p-6 md:p-8 mb-8 border border-white/[0.08] relative bg-gradient-to-b from-white/[0.03] to-transparent">
+    <div className="rounded-xl p-6 md:p-8 mb-8 border border-[#222] relative bg-[#060606] shadow-[inset_0_4px_30px_rgba(0,0,0,1)]">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-8">
-        <Network className="w-5 h-5 text-white/60" />
-        <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">{title}</h3>
+      <div className="flex items-center gap-3 mb-8 px-2 border-b border-[#222] pb-4">
+        <Network className="w-4 h-4 text-white/40" />
+        <h3 className="text-[10px] font-mono font-bold text-white tracking-[0.2em] uppercase">{title}</h3>
       </div>
 
       {/* Pipeline Track */}
@@ -134,20 +134,14 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
           })}
         </div>
         
-        {/* Continuous Progress Bar + Live Detail Text */}
-        <div className="absolute bottom-1 left-4 right-4 h-1 bg-white/[0.05] rounded-full overflow-hidden">
-           <div className="h-full bg-gradient-to-r from-emerald-500/20 via-blue-500/20 to-purple-500/20 w-full opacity-50" />
-        </div>
-        {/* Live stage detail — shown below the progress bar, animates on change */}
-        <div className="absolute bottom-0 translate-y-full pt-2 left-0 right-0 text-center h-5">
+        {/* Terminal Logger */}
+        <div className="absolute bottom-[-15px] left-0 right-0 text-center flex justify-center items-center">
           {activeDetail.text && (
-            <span
-              key={`${activeDetail.stage}::${activeDetail.text}`}
-              className="text-[10px] text-emerald-400/70 font-medium tracking-wide"
-              style={{ animation: 'fadeInUp 0.3s ease-out both' }}
-            >
-              {activeDetail.text}
-            </span>
+            <div className="flex items-center gap-2 text-emerald-400 font-mono text-[10px] sm:text-[11px] font-bold tracking-widest bg-black px-4 py-1.5 border border-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.15)] rounded">
+              <span className="opacity-50">&gt;</span>
+              <span>{activeDetail.text}</span>
+              <span className="w-1.5 h-3 bg-emerald-400 animate-pulse ml-1" />
+            </div>
           )}
         </div>
       </div>
