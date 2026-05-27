@@ -78,10 +78,10 @@ export default function ResultsView({ s, readOnly = false }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in-up">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-1">
-            {isCandidate ? 'My Results' : 'Audit Trail / Results'}
+          <div className="label-mono mb-1">
+            {isCandidate ? 'MY_RESULTS' : 'AUDIT_TRAIL'}
           </div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-mono font-bold text-white uppercase tracking-widest">
             {isCandidate ? 'Your Resume Score' : 'Candidate Analysis'}
           </h1>
           <p className="text-white/90 text-sm">
@@ -97,10 +97,10 @@ export default function ResultsView({ s, readOnly = false }) {
               <button
                 onClick={handleExportPDF}
                 disabled={exporting}
-                className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift disabled:opacity-50 disabled:cursor-wait"
+                className="px-6 py-2.5 rounded-sm text-[10px] font-mono font-bold uppercase tracking-widest border border-[#444] bg-[#050505] hover:bg-white hover:text-black hover:border-white text-white transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
               >
-                <Download className="w-4 h-4" />
-                {exporting ? 'Generating…' : 'Download Audit Report'}
+                {exporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                {exporting ? 'EXPORTING...' : 'EXPORT_PDF'}
               </button>
               <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 btn-premium">
                 <CheckCircle className="w-4 h-4" />Advance to Final

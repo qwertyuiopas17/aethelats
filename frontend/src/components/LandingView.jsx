@@ -50,22 +50,22 @@ function BiasPreviewCard() {
   return (
     <div className="glass-card rounded-2xl overflow-hidden border border-white/[0.08] w-full">
       {/* header */}
-      <div className="px-3 sm:px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+      <div className="px-3 sm:px-4 py-3 border-b border-[#333] bg-[#050505] flex items-center gap-2">
         <BarChart3 className="w-3.5 h-3.5 text-white/60 shrink-0" />
-        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-white/60 truncate">
-          Live Bias Audit
+        <span className="text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/60 truncate">
+          Live_Bias_Audit
         </span>
-        <span className="ml-auto px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[8px] sm:text-[9px] font-bold text-white/60 uppercase tracking-wider shrink-0">
-          Demo
+        <span className="ml-auto px-2 py-0.5 rounded-sm bg-white border border-white text-[8px] sm:text-[9px] font-mono font-bold text-black uppercase tracking-widest shrink-0">
+          DEMO
         </span>
       </div>
 
       {/* column headers */}
-      <div className="px-2 sm:px-4 pt-3 pb-1 grid grid-cols-4 gap-1 sm:gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-white/30">
-        <span>Model</span>
-        <span className="text-center">Score</span>
-        <span className="text-center">IIT Δ</span>
-        <span className="text-center">Gap Δ</span>
+      <div className="px-2 sm:px-4 pt-3 pb-1 grid grid-cols-4 gap-1 sm:gap-2 text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-widest text-white/40">
+        <span>MODEL</span>
+        <span className="text-center">SCORE</span>
+        <span className="text-center">IIT_Δ</span>
+        <span className="text-center">GAP_Δ</span>
       </div>
 
       {/* rows */}
@@ -73,10 +73,10 @@ function BiasPreviewCard() {
         {models.map((m, i) => (
           <div
             key={i}
-            className={`grid grid-cols-4 gap-1 sm:gap-2 items-center py-2 px-2 sm:px-3 rounded-xl border transition-all animate-fade-in-up ${
+            className={`grid grid-cols-4 gap-1 sm:gap-2 items-center py-2 px-2 sm:px-3 rounded-lg border transition-all animate-fade-in-up ${
               m.isOwn
-                ? 'bg-white/[0.04] border-white/[0.12]'
-                : 'bg-white/[0.01] border-white/[0.04]'
+                ? 'bg-[#111] border-[#444]'
+                : 'bg-black border-[#222]'
             }`}
             style={{ animationDelay: `${i * 0.1}s` }}
           >
@@ -84,20 +84,20 @@ function BiasPreviewCard() {
               {m.isOwn
                 ? <img src="/assets/shield_logo.png" alt="Aethel" className="w-3.5 h-3.5 object-contain shrink-0 drop-shadow-sm" />
                 : <Cpu className="w-3 h-3 text-white/40 shrink-0" />}
-              <span className={`text-[10px] sm:text-[11px] font-semibold truncate ${m.isOwn ? 'text-white' : 'text-white/60'}`}>
+              <span className={`text-[10px] sm:text-[11px] font-mono font-bold truncate ${m.isOwn ? 'text-white' : 'text-white/60'}`}>
                 {m.name}
               </span>
             </div>
             <div className="text-center">
-              <span className={`text-xs sm:text-sm font-black ${m.isOwn ? 'text-white' : 'text-white/70'}`}>{m.score}</span>
+              <span className={`text-xs sm:text-sm font-mono font-black ${m.isOwn ? 'text-white' : 'text-white/70'}`}>{m.score}</span>
             </div>
             <div className="text-center">
-              <span className={`text-[10px] sm:text-xs font-black ${m.iit >= 8 ? 'text-white' : 'text-white/40'}`}>
+              <span className={`text-[10px] sm:text-xs font-mono font-black ${m.iit >= 8 ? 'text-white' : 'text-white/40'}`}>
                 +{m.iit}
               </span>
             </div>
             <div className="text-center">
-              <span className={`text-[10px] sm:text-xs font-black ${m.gap >= 6 ? 'text-white' : 'text-white/40'}`}>
+              <span className={`text-[10px] sm:text-xs font-mono font-black ${m.gap >= 6 ? 'text-white' : 'text-white/40'}`}>
                 +{m.gap}
               </span>
             </div>
@@ -126,10 +126,10 @@ function StatCard({ value, suffix, label, delay }) {
       className="glass-card rounded-xl p-3 sm:p-4 text-center animate-fade-in-up"
       style={{ animationDelay: `${delay}s` }}
     >
-      <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
+      <div className="text-xl sm:text-2xl font-mono font-black text-white tracking-tight">
         <CountUp target={value} suffix={suffix} />
       </div>
-      <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1">{label}</div>
+      <div className="label-mono mt-2">{label}</div>
     </div>
   );
 }
@@ -236,19 +236,18 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
             <button
               id="landing-audit-btn"
               onClick={onGetStarted}
-              className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3.5 rounded-sm btn-premium uppercase tracking-widest text-[11px] font-mono"
             >
               <Zap className="w-4 h-4" />
-              Audit My Resume — Free
-              <ArrowRight className="w-4 h-4" />
+              Audit_My_Resume
             </button>
             <button
               id="landing-demo-btn"
               onClick={onLoadDemo}
-              className="w-full sm:w-auto justify-center flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.12] text-white/80 text-sm font-semibold hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3.5 rounded-sm border border-[#444] bg-black text-white hover:bg-white hover:text-black hover:border-white transition-all uppercase tracking-widest text-[11px] font-mono font-bold"
             >
               <Play className="w-4 h-4" />
-              View Sample Demo
+              View_Demo
             </button>
           </div>
 
@@ -366,24 +365,23 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
 
       {/* ── final CTA ── */}
       <div className="px-4 sm:px-8 pb-10 text-center animate-fade-in-up w-full" style={{ animationDelay: '0.5s' }}>
-        <p className="text-white/30 text-xs mb-4 uppercase tracking-widest font-bold">
-          Ready to see the bias in your resume's evaluations?
+        <p className="label-mono mb-4 text-center w-full">
+          READY_TO_SEE_THE_BIAS_IN_YOUR_RESUME?
         </p>
         <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3">
           <button
             onClick={onGetStarted}
-            className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
+            className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3.5 rounded-sm btn-premium uppercase tracking-widest text-[11px] font-mono"
           >
             <Zap className="w-4 h-4" />
-            Start Free Audit
-            <ChevronRight className="w-4 h-4" />
+            START_FREE_AUDIT
           </button>
           <button
             onClick={onLoadDemo}
-            className="w-full sm:w-auto justify-center flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.10] text-white/70 text-sm font-semibold hover:bg-white/[0.04] hover:text-white transition-all"
+            className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3.5 rounded-sm border border-[#444] bg-black text-white hover:bg-white hover:text-black hover:border-white transition-all uppercase tracking-widest text-[11px] font-mono font-bold"
           >
             <Play className="w-4 h-4" />
-            Try Demo First
+            TRY_DEMO_FIRST
           </button>
         </div>
       </div>

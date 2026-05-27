@@ -188,7 +188,7 @@ function BatchLegend({ batches, activeBatch, onToggle }) {
         <button
           key={batchId}
           onClick={() => onToggle(batchId)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[10px] font-mono font-bold uppercase tracking-widest border transition-all ${
             activeBatch === batchId ? 'scale-105 shadow-lg' : 'opacity-60 hover:opacity-90'
           }`}
           style={{
@@ -349,7 +349,7 @@ function ResultDrawer({ scanId, isOpen, onClose, authHeaders }) {
         >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-          <h2 className="text-lg font-bold text-white">Full Candidate Report</h2>
+          <h2 className="text-lg font-mono font-bold uppercase tracking-widest text-white">Full_Candidate_Report</h2>
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-white/5 transition-colors"
@@ -520,9 +520,9 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
           <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center shrink-0">
             <FileText className="w-4 h-4 text-white/40" />
           </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-white/90 truncate leading-tight">
-              {scan.file_name || 'Resume'}
+          <div className="flex justify-between items-start mb-1.5">
+            <div className="text-sm font-mono font-bold text-white tracking-wide truncate leading-tight">
+              {scan.candidate_name || 'Anonymous'}
             </div>
             <div className="text-[10px] text-white/40 font-mono truncate mt-0.5">
               {scan.candidate_id || `#${scan.id}`}
@@ -707,6 +707,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
 
 function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isDragOver, setDragOverStage, authHeaders, onExpandClick, rejectedScans, heatmapData }) {
   const colors = STAGE_COLORS[stage];
+  const count = cards.length;
 
   // Density-based visual config for bias heatmap
   const densityConfig = {
@@ -731,12 +732,12 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
       {/* Column header */}
       <div className="flex items-center gap-2 mb-4 px-1">
         <div className={`w-2 h-2 rounded-full ${dot}`} />
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white/60">{stage}</span>
+        <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-white/60">{stage}</span>
         {label && (
           <span className="text-[9px] text-amber-400/70 font-mono truncate">{label}</span>
         )}
-        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${colors.badge}`}>
-          {cards.length}
+        <span className={`ml-auto text-[10px] font-mono font-bold px-2 py-0.5 rounded-sm ${colors.badge}`}>
+          {count}
         </span>
       </div>
       {/* Drop zone */}
