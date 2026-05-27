@@ -462,7 +462,7 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
       }}
       onDragEnd={() => onDragStart(null)}
       className={`group relative rounded-[16px] p-4 bg-[#141414] transition-all duration-300 ${
-        isDragging ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-white/[0.06] hover:border-white/[0.15] hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
+        isMoving ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-white/[0.06] hover:border-white/[0.15] hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
       }`}
     >
       {/* Header */}
