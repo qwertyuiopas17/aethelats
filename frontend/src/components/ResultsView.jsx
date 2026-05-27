@@ -9,7 +9,7 @@ import SkillKnowledgeGraph from './SkillKnowledgeGraph';
 import { SEVERITY_STYLE, BIAS_TYPE_LABELS } from './constants';
 import { useAuth } from '../context/AuthContext';
 
-export default function ResultsView({ s, readOnly = false }) {
+export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
   const { user } = useAuth();
   const isCandidate = user?.role === 'candidate';
   const isRecruiter = !isCandidate;
@@ -343,8 +343,10 @@ export default function ResultsView({ s, readOnly = false }) {
               <h3 className="text-base font-bold text-white mb-1">Get Personalised Coaching</h3>
               <p className="text-sm text-white/70 leading-relaxed">Your AI coach can explain your score, help you improve specific bullets, and prep you for interviews based on your gaps.</p>
             </div>
-            <button className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/30 transition-all">
-              <Sparkles className="w-4 h-4" />Coming Soon
+            <button
+              onClick={onOpenCoach}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/30 transition-all">
+              <Sparkles className="w-4 h-4" />Talk to AI Coach →
             </button>
           </div>
         </section>

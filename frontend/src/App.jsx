@@ -16,6 +16,7 @@ import BatchUploadView from './components/BatchUploadView';
 import AuthView from './components/AuthView';
 import PipelineVisualizer from './components/PipelineVisualizer';
 import RecruiterVerificationModal from './components/RecruiterVerificationModal';
+import AiCoachView from './components/AiCoachView';
 import { useAuth } from './context/AuthContext';
 
 class ErrorBoundary extends Component {
@@ -244,7 +245,8 @@ function AuthenticatedApp({ s }) {
           <NavItem icon={<Users className="w-4 h-4" />}
             label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
           {user?.role !== 'candidate' && <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />}
-          <ComingSoonNavItem icon={<Activity className="w-4 h-4" />} label="AI Coach" />
+          <NavItem icon={<Activity className="w-4 h-4" />}
+            label="AI Coach" active={s.step === 'coach'} onClick={() => goTo('coach')} />
           {user?.role !== 'candidate' && (
             <NavItem icon={<Layers className="w-4 h-4" />}
               label="Batch Upload" active={s.step === 'batch'} 
@@ -389,7 +391,8 @@ function AuthenticatedApp({ s }) {
             </div>
           )}
 
-          {s.step === 'results' && s.result && <ResultsView s={s} />}
+          {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
+          {s.step === 'coach' && <AiCoachView s={s} />}
           {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
           {s.step === 'talent-pool' && <TalentPoolView />}
           {s.step === 'batch' && user?.role !== 'candidate' && (

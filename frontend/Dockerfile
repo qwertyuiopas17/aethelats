@@ -28,6 +28,10 @@ COPY --chown=user name_signals.py ./name_signals.py
 COPY --chown=user report_generator.py ./report_generator.py
 COPY --chown=user skill_graph.json ./skill_graph.json
 COPY --chown=user requirements.txt ./requirements.txt
+# RAG pipeline files for AI Career Coach
+COPY --chown=user rag_retriever.py ./rag_retriever.py
+COPY --chown=user rag_store.py ./rag_store.py
+COPY --chown=user rag_kb ./rag_kb
 
 # Install CPU-only torch first (separate step to use --extra-index-url)
 RUN pip install --no-cache-dir \
@@ -48,7 +52,9 @@ RUN pip install --no-cache-dir \
     Pillow \
     sqlalchemy \
     psycopg2-binary \
-    fpdf2
+    fpdf2 \
+    chromadb \
+    sentence-transformers
 
 # HF Spaces requires port 7860
 ENV PORT=7860
