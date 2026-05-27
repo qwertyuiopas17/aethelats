@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Lock, Brain, Network, AlertTriangle, BarChart2, FlaskConical, CheckSquare, ChevronRight } from 'lucide-react';
+import { FileText, Lock, Brain, Network, AlertTriangle, BarChart2, Beaker, CheckSquare, ChevronRight } from 'lucide-react';
 
 const PIPELINE_STAGES = [
-  { id: 'upload',     label: 'Resume\nUpload',   icon: FileText,      color: 'text-white/80' },
-  { id: 'pii',        label: 'PII\nStrip',       icon: Lock,          color: 'text-white/80' },
-  { id: 'score',      label: 'Blind\nScore',     icon: Brain,         color: 'text-white' },
-  { id: 'graph',      label: 'Skill\nGraph',     icon: Network,       color: 'text-white/80' },
-  { id: 'bias',       label: 'Bias\nDetect',     icon: AlertTriangle, color: 'text-white' },
-  { id: 'percentile', label: 'Percentile\nRank', icon: BarChart2,     color: 'text-white/80' },
-  { id: 'cf',         label: 'Counter-\nfactual',icon: FlaskConical,  color: 'text-white' },
-  { id: 'gate',       label: 'Fairness\nGate',   icon: CheckSquare,   color: 'text-white/80' },
+  { id: 'upload',     label: 'Resume\nUpload',   icon: FileText,      color: 'text-white' },
+  { id: 'pii',        label: 'PII\nStrip',       icon: Lock,          color: 'text-white' },
+  { id: 'score',      label: 'Blind\nScore',     icon: Brain,         color: 'text-emerald-400' },
+  { id: 'graph',      label: 'Skill\nGraph',     icon: Network,       color: 'text-white' },
+  { id: 'bias',       label: 'Bias\nDetect',     icon: AlertTriangle, color: 'text-yellow-400' },
+  { id: 'percentile', label: 'Percentile\nRank', icon: BarChart2,     color: 'text-white' },
+  { id: 'cf',         label: 'Counter-\nfactual',icon: Beaker,        color: 'text-emerald-400' },
+  { id: 'gate',       label: 'Fairness\nGate',   icon: CheckSquare,   color: 'text-white' },
 ];
 
 export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilter, activeStageIndex = -1, title = "8-STAGE PIPELINE" }) {
@@ -78,8 +78,6 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
             const isLast = idx === PIPELINE_STAGES.length - 1;
             const hasItems = counts[idx] > 0;
             const isActive = activeFilter === idx || activeStageIndex === idx;
-            
-            // Extract hex color from tailwind class roughly, or just use CSS for glow
             const isGlowing = hasItems || isActive;
 
             return (
@@ -92,15 +90,11 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
                   {/* 3D CSS Cube */}
                   <div className={`cube mb-8 transition-transform duration-500 ${isGlowing ? 'scale-110' : ''}`} style={isGlowing ? { transform: 'rotateX(-20deg) rotateY(55deg) translateY(-5px)' } : {}}>
                     {/* Glowing Core */}
-                    <div className="cube-core" style={{
-                      opacity: isGlowing ? 0.8 : 0.2,
-                      background: isGlowing ? 'var(--accent)' : '#ffffff',
-                      filter: isGlowing ? 'blur(12px)' : 'blur(10px)'
-                    }} />
+                    <div className="cube-core" style={isGlowing ? { opacity: 0.8, filter: 'blur(12px)' } : {}} />
                     
                     {/* Faces */}
                     <div className="cube-face cube-face-front" style={isGlowing ? { borderColor: 'rgba(255,255,255,0.5)' } : {}}>
-                      <Icon className={`w-5 h-5 relative z-10 transition-colors duration-300 ${isGlowing ? stage.color : 'text-white/40'}`} strokeWidth={2} />
+                      <Icon className={`w-5 h-5 relative z-10 transition-colors duration-300 ${stage.color}`} strokeWidth={2} />
                       
                       {/* Live Count Badge (only if used in Batch Queue) */}
                       {hasItems && (
@@ -117,8 +111,7 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
                   </div>
 
                   {/* Label */}
-                  <div className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider leading-tight whitespace-pre-line text-center transition-colors duration-300
-                                  ${isGlowing ? 'text-white' : 'text-white/50 group-hover:text-white/80'}`}>
+                  <div className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider leading-tight whitespace-pre-line text-center transition-colors duration-300 ${isGlowing ? 'text-white' : 'text-white/90 group-hover:text-white'}`}>
                     {stage.label}
                   </div>
                 </div>

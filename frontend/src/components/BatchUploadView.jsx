@@ -503,14 +503,12 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
 
   return (
     <div className="p-4 sm:p-8 animate-fade-in max-w-5xl">
-      <div className="mb-1 flex items-center gap-2">
-        <span className="text-white/80 text-xs">◈</span>
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 mb-1">Bulk Process</div>
-          <h1 className="text-3xl font-bold text-white mb-2">Batch Resume Analysis</h1>
-          <p className="text-white/40 text-sm">Upload up to 20 resumes to analyze them concurrently against a role.</p>
-
-        </div>
+      <div className="mb-8">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Bulk Process</div>
+        <h1 className="text-4xl font-extrabold text-white mb-4 tracking-tight">Batch Resume Analysis</h1>
+        <p className="text-white/70 text-sm max-w-xl leading-relaxed">
+          Upload up to 20 resumes to analyze them concurrently against a role.
+        </p>
       </div>
 
       {/* 8-Stage Pipeline Visualizer */}

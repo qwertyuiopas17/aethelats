@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { UploadCloud, FileText, XCircle, RefreshCw, Zap, Check, Play, AlertTriangle, Clock } from 'lucide-react';
 import { ToggleSwitch } from './UIHelpers';
 import { JDAnalysisSection } from './AnalysisPanels';
-import { ArchitectureDiagram } from './CompliancePanels';
 import { DEMO_JD_RESULT, API_URL } from './constants';
 import { useAuth } from '../context/AuthContext';
 
@@ -35,11 +34,11 @@ export default function UploadView({ s }) {
     <div className="p-4 sm:p-8 animate-fade-in">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div>
-          <div className="mb-1 flex items-center gap-2"><span className="text-white/80 text-xs">◈</span><span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Compliance Engine</span></div>
-          <h1 className="text-3xl font-bold text-white mb-3">
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Compliance Engine</div>
+          <h1 className="text-4xl font-extrabold text-white mb-4 tracking-tight">
             {isCandidate ? 'Audit Your Resume' : 'Resume Bias Audit'}
           </h1>
-          <p className="text-white/90 text-sm max-w-xl leading-relaxed mb-8">
+          <p className="text-white/70 text-sm max-w-xl leading-relaxed mb-8">
             {isCandidate
               ? 'Upload your resume to see how it scores against your target role and discover any bias signals that could affect your chances.'
               : 'Upload candidate profiles to scan for unconscious bias indicators in formatting, language, and institutional markers. Engineered for objective evaluation.'
@@ -127,7 +126,7 @@ export default function UploadView({ s }) {
               <Play className="w-3.5 h-3.5" />Try Sample Demo
             </button>
           </div>
-          <ArchitectureDiagram />
+
           {/* JD Bias Analyzer is a recruiter-only tool */}
           {!isCandidate && (
             <JDAnalysisSection jdText={s.jdText} setJdText={s.setJdText} jdResult={s.jdResult} analyzing={s.jdAnalyzing} onAnalyze={s.handleJDAnalysis} expanded={s.jdExpanded} setExpanded={s.setJdExpanded} isDemo={s.isDemo} demoResult={DEMO_JD_RESULT} />
