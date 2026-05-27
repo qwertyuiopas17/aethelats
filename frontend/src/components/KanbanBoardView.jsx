@@ -100,14 +100,24 @@ function DNASparkCard({ skillMatches, fitScore }) {
           const displayScore = rawScore != null
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
             : fitScore;
+
+          const palette = [
+            { bottom: "#71717a", top: "#ffffff", stroke: "#ffffff" }, // Bright White
+            { bottom: "#3f3f46", top: "#a1a1aa", stroke: "#d4d4d8" }, // Medium Grey
+            { bottom: "#52525b", top: "#e4e4e7", stroke: "#ffffff" }, // Silver
+            { bottom: "#27272a", top: "#71717a", stroke: "#a1a1aa" }, // Dark Grey
+            { bottom: "#52525b", top: "#d4d4d8", stroke: "#e4e4e7" }  // Light Grey
+          ];
+          const colors = palette[idx % 5];
+
           return (
             <div key={idx} className="flex-1 h-full relative group/bar" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
               <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-90 group-hover/bar:opacity-100 transition-opacity">
                  <defs>
-                   {/* Solid High-Contrast Grey/White Gradient */}
+                   {/* Varied Monochrome Gradient */}
                    <linearGradient id={`shard-${idx}`} x1="0" y1="1" x2="0" y2="0">
-                     <stop offset="0%" stopColor="#71717a" />
-                     <stop offset="100%" stopColor="#ffffff" />
+                     <stop offset="0%" stopColor={colors.bottom} />
+                     <stop offset="100%" stopColor={colors.top} />
                    </linearGradient>
                    <filter id={`glow-${idx}`} x="-20%" y="-20%" width="140%" height="140%">
                      <feGaussianBlur stdDeviation="2" result="blur" />
@@ -127,7 +137,7 @@ function DNASparkCard({ skillMatches, fitScore }) {
                    x="10" y={100 - displayHeight} 
                    width="80" height={displayHeight} 
                    fill="none" 
-                   stroke="#ffffff" 
+                   stroke={colors.stroke} 
                    strokeWidth="1.5" 
                    className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
                  />
