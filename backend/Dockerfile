@@ -28,10 +28,13 @@ COPY --chown=user name_signals.py ./name_signals.py
 COPY --chown=user report_generator.py ./report_generator.py
 COPY --chown=user skill_graph.json ./skill_graph.json
 COPY --chown=user requirements.txt ./requirements.txt
+COPY --chown=user auth.py ./auth.py
+COPY --chown=user email_service.py ./email_service.py
 # RAG pipeline files for AI Career Coach
 COPY --chown=user rag_retriever.py ./rag_retriever.py
 COPY --chown=user rag_store.py ./rag_store.py
 COPY --chown=user rag_kb ./rag_kb
+COPY --chown=user rag_chroma_db ./rag_chroma_db
 
 # Install CPU-only torch first (separate step to use --extra-index-url)
 RUN pip install --no-cache-dir \
@@ -39,22 +42,7 @@ RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install the rest of the dependencies
-RUN pip install --no-cache-dir \
-    fastapi \
-    "uvicorn[standard]" \
-    groq \
-    PyPDF2 \
-    python-multipart \
-    requests \
-    transformers \
-    sentencepiece \
-    gliner \
-    Pillow \
-    sqlalchemy \
-    psycopg2-binary \
-    fpdf2 \
-    chromadb \
-    sentence-transformers
+RUN pip install --no-cache-dir -r requirements.txt
 
 # HF Spaces requires port 7860
 ENV PORT=7860
