@@ -49,7 +49,7 @@ export default function TalentPoolView() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_URL}/user/scans`, { headers: authHeaders() })
+    fetch(`${API_URL}/user/scans`, { headers: authHeaders(), cache: 'no-store' })
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail); }))
       .then(data => { setScans(data.scans || []); setLoading(false); })
       .catch(e  => { setError(e.message); setLoading(false); });

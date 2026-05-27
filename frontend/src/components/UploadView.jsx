@@ -23,7 +23,7 @@ export default function UploadView({ s }) {
   const [scansLoading, setScansLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/user/scans`, { headers: authHeaders() })
+    fetch(`${API_URL}/user/scans`, { headers: authHeaders(), cache: 'no-store' })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setRecentScans((data.scans || []).slice(0, 5)))
       .catch(() => {})
