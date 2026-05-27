@@ -92,7 +92,7 @@ function DNASparkCard({ skillMatches, fitScore }) {
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
             : fitScore;
           return (
-            <div key={idx} className="flex-1 flex items-end bg-violet-500/10 rounded-sm overflow-hidden border border-violet-500/10 relative group">
+            <div key={idx} className="flex-1 h-full flex items-end bg-violet-500/10 rounded-sm overflow-hidden border border-violet-500/10 relative group">
               <div
                 className="w-full bg-gradient-to-t from-violet-500 to-violet-400 transition-all group-hover:from-violet-400 group-hover:to-violet-300 cursor-help min-h-[4px]"
                 style={{ height: `${heightPercent}%` }}
