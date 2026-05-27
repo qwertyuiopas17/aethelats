@@ -6,8 +6,8 @@
 @layer base {
   :root {
     --bg-base: #000000;
-    --accent: #34d399; /* emerald-400 */
-    --accent-glow: rgba(52, 211, 153, 0.15);
+    --accent: #ffffff; /* white */
+    --accent-glow: rgba(255, 255, 255, 0.15);
     --bezier-smooth: cubic-bezier(0.16, 1, 0.3, 1);
     --bezier-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     --bg-surface: #0a0a0a;
@@ -46,53 +46,80 @@
 
 /* ═══ PREMIUM UTILITIES ═══ */
 @layer utilities {
-  .glass-card {
-    background: radial-gradient(circle at top left, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
-    border: 1px solid var(--bg-border);
+  .panel-base {
+    background: #0a0a0a;
+    border: 1px solid #222222;
     border-radius: 12px;
-    box-shadow: 0 4px 20px -2px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04);
+    box-shadow: 0 4px 20px -2px rgba(0,0,0,0.8);
+  }
+  .panel-inset {
+    background: #000000;
+    border: 1px solid #222222;
+    border-radius: 12px;
+    box-shadow: inset 0 4px 30px rgba(0,0,0,1);
+  }
+  .input-sharp {
+    background: #000000;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    color: #ffffff;
+    transition: all 0.3s ease;
+  }
+  .input-sharp:focus {
+    border-color: #ffffff;
+    outline: none;
+    box-shadow: 0 0 10px rgba(255,255,255,0.1);
+  }
+  .label-mono {
+    font-family: monospace;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+  }
+  .text-accent {
+    color: #ffffff;
+  }
+  
+  .glass-card {
+    background: #0a0a0a;
+    border: 1px solid #222222;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0,0,0,0.8);
     position: relative;
     overflow: hidden;
   }
-  .glass-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    opacity: 0.5;
-  }
   .glass-card-hover {
-    background: radial-gradient(circle at top left, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
-    border: 1px solid var(--bg-border);
+    background: #0a0a0a;
+    border: 1px solid #222222;
     border-radius: 12px;
-    transition: all 0.5s var(--bezier-smooth);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     box-shadow: 0 4px 20px -2px rgba(0,0,0,0.8);
   }
   .glass-card-hover:hover {
-    border-color: var(--bg-border-hover);
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 16px 40px -8px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1);
-    background: radial-gradient(circle at top left, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+    border-color: #444444;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px -8px rgba(0,0,0,1);
+    background: #0c0c0c;
   }
   .glass-sidebar {
-    background: var(--bg-base);
-    border-right: 1px solid var(--bg-border);
+    background: #000000;
+    border-right: 1px solid #222222;
     position: relative;
   }
   .glass-input {
-    background: var(--bg-surface);
-    border: 1px solid var(--bg-border);
+    background: #000000;
+    border: 1px solid #333333;
     border-radius: 8px;
-    transition: all 0.4s var(--bezier-smooth);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-    color: var(--text-main);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    color: #ffffff;
   }
   .glass-input:focus {
-    background: var(--bg-surface-hover);
-    border-color: var(--accent-white);
+    border-color: #ffffff;
     outline: none;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.2), inset 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(255,255,255,0.1);
   }
   
   /* 3D Tab Active State (Linear/Vercel style) */
@@ -438,68 +465,37 @@
   background: rgba(239,68,68,0.04);
 }
 
-/* ═══ PREMIUM GEOMETRIC GLASS CARDS (TOP 0.5%) ═══ */
-.glass-card, .glass-card-hover {
-  background: linear-gradient(145deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.4) 100%);
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.05), 0 10px 40px rgba(0,0,0,0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  position: relative;
-  border: 1px solid transparent; /* Replaced by the glowing ::before mask below */
-  transition: transform 0.6s var(--bezier-smooth), box-shadow 0.6s ease;
-  transform: translateZ(0); /* Hardware accelerate */
-  backface-visibility: hidden;
-  will-change: transform;
-}
-
-/* The structural glowing border */
-.glass-card::before, .glass-card-hover::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px; /* border thickness */
-  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.01) 50%, rgba(52,211,153,0.1) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  transition: background 0.6s ease;
-}
-
-/* Hyper-realistic Hover Physics */
-.glass-card-hover:hover {
-  transform: translateY(-4px) scale(1.005);
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 20px 50px rgba(0,0,0,0.8);
-}
-.glass-card-hover:hover::before {
-  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.02) 50%, rgba(52,211,153,0.3) 100%);
-}
+/* ═══ PREMIUM GEOMETRIC GLASS CARDS (TOP 0.5%) - Overridden by panel-base above, leaving this blank to avoid conflicts ═══ */
 
 /* ═══ BACKGROUND GEOMETRY & FLOW LINES ═══ */
-.bg-grid-pattern {
-  background-size: 40px 40px;
+.bg-criss-cross {
+  position: fixed;
+  inset: 0;
   background-image: 
-    linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 60vh;
-  pointer-events: none;
+    linear-gradient(45deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 0 0;
   z-index: -1;
-  /* Removed heavy mask-image, using a simple gradient fade pseudo-element instead */
+  pointer-events: none;
+  animation: panCrissCross 40s linear infinite;
 }
-.bg-grid-pattern::after {
+@keyframes panCrissCross {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 40px 40px, -40px 40px; }
+}
+.bg-criss-cross::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 20%, #000000 100%);
+  background: radial-gradient(circle at 50% 50%, transparent 0%, #000000 85%);
 }
 
 /* Animated geometric scanning line */
 .bg-scan-line {
   position: absolute;
   top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(to right, transparent, rgba(52,211,153,0.5), transparent);
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
   animation: scanLine 6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   z-index: -1;
   opacity: 0.4;
@@ -514,34 +510,22 @@
 /* ═══ PREMIUM BUTTONS (TOP 0.5%) ═══ */
 .btn-premium {
   position: relative;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: white;
-  transition: all 0.3s var(--bezier-smooth);
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
-}
-.btn-premium::before {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 50%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transform: skewX(-20deg);
-  transition: left 0.7s ease;
+  font-weight: 800;
 }
 .btn-premium:hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 25px rgba(52,211,153,0.2);
-  border-color: rgba(52,211,153,0.3);
+  background: #000000;
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 4px 20px rgba(255,255,255,0.1);
   transform: translateY(-2px);
-}
-.btn-premium:hover::before {
-  left: 200%;
 }
 .btn-premium:active {
   transform: translateY(1px);
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
 }
 
 /* ═══ 3D CSS CUBE ═══ */

@@ -126,7 +126,7 @@ function UserMenu({ user, onLogout, onClose }) {
 function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
   return (
     <div className="min-h-screen bg-black relative">
-      <div className="bg-grid-pattern fixed z-0" />
+      <div className="bg-criss-cross fixed z-0" />
       <div className="fixed inset-0 pointer-events-none z-0"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%)' }} />
 
@@ -197,7 +197,7 @@ function AuthenticatedApp({ s }) {
 
   return (
     <div className="min-h-screen text-white flex relative overflow-hidden bg-[#000000] w-full">
-      <div className="bg-grid-pattern fixed z-0" />
+      <div className="bg-criss-cross fixed z-0" />
       <div className="bg-scan-line fixed z-0" />
       <div className="fixed inset-0 pointer-events-none z-0"
         style={{ background: 'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 60%)' }} />

@@ -19,8 +19,8 @@ const STAGES = [
 
 const STATUS_COLORS = {
   queued:     'text-white/40 bg-white/[0.04] border-white/[0.08]',
-  processing: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
-  completed:  'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+  processing: 'text-white bg-white/10 border-white/20',
+  completed:  'text-white bg-white/10 border-white/20',
   error:      'text-red-300 bg-red-500/10 border-red-500/20',
 };
 
@@ -50,7 +50,7 @@ function JobRow({ job, onViewResult }) {
         <div className="text-[13px] font-mono font-medium text-white/90 truncate">{job.filename}</div>
         {isProcessing && (
           <div className="flex flex-col gap-0.5 mt-1">
-            <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest">
+            <span className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">
               &gt; {job.stage_name || 'PROCESSING'}
             </span>
             {job.stage_detail && (
@@ -60,10 +60,10 @@ function JobRow({ job, onViewResult }) {
         )}
         {isDone && (
           <div className="text-[10px] font-mono text-white/40 mt-1 flex items-center gap-2">
-            <span className={`font-bold ${score >= 70 ? 'text-emerald-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+            <span className={`font-bold ${score >= 70 ? 'text-white' : score >= 50 ? 'text-white/70' : 'text-white/40'}`}>
               SCORE: {score}/100
             </span>
-            {proxies > 0 && <span className="text-yellow-400">⚠ {proxies} BIAS_SIGNALS</span>}
+            {proxies > 0 && <span className="text-white/80">⚠ {proxies} BIAS_SIGNALS</span>}
           </div>
         )}
         {isFailed && <div className="text-[10px] font-mono text-red-400/80 mt-1 truncate">ERR: {job.error || 'PROCESSING_FAILED'}</div>}
@@ -79,7 +79,7 @@ function JobRow({ job, onViewResult }) {
       {isDone && (
         <button
           onClick={() => onViewResult(job)}
-          className="shrink-0 px-4 py-1.5 rounded-sm text-[10px] font-mono font-bold bg-white text-black hover:bg-emerald-400 transition-all uppercase tracking-widest"
+          className="shrink-0 px-4 py-1.5 rounded-sm text-[10px] font-mono font-bold bg-white text-black hover:bg-black hover:text-white border border-white transition-all uppercase tracking-widest"
         >
           View_Report
         </button>
@@ -97,7 +97,7 @@ function RankedResults({ jobs, onViewResult }) {
   return (
     <section className="mt-8 animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4">
-        <Award className="w-4 h-4 text-emerald-400" />
+        <Award className="w-4 h-4 text-white" />
         <h3 className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">RANKED_RESULTS [{sorted.length}]</h3>
       </div>
       <div className="border border-[#333] rounded-xl bg-black overflow-hidden">
@@ -125,7 +125,7 @@ function RankedResults({ jobs, onViewResult }) {
               <div className="col-span-5 text-xs font-mono text-white/90 truncate">{job.filename}</div>
               {/* Score */}
               <div className="col-span-2 text-center">
-                <span className={`text-sm font-mono font-black ${score >= 70 ? 'text-emerald-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <span className={`text-sm font-mono font-black ${score >= 70 ? 'text-white' : score >= 50 ? 'text-white/70' : 'text-white/40'}`}>
                   {score}
                 </span>
                 <span className="text-white/30 text-[10px] font-mono">/100</span>
@@ -133,8 +133,8 @@ function RankedResults({ jobs, onViewResult }) {
               {/* Bias */}
               <div className="col-span-2 text-center">
                 {proxies === 0
-                  ? <span className="text-emerald-400 text-[10px] font-mono font-bold">CLEAN</span>
-                  : <span className="text-yellow-400 text-[10px] font-mono font-bold">WARN: {proxies}</span>
+                  ? <span className="text-white/80 text-[10px] font-mono font-bold">CLEAN</span>
+                  : <span className="text-white text-[10px] font-mono font-bold">WARN: {proxies}</span>
                 }
               </div>
               {/* Action */}
@@ -529,7 +529,7 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
           value={jobRole}
           onChange={e => setJobRole(e.target.value)}
           placeholder="e.g. Product Manager, Full Stack Engineer…"
-          className="w-full bg-black border border-[#333] focus:border-emerald-500/50 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 transition-colors"
+          className="w-full bg-black border border-[#333] focus:border-white/50 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 transition-colors"
         />
       </div>
 
@@ -552,19 +552,19 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
               onDragLeave={() => setDragOver(false)}
               onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
               className={`border border-dashed cursor-pointer transition-all duration-300 flex flex-col items-center justify-center py-14 group overflow-hidden bg-black relative ${
-                dragOver ? 'border-emerald-500/80 shadow-[inset_0_0_20px_rgba(52,211,153,0.1)]' : 'border-[#333] hover:border-emerald-500/50'
+                dragOver ? 'border-white shadow-[inset_0_0_20px_rgba(255,255,255,0.1)]' : 'border-[#333] hover:border-white/50'
               }`}
             >
-              {dragOver && <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMjBMIDIwIDBNMjAgMjBMMCAwIiBzdHJva2U9InJnYmEoNTIsMjExLDE1MywwLjA1KSIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==')] opacity-50" />}
+              {dragOver && <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMjBMIDIwIDBNMjAgMjBMMCAwIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiIGZpbGw9Im5vbmUiLz48L3N2Zz4=')] opacity-50" />}
               
               <div className={`w-16 h-16 flex items-center justify-center mb-4 transition-all duration-300 ${
                 dragOver ? 'scale-110' : 'group-hover:scale-105'
               }`}>
-                <Users className={`w-8 h-8 ${dragOver ? 'text-emerald-400' : 'text-white/60'}`} />
+                <Users className={`w-8 h-8 ${dragOver ? 'text-white' : 'text-white/60'}`} />
               </div>
               <h3 className="text-lg font-bold text-white mb-1 tracking-wide">Drop Resumes</h3>
               <p className="text-[10px] font-mono text-white/40 mb-6 tracking-widest">PDF, JPG, PNG | MAX 20 FILES</p>
-              <button className="px-8 py-2.5 rounded text-xs font-bold tracking-widest uppercase bg-white text-black hover:bg-emerald-400 transition-colors">Select Files</button>
+              <button className="px-8 py-2.5 rounded text-xs font-bold tracking-widest uppercase bg-white text-black hover:bg-black hover:text-white border border-white transition-colors">Select Files</button>
               
               <div className="absolute bottom-2 right-4 text-[9px] font-mono text-white/20">CAP: 20_FILES</div>
             </div>
@@ -654,8 +654,8 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
           {/* Progress bar */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              {!allDone && <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />}
-              {allDone && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+              {!allDone && <RefreshCw className="w-4 h-4 text-white/70 animate-spin" />}
+              {allDone && <CheckCircle className="w-4 h-4 text-white" />}
               <span className="text-sm font-bold text-white">
                 {allDone ? 'All done!' : `Processing… ${completedCount}/${totalCount} complete`}
               </span>
@@ -675,17 +675,17 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
             </button>
 
           </div>
-          <div className="w-full bg-white/[0.06] rounded-full h-1.5 mb-4 overflow-hidden">
+          <div className="w-full bg-[#111] rounded-full h-1.5 mb-4 overflow-hidden">
             <div
-              className="h-full bg-emerald-400 rounded-full transition-all duration-700"
+              className="h-full bg-white rounded-full transition-all duration-700"
               style={{ width: `${totalCount ? (completedCount / totalCount) * 100 : 0}%` }}
             />
           </div>
           {activeStageFilter !== null && (
-            <div className="mb-3 flex items-center gap-2 text-xs text-emerald-400/80 font-semibold animate-fade-in">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Highlighting candidates in stage: <span className="text-emerald-400">{['Resume Upload','PII Strip','Blind Score','Skill Graph','Bias Detect','Percentile Rank','Counterfactual','Fairness Gate'][activeStageFilter]}</span>
-              <button onClick={() => setActiveStageFilter(null)} className="ml-2 text-white/30 hover:text-white/60 transition-colors">[clear]</button>
+            <div className="mb-3 flex items-center gap-2 text-[10px] text-white/80 font-mono font-bold animate-fade-in uppercase">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              Highlighting candidates in stage: <span className="text-white">{['Resume Upload','PII Strip','Blind Score','Skill Graph','Bias Detect','Percentile Rank','Counterfactual','Fairness Gate'][activeStageFilter]}</span>
+              <button onClick={() => setActiveStageFilter(null)} className="ml-2 text-white/30 hover:text-white transition-colors">[clear]</button>
             </div>
           )}
           <div className="glass-card rounded-2xl border border-white/[0.08] overflow-hidden">
@@ -707,7 +707,7 @@ export default function BatchUploadView({ s, onViewResult, jobs, setJobs, batchI
                   key={job.job_id || idx}
                   className={`transition-all duration-300 ${
                     activeStageFilter !== null && !isHighlighted ? 'opacity-30' : ''
-                  } ${isHighlighted ? 'ring-1 ring-inset ring-emerald-500/30 bg-emerald-500/[0.03]' : ''}`}
+                  } ${isHighlighted ? 'ring-1 ring-inset ring-white/30 bg-white/[0.03]' : ''}`}
                 >
                   <JobRow job={job} onViewResult={onViewResult} />
                 </div>

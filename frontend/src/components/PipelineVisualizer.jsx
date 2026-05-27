@@ -4,11 +4,11 @@ import { FileText, Lock, Brain, Network, AlertTriangle, BarChart2, FlaskConical,
 const PIPELINE_STAGES = [
   { id: 'upload',     label: 'Resume\nUpload',   icon: FileText,      color: 'text-white/80' },
   { id: 'pii',        label: 'PII\nStrip',       icon: Lock,          color: 'text-white/80' },
-  { id: 'score',      label: 'Blind\nScore',     icon: Brain,         color: 'text-emerald-400' },
+  { id: 'score',      label: 'Blind\nScore',     icon: Brain,         color: 'text-white' },
   { id: 'graph',      label: 'Skill\nGraph',     icon: Network,       color: 'text-white/80' },
-  { id: 'bias',       label: 'Bias\nDetect',     icon: AlertTriangle, color: 'text-yellow-400' },
+  { id: 'bias',       label: 'Bias\nDetect',     icon: AlertTriangle, color: 'text-white' },
   { id: 'percentile', label: 'Percentile\nRank', icon: BarChart2,     color: 'text-white/80' },
-  { id: 'cf',         label: 'Counter-\nfactual',icon: FlaskConical,  color: 'text-emerald-400' },
+  { id: 'cf',         label: 'Counter-\nfactual',icon: FlaskConical,  color: 'text-white' },
   { id: 'gate',       label: 'Fairness\nGate',   icon: CheckSquare,   color: 'text-white/80' },
 ];
 
@@ -99,20 +99,20 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
                     }} />
                     
                     {/* Faces */}
-                    <div className="cube-face cube-face-front" style={isGlowing ? { borderColor: 'rgba(52,211,153,0.5)' } : {}}>
+                    <div className="cube-face cube-face-front" style={isGlowing ? { borderColor: 'rgba(255,255,255,0.5)' } : {}}>
                       <Icon className={`w-5 h-5 relative z-10 transition-colors duration-300 ${isGlowing ? stage.color : 'text-white/40'}`} strokeWidth={2} />
                       
                       {/* Live Count Badge (only if used in Batch Queue) */}
                       {hasItems && (
-                        <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-emerald-500 text-white text-[11px] font-black flex items-center justify-center border-2 border-black animate-fade-in-up shadow-[0_0_10px_rgba(52,211,153,0.5)]" style={{ transform: 'translateZ(10px)' }}>
+                        <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-white text-black text-[11px] font-black flex items-center justify-center border-2 border-black animate-fade-in-up shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ transform: 'translateZ(10px)' }}>
                           {counts[idx]}
                         </div>
                       )}
                     </div>
                     <div className="cube-face cube-face-back"></div>
-                    <div className="cube-face cube-face-right" style={isGlowing ? { borderColor: 'rgba(52,211,153,0.3)' } : {}}></div>
+                    <div className="cube-face cube-face-right" style={isGlowing ? { borderColor: 'rgba(255,255,255,0.3)' } : {}}></div>
                     <div className="cube-face cube-face-left"></div>
-                    <div className="cube-face cube-face-top" style={isGlowing ? { borderColor: 'rgba(52,211,153,0.4)', background: 'rgba(52,211,153,0.05)' } : {}}></div>
+                    <div className="cube-face cube-face-top" style={isGlowing ? { borderColor: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)' } : {}}></div>
                     <div className="cube-face cube-face-bottom"></div>
                   </div>
 
@@ -126,7 +126,7 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
                 {/* Connecting Arrow */}
                 {!isLast && (
                   <div className="flex-1 min-w-[15px] flex justify-center shrink-0 mb-12">
-                    <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${counts[idx] > 0 || activeStageIndex === idx ? 'text-emerald-400/60' : 'text-white/10'}`} />
+                    <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${counts[idx] > 0 || activeStageIndex === idx ? 'text-white/60' : 'text-white/10'}`} />
                   </div>
                 )}
               </React.Fragment>
@@ -137,10 +137,10 @@ export default function PipelineVisualizer({ jobs = [], onStageClick, activeFilt
         {/* Terminal Logger */}
         <div className="absolute bottom-[-15px] left-0 right-0 text-center flex justify-center items-center">
           {activeDetail.text && (
-            <div className="flex items-center gap-2 text-emerald-400 font-mono text-[10px] sm:text-[11px] font-bold tracking-widest bg-black px-4 py-1.5 border border-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.15)] rounded">
+            <div className="flex items-center gap-2 text-white font-mono text-[10px] sm:text-[11px] font-bold tracking-widest bg-black px-4 py-1.5 border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.15)] rounded">
               <span className="opacity-50">&gt;</span>
               <span>{activeDetail.text}</span>
-              <span className="w-1.5 h-3 bg-emerald-400 animate-pulse ml-1" />
+              <span className="w-1.5 h-3 bg-white animate-pulse ml-1" />
             </div>
           )}
         </div>

@@ -469,7 +469,7 @@ export default function AuthView({ isModal = false }) {
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
       <div className="fixed inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%)' }} />
-      <div className="bg-grid-pattern fixed z-0" />
+      <div className="bg-criss-cross fixed z-0" />
       <div className="relative z-10 w-full flex justify-center">
         {cardContent}
       </div>
