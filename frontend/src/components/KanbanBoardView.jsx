@@ -43,6 +43,13 @@ function ScorePill({ score }) {
 // DNA Spark Card - Mini 5-bar chart showing top skill matches
 // Bar heights are scaled by fit_score to show candidate quality
 function DNASparkCard({ skillMatches, fitScore }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // Slight delay to ensure the rising animation is very dramatic on load
+    const t = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(t);
+  }, []);
+
   if (!skillMatches || skillMatches.length === 0) {
     return (
       <div className="space-y-1.5 mt-2">
@@ -54,15 +61,20 @@ function DNASparkCard({ skillMatches, fitScore }) {
       </div>
     );
   }
-  
-  const top5 = skillMatches.slice(0, 5);
-  const hasRealScores = top5.some(s => s.score != null || s.relevance != null || s.match_score != null);
-  let barHeights;
-  if (hasRealScores) {
+
+  let top5 = [];
+  let barHeights = [];
+  if (skillMatches && skillMatches.length > 0) {
+    top5 = [...skillMatches].sort((a, b) => {
+      const scoreA = a.score ?? a.relevance ?? a.match_score ?? 0;
+      const scoreB = b.score ?? b.relevance ?? b.match_score ?? 0;
+      return scoreB - scoreA;
+    }).slice(0, 5);
+    while (top5.length < 5) top5.push({ skill: '', score: 0 });
     barHeights = top5.map(s => {
-      const raw = s.score ?? s.relevance ?? s.match_score ?? 0.5;
-      const normalized = raw > 1 ? raw : raw * 100; 
-      return Math.max(15, Math.min(100, normalized));
+      const raw = s.score ?? s.relevance ?? s.match_score;
+      if (raw == null) return 20;
+      return Math.max(20, raw > 1 ? raw : raw * 100);
     });
   } else {
     const baseHeights = [100, 75, 90, 60, 80];
@@ -72,12 +84,13 @@ function DNASparkCard({ skillMatches, fitScore }) {
 
   return (
     <div className="space-y-1.5 mt-2">
-      <div className="flex items-end gap-[2px] h-12 bg-[#0a0a0a] rounded border border-white/[0.04] p-1 relative overflow-hidden group">
+      <div className="flex items-end gap-[2px] h-12 bg-[#050505] rounded border border-white/[0.02] p-1 relative overflow-hidden group shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]">
         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 group-hover:animate-pulse pointer-events-none z-20 transition-opacity duration-300" />
         
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
           const heightPercent = barHeights[idx] || 50;
+          const displayHeight = mounted ? heightPercent : 0;
           const rawScore = skill.score ?? skill.relevance ?? skill.match_score;
           const displayScore = rawScore != null
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
@@ -85,17 +98,43 @@ function DNASparkCard({ skillMatches, fitScore }) {
           return (
             <div key={idx} className="flex-1 h-full relative group/bar" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
               <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-80 group-hover/bar:opacity-100 transition-opacity">
-                 <rect x="0" y="0" width="100" height="100" fill="rgba(255,255,255,0.02)" />
                  <defs>
+                   <linearGradient id={`shard-${idx}`} x1="0" y1="0" x2="1" y2="0">
+                     <stop offset="0%" stopColor="rgba(255,255,255,0.1)" />
+                     <stop offset="50%" stopColor="rgba(255,255,255,0.9)" />
+                     <stop offset="100%" stopColor="rgba(255,255,255,0.2)" />
+                   </linearGradient>
                    <filter id={`glow-${idx}`} x="-20%" y="-20%" width="140%" height="140%">
-                     <feGaussianBlur stdDeviation="2" result="blur" />
+                     <feGaussianBlur stdDeviation="3" result="blur" />
                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
                    </filter>
                  </defs>
-                 <rect x="5" y={100 - heightPercent} width="90" height={heightPercent} fill="rgba(255,255,255,0.6)" className="transition-all duration-700 ease-out" filter={`url(#glow-${idx})`} />
-                 <rect x="5" y={100 - heightPercent} width="90" height={heightPercent} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1" className="transition-all duration-700 ease-out" />
-                 {[...Array(10)].map((_, i) => (
-                   <line key={i} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="#0a0a0a" strokeWidth="2" />
+                 
+                 {/* Diamond Wireframe background for each slot */}
+                 <pattern id={`diamond-${idx}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                   <path d="M10 0 L20 10 L10 20 L0 10 Z" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                 </pattern>
+                 <rect x="0" y="0" width="100" height="100" fill={`url(#diamond-${idx})`} />
+
+                 <rect 
+                   x="5" y={100 - displayHeight} 
+                   width="90" height={displayHeight} 
+                   fill={`url(#shard-${idx})`} 
+                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
+                   filter={`url(#glow-${idx})`} 
+                 />
+                 <rect 
+                   x="5" y={100 - displayHeight} 
+                   width="90" height={displayHeight} 
+                   fill="none" 
+                   stroke="rgba(255,255,255,1)" 
+                   strokeWidth="1" 
+                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
+                 />
+                 
+                 {/* Shard overlay cuts */}
+                 {[...Array(5)].map((_, i) => (
+                   <line key={i} x1="0" y1={100 - displayHeight + (i * 20)} x2="100" y2={100 - displayHeight + (i * 20) + 10} stroke="#050505" strokeWidth="2" className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] opacity-50" />
                  ))}
                </svg>
             </div>
@@ -461,10 +500,15 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         onDragStart(scan);
       }}
       onDragEnd={() => onDragStart(null)}
-      className={`group relative rounded-[16px] p-4 bg-[#141414] transition-all duration-300 ${
+      className={`group relative rounded-[16px] p-4 bg-[#050505] shadow-[inset_0_1px_3px_rgba(255,255,255,0.05)] overflow-hidden transition-all duration-300 ${
         isMoving ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-white/[0.06] hover:border-white/[0.15] hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
       }`}
     >
+      {/* Subtle Diamond Overlay for Card */}
+      <div className="absolute top-0 right-0 w-32 h-32 opacity-20 pointer-events-none mix-blend-screen" style={{
+        backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTIwIDAgTDQwIDIwIEwyMCA0MCBMMCAyMCBaIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wNCkiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==')"
+      }} />
+
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -677,7 +721,7 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
   }[density];
 
   return (
-    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-[#0d0d0d] border border-white/[0.04] p-4 transition-all duration-500 ${ring}`}
+    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-black/40 backdrop-blur-xl border border-white/[0.04] p-4 transition-all duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.3)] ${ring}`}
          title={heatmapTooltip || undefined}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-4 px-1">
@@ -890,7 +934,21 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const allRejected = scans.filter(s => (s.kanban_stage || 'Sourced') === 'Rejected');
 
   return (
-    <div>
+    <div className="relative min-h-screen w-full">
+      {/* Global Diamond Wireframe Background */}
+      <div className="absolute inset-0 pointer-events-none z-0 opacity-10">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="diamond-mesh-global" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M30 0 L60 30 L30 60 L0 30 Z" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+              <path d="M0 0 L60 60 M60 0 L0 60" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#diamond-mesh-global)" />
+        </svg>
+      </div>
+
+      <div className="relative z-10">
       {moveError && (
         <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-red-500/[0.06] border border-red-500/15 text-red-300 text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -932,6 +990,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
         onClose={() => setDrawerScanId(null)}
         authHeaders={authHeaders}
       />
+      </div>
     </div>
   );
 }
