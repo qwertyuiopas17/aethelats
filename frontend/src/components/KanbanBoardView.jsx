@@ -46,25 +46,16 @@ function DNASparkCard({ skillMatches, fitScore }) {
   if (!skillMatches || skillMatches.length === 0) {
     return (
       <div className="space-y-1.5 mt-2">
-        <div className="flex items-end gap-[2px] h-12 bg-white/[0.01] rounded border border-white/[0.03] p-1.5">
-          {[30, 50, 70, 60, 40].map((height, idx) => (
-            <div key={idx} className="flex-1 flex items-end">
-              <div
-                className="w-full bg-white/[0.04] rounded-[1px] min-h-[4px]"
-                style={{ height: `${height}%` }}
-              />
-            </div>
-          ))}
-        </div>
-        <div className="text-[9px] text-white/20 text-center uppercase tracking-widest font-mono">
-          No skill data
+        <div className="flex items-end gap-[2px] h-12 bg-[#0a0a0a] rounded border border-white/[0.04] p-1.5">
+          <div className="text-[9px] text-white/20 text-center uppercase tracking-widest font-mono w-full flex items-center justify-center">
+            No skill data
+          </div>
         </div>
       </div>
     );
   }
   
   const top5 = skillMatches.slice(0, 5);
-
   const hasRealScores = top5.some(s => s.score != null || s.relevance != null || s.match_score != null);
   let barHeights;
   if (hasRealScores) {
@@ -81,8 +72,9 @@ function DNASparkCard({ skillMatches, fitScore }) {
 
   return (
     <div className="space-y-1.5 mt-2">
-      <div className="flex items-end gap-[2px] h-12 bg-white/[0.01] rounded border border-white/[0.03] p-1.5 relative overflow-hidden">
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-white/[0.02] pointer-events-none" />
+      <div className="flex items-end gap-[2px] h-12 bg-[#0a0a0a] rounded border border-white/[0.04] p-1 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 group-hover:animate-pulse pointer-events-none z-20 transition-opacity duration-300" />
+        
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
           const heightPercent = barHeights[idx] || 50;
@@ -91,13 +83,21 @@ function DNASparkCard({ skillMatches, fitScore }) {
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
             : fitScore;
           return (
-            <div key={idx} className="flex-1 h-full flex items-end group relative">
-              <div className="absolute top-0 bottom-0 left-0 right-0 bg-white/[0.02] rounded-t-[1px] z-0" />
-              <div
-                className="w-full bg-white/70 transition-all duration-300 group-hover:bg-white cursor-help min-h-[4px] relative z-10 rounded-[1px]"
-                style={{ height: `${heightPercent}%` }}
-                title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}
-              />
+            <div key={idx} className="flex-1 h-full relative group/bar" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
+              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-80 group-hover/bar:opacity-100 transition-opacity">
+                 <rect x="0" y="0" width="100" height="100" fill="rgba(255,255,255,0.02)" />
+                 <defs>
+                   <filter id={`glow-${idx}`} x="-20%" y="-20%" width="140%" height="140%">
+                     <feGaussianBlur stdDeviation="2" result="blur" />
+                     <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                   </filter>
+                 </defs>
+                 <rect x="5" y={100 - heightPercent} width="90" height={heightPercent} fill="rgba(255,255,255,0.6)" className="transition-all duration-700 ease-out" filter={`url(#glow-${idx})`} />
+                 <rect x="5" y={100 - heightPercent} width="90" height={heightPercent} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1" className="transition-all duration-700 ease-out" />
+                 {[...Array(10)].map((_, i) => (
+                   <line key={i} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="#0a0a0a" strokeWidth="2" />
+                 ))}
+               </svg>
             </div>
           );
         })}
@@ -460,26 +460,22 @@ function CandidateCard({ scan, onMove, movingId, onDragStart, authHeaders, onExp
         e.dataTransfer.effectAllowed = 'move';
         onDragStart(scan);
       }}
-      className={`
-        group relative rounded-xl border p-3.5 transition-all duration-300 cursor-grab active:cursor-grabbing
-        bg-white/[0.02] hover:bg-white/[0.04]
-        ${STAGE_COLORS[stage]?.border || 'border-white/10'}
-        ${isMoving ? 'opacity-50 scale-[0.98]' : ''}
-        ${isStale ? 'ring-1 ring-amber-400/40 shadow-[0_0_12px_rgba(251,191,36,0.08)]' : ''}
-      `}
-      style={batchColor ? { borderLeftWidth: '4px', borderLeftColor: batchColor } : {}}
+      onDragEnd={() => onDragStart(null)}
+      className={`group relative rounded-[16px] p-4 bg-[#141414] transition-all duration-300 ${
+        isDragging ? 'opacity-50 ring-2 ring-white/30 border-white/20' : 'border border-white/[0.06] hover:border-white/[0.15] hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]'
+      }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-            <FileText className="w-3.5 h-3.5 text-white/40" />
+          <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 text-white/40" />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-white truncate leading-tight">
+            <div className="text-sm font-semibold text-white/90 truncate leading-tight">
               {scan.file_name || 'Resume'}
             </div>
-            <div className="text-[10px] text-white/30 font-mono truncate">
+            <div className="text-[10px] text-white/40 font-mono truncate mt-0.5">
               {scan.candidate_id || `#${scan.id}`}
             </div>
           </div>
@@ -681,12 +677,12 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
   }[density];
 
   return (
-    <div className={`flex flex-col min-w-[220px] max-w-[260px] w-full flex-shrink-0 rounded-xl transition-all duration-500 ${ring}`}
+    <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-[#0d0d0d] border border-white/[0.04] p-4 transition-all duration-500 ${ring}`}
          title={heatmapTooltip || undefined}>
       {/* Column header */}
-      <div className="flex items-center gap-2 mb-3 px-1">
+      <div className="flex items-center gap-2 mb-4 px-1">
         <div className={`w-2 h-2 rounded-full ${dot}`} />
-        <span className="text-xs font-bold uppercase tracking-widest text-white/60">{stage}</span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-white/60">{stage}</span>
         {label && (
           <span className="text-[9px] text-amber-400/70 font-mono truncate">{label}</span>
         )}
@@ -699,15 +695,18 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
         onDragOver={(e) => { e.preventDefault(); setDragOverStage(stage); }}
         onDragLeave={() => setDragOverStage(null)}
         onDrop={(e) => { e.preventDefault(); onDrop(stage); setDragOverStage(null); }}
-        className={`flex flex-col gap-2.5 min-h-[80px] rounded-xl transition-all duration-200 p-1 -m-1 ${
-          isDragOver ? 'bg-white/[0.04] ring-1 ring-white/20' : ''
+        className={`flex flex-col gap-3 min-h-[120px] rounded-xl transition-all duration-200 ${
+          isDragOver ? 'bg-white/[0.02] ring-1 ring-white/10' : ''
         }`}
       >
         {cards.length === 0 && (
-          <div className={`rounded-xl border border-dashed py-8 text-center text-xs transition-all ${
-            isDragOver ? 'border-white/20 text-white/40' : 'border-white/[0.06] text-white/20'
-          }`}>
-            {isDragOver ? 'Drop here' : 'Empty'}
+          <div className="flex flex-col items-center justify-center py-10 mt-2 opacity-50">
+            <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-3">
+              <svg className="w-4 h-4 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <span className="text-xs text-white/30 font-medium">No candidates</span>
           </div>
         )}
         {cards.map(scan => (
