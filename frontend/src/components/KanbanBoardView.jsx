@@ -71,9 +71,14 @@ function DNASparkCard({ skillMatches, fitScore }) {
       return scoreB - scoreA;
     }).slice(0, 5);
     while (top5.length < 5) top5.push({ skill: '', score: 0 });
-    barHeights = top5.map(s => {
+    barHeights = top5.map((s, idx) => {
       const raw = s.score ?? s.relevance ?? s.match_score;
-      if (raw == null) return 20;
+      if (raw == null) {
+        // Fallback fake heights scaled by fitScore if no individual scores exist
+        const baseHeights = [100, 75, 90, 60, 80];
+        const mult = (fitScore || 50) / 100;
+        return Math.max(20, baseHeights[idx % 5] * Math.pow(mult, 0.7));
+      }
       return Math.max(20, raw > 1 ? raw : raw * 100);
     });
   } else {
@@ -85,7 +90,7 @@ function DNASparkCard({ skillMatches, fitScore }) {
   return (
     <div className="space-y-1.5 mt-2">
       <div className="flex items-end gap-[2px] h-12 bg-[#050505] rounded border border-white/[0.02] p-1 relative overflow-hidden group shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]">
-        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 group-hover:animate-pulse pointer-events-none z-20 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-fuchsia-500/5 opacity-0 group-hover:opacity-100 group-hover:animate-pulse pointer-events-none z-20 transition-opacity duration-300" />
         
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
@@ -97,22 +102,23 @@ function DNASparkCard({ skillMatches, fitScore }) {
             : fitScore;
           return (
             <div key={idx} className="flex-1 h-full relative group/bar" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
-              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-80 group-hover/bar:opacity-100 transition-opacity">
+              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-90 group-hover/bar:opacity-100 transition-opacity">
                  <defs>
-                   <linearGradient id={`shard-${idx}`} x1="0" y1="0" x2="1" y2="0">
-                     <stop offset="0%" stopColor="rgba(255,255,255,0.1)" />
-                     <stop offset="50%" stopColor="rgba(255,255,255,0.9)" />
-                     <stop offset="100%" stopColor="rgba(255,255,255,0.2)" />
+                   {/* Dramatic Purple / Cyan Crystal Gradient */}
+                   <linearGradient id={`shard-${idx}`} x1="0" y1="1" x2="0" y2="0">
+                     <stop offset="0%" stopColor="rgba(192,38,211,0.2)" />
+                     <stop offset="70%" stopColor="rgba(168,85,247,0.8)" />
+                     <stop offset="100%" stopColor="rgba(34,211,238,1)" />
                    </linearGradient>
-                   <filter id={`glow-${idx}`} x="-20%" y="-20%" width="140%" height="140%">
-                     <feGaussianBlur stdDeviation="3" result="blur" />
+                   <filter id={`glow-${idx}`} x="-30%" y="-30%" width="160%" height="160%">
+                     <feGaussianBlur stdDeviation="4" result="blur" />
                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
                    </filter>
                  </defs>
                  
                  {/* Diamond Wireframe background for each slot */}
                  <pattern id={`diamond-${idx}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                   <path d="M10 0 L20 10 L10 20 L0 10 Z" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                   <path d="M10 0 L20 10 L10 20 L0 10 Z" fill="none" stroke="rgba(168,85,247,0.15)" strokeWidth="1" />
                  </pattern>
                  <rect x="0" y="0" width="100" height="100" fill={`url(#diamond-${idx})`} />
 
@@ -127,15 +133,26 @@ function DNASparkCard({ skillMatches, fitScore }) {
                    x="5" y={100 - displayHeight} 
                    width="90" height={displayHeight} 
                    fill="none" 
-                   stroke="rgba(255,255,255,1)" 
+                   stroke="rgba(255,255,255,0.8)" 
+                   strokeWidth="1" 
+                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] mix-blend-overlay" 
+                 />
+                 
+                 {/* 3D Polygon overlay cuts to make it look like a vector crystal */}
+                 <path 
+                   d={`M5,${100 - displayHeight} L50,${100 - displayHeight + 15} L95,${100 - displayHeight}`} 
+                   fill="none" 
+                   stroke="rgba(255,255,255,0.4)" 
+                   strokeWidth="1.5" 
+                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
+                 />
+                 <path 
+                   d={`M50,${100 - displayHeight + 15} L50,100`} 
+                   fill="none" 
+                   stroke="rgba(255,255,255,0.2)" 
                    strokeWidth="1" 
                    className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
                  />
-                 
-                 {/* Shard overlay cuts */}
-                 {[...Array(5)].map((_, i) => (
-                   <line key={i} x1="0" y1={100 - displayHeight + (i * 20)} x2="100" y2={100 - displayHeight + (i * 20) + 10} stroke="#050505" strokeWidth="2" className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] opacity-50" />
-                 ))}
                </svg>
             </div>
           );
