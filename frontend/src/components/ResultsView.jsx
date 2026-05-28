@@ -339,16 +339,16 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
       <BiasStabilitySection 
         cfResult={s.cfResult} 
         isRunning={s.runningCF} 
-        onRunTest={(!readOnly && !isCandidate) ? s.handleCounterfactualTest : null} 
+        onRunTest={!readOnly ? s.handleCounterfactualTest : null} 
         isDemo={s.isDemo} 
-        readOnly={readOnly || isCandidate}
+        readOnly={readOnly}
       />
       <ModelComparisonPanel 
         compResult={s.compResult} 
         isRunning={s.runningComp} 
-        onRunTest={(!readOnly && !isCandidate) ? s.handleModelComparison : null} 
+        onRunTest={!readOnly ? s.handleModelComparison : null} 
         isDemo={s.isDemo}
-        readOnly={readOnly || isCandidate}
+        readOnly={readOnly}
       />
       {s.cfResult?.fairness_metrics && <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />}
       {isRecruiter && (
