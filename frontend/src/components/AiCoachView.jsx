@@ -68,6 +68,15 @@ export default function AiCoachView({ s }) {
   const fairaiScore = result?.fit_score ?? null;
   const legacyScore = result?.counterfactual?.legacy_ats_score ?? null;
   const experienceYears = result?.structured_data?.work_experience_summary?.total_years ?? null;
+  // Proof-of-work / GitHub context from the scan result
+  const proofScore = result?.proof_score ?? null;
+  const proofSignals = (result?.proof_breakdown || []).map(b => b.signal).filter(Boolean);
+  const githubUrl = (result?.platform_data || []).find(p => p.platform === 'github')?.url || '';
+  // Candidate name — first name only for personalisation
+  const candidateName = (() => {
+    const full = result?.structured_data?.name || result?.structured_data?.candidate_name || '';
+    return full.trim().split(/\s+/)[0] || '';
+  })();
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -127,13 +136,17 @@ export default function AiCoachView({ s }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg,
-          history: messages.slice(-10),  // last 10 turns
+          history: messages.slice(-10),
           resume_skills: resumeSkills,
           missing_skills: missingSkills,
           target_role: targetRole,
           fairai_score: fairaiScore,
           legacy_score: legacyScore,
           experience_years: experienceYears,
+          candidate_name: candidateName,
+          proof_score: proofScore,
+          github_url: githubUrl,
+          proof_signals: proofSignals,
         }),
       });
 
