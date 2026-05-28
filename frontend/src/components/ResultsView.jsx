@@ -323,25 +323,21 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
         </div>
       </section>
 
-      {/* Bias audit + model comparison — shown to all users, read-only for candidates */}
-      {!readOnly && (
-        <BiasStabilitySection 
-          cfResult={s.cfResult} 
-          isRunning={s.runningCF} 
-          onRunTest={isCandidate ? null : s.handleCounterfactualTest} 
-          isDemo={s.isDemo} 
-          readOnly={isCandidate}
-        />
-      )}
-      {!readOnly && (
-        <ModelComparisonPanel 
-          compResult={s.compResult} 
-          isRunning={s.runningComp} 
-          onRunTest={isCandidate ? null : s.handleModelComparison} 
-          isDemo={s.isDemo}
-          readOnly={isCandidate}
-        />
-      )}
+      {/* Bias audit + model comparison — shown to all users */}
+      <BiasStabilitySection 
+        cfResult={s.cfResult} 
+        isRunning={s.runningCF} 
+        onRunTest={(!readOnly && !isCandidate) ? s.handleCounterfactualTest : null} 
+        isDemo={s.isDemo} 
+        readOnly={readOnly || isCandidate}
+      />
+      <ModelComparisonPanel 
+        compResult={s.compResult} 
+        isRunning={s.runningComp} 
+        onRunTest={(!readOnly && !isCandidate) ? s.handleModelComparison : null} 
+        isDemo={s.isDemo}
+        readOnly={readOnly || isCandidate}
+      />
       {s.cfResult?.fairness_metrics && <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />}
       {isRecruiter && (
         <>

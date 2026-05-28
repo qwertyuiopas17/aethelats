@@ -1,110 +1,146 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import ForceGraph3D from 'react-force-graph-3d';
 import { Box, Layers } from 'lucide-react';
 
 export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
-  const [mode, setMode] = useState('2D'); // '2D' or '3D'
+  const [mode, setMode] = useState('2D');
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const containerRef = useRef();
-  const [dimensions, setDimensions] = useState({ width: 0, height: 480 });
+  const [width, setWidth] = useState(600); // safe default so graph renders immediately
+  const HEIGHT = 480;
 
-  // Handle container resize
+  // ResizeObserver — fires reliably inside CSS grids / flex containers
   useEffect(() => {
-    if (containerRef.current) {
-      setDimensions({ width: containerRef.current.offsetWidth, height: 480 });
-    }
-    const handleResize = () => {
-      if (containerRef.current) {
-        setDimensions({ width: containerRef.current.offsetWidth, height: 480 });
+    const el = containerRef.current;
+    if (!el) return;
+    // Set initial width immediately
+    if (el.offsetWidth > 0) setWidth(el.offsetWidth);
+
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) setWidth(w);
       }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
+  // Build graph data from skill props
   useEffect(() => {
-    const nodes = [];
-    const links = [];
-    
-    // Normalize skill_matches — skill names can be in canonical_name, found_in_resume, or skill
-    const normalizeSkillName = (s) => s.canonical_name || s.found_in_resume || s.skill || '';
+    // Normalize: skill name can live in canonical_name, found_in_resume, or skill
+    const getName = (s) =>
+      (s.canonical_name || s.found_in_resume || s.skill || '').trim();
 
     let skills = [];
+
     if (skillData && skillData.length > 0) {
-      // Use real matched skills from the result
-      const uniqueNames = [...new Set(skillData.map(normalizeSkillName).filter(Boolean))];
-      skills = uniqueNames.map(name => ({
-        name,
-        isCore: skillData.find(s => normalizeSkillName(s) === name)?.match_type === 'semantic'
-          || skillData.find(s => normalizeSkillName(s) === name)?.match_type === 'exact',
-      }));
+      const uniqueNames = [...new Set(skillData.map(getName).filter(Boolean))];
+      skills = uniqueNames.map(name => {
+        const entry = skillData.find(s => getName(s) === name);
+        const mt = entry?.match_type || '';
+        return {
+          name,
+          isCore: mt === 'semantic' || mt === 'exact' || mt === 'synonym',
+          score: entry?.similarity ?? entry?.score ?? entry?.relevance ?? null,
+        };
+      });
     } else if (fallbackSkills && fallbackSkills.length > 0) {
-      // Use actual resume skills extracted by Bot 3 / Groq
-      const uniqueNames = [...new Set(fallbackSkills.slice(0, 12).filter(Boolean))];
-      skills = uniqueNames.map((name, i) => ({ name, isCore: i < Math.ceil(uniqueNames.length / 2) }));
+      // Use actual technical skills extracted from the resume (Bot 3 / Groq)
+      const uniqueNames = [...new Set(fallbackSkills.slice(0, 16).filter(s => typeof s === 'string' && s.trim()))];
+      skills = uniqueNames.map((name, i) => ({
+        name,
+        isCore: i < Math.ceil(uniqueNames.length / 2),
+        score: null,
+      }));
     }
-    // If no skills at all — show empty graph (no demo data)
+
     if (skills.length === 0) {
       setGraphData({ nodes: [], links: [] });
       return;
     }
 
-    skills.forEach(({ name, isCore }) => {
-      nodes.push({ id: name, name, val: isCore ? 6 : 3, core: isCore });
-    });
+    const nodes = skills.map(({ name, isCore, score }) => ({
+      id: name,
+      name,
+      val: isCore ? 6 : 3,
+      core: isCore,
+      score,
+    }));
 
+    const links = [];
     if (nodes.length > 1) {
+      // Ring links
       nodes.forEach((n, i) => {
-        const target1 = nodes[(i + 1) % nodes.length];
-        if (target1) links.push({ source: n.id, target: target1.id });
-        if (nodes.length > 4) {
-          const target2 = nodes[(i + Math.floor(nodes.length/2)) % nodes.length];
-          if (target2 && i < nodes.length/2) links.push({ source: n.id, target: target2.id });
-        }
+        links.push({ source: n.id, target: nodes[(i + 1) % nodes.length].id });
       });
+      // Cross-links for larger graphs
+      if (nodes.length > 4) {
+        const half = Math.floor(nodes.length / 2);
+        nodes.forEach((n, i) => {
+          if (i < half) {
+            links.push({ source: n.id, target: nodes[i + half].id });
+          }
+        });
+      }
     }
 
     setGraphData({ nodes, links });
   }, [skillData, fallbackSkills]);
 
-  const draw2DNode = (node, ctx, globalScale) => {
-    const label = node.name;
-    const fontSize = 14 / globalScale;
-    ctx.font = `${node.core ? 'bold ' : ''}${fontSize}px Inter, sans-serif`;
-    
+  const draw2DNode = useCallback((node, ctx, globalScale) => {
+    const fontSize = Math.max(10, 13 / globalScale);
     const r = node.val * 3;
-    
+    const label = node.name;
+
+    // Circle
     ctx.beginPath();
     ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-    ctx.fillStyle = node.core ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
+    ctx.fillStyle = node.core ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)';
     ctx.fill();
-    ctx.lineWidth = 1 / globalScale;
-    ctx.strokeStyle = node.core ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = (node.core ? 1.5 : 0.8) / globalScale;
+    ctx.strokeStyle = node.core ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)';
     ctx.stroke();
 
+    // Label
+    ctx.font = `${node.core ? 'bold ' : ''}${fontSize}px Inter, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = node.core ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)';
-    ctx.fillText(label, node.x, node.y + r + fontSize);
-  };
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = node.core ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.55)';
+    ctx.fillText(label, node.x, node.y + r + 3 / globalScale);
+
+    // Score badge if available
+    if (node.score != null && globalScale > 0.8) {
+      const sc = node.score > 1 ? Math.round(node.score) : Math.round(node.score * 100);
+      const badge = `${sc}%`;
+      ctx.font = `bold ${fontSize * 0.75}px Inter, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillText(badge, node.x, node.y + r + fontSize + 4 / globalScale);
+    }
+  }, []);
+
+  const isEmpty = graphData.nodes.length === 0;
 
   return (
     <div className="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden animate-fade-in-up" ref={containerRef}>
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-base font-bold text-white animate-slide-in-right stagger-1">Skill Knowledge Graph</h3>
-          <p className="text-xs text-white/80 mt-0.5 animate-slide-in-right stagger-2">Interactive physics-based topology</p>
+          <p className="text-xs text-white/80 mt-0.5 animate-slide-in-right stagger-2">
+            Interactive physics-based topology
+            {graphData.nodes.length > 0 && <span className="ml-2 text-white/40">· {graphData.nodes.length} skills</span>}
+          </p>
         </div>
         <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06] animate-scale-in stagger-3">
-          <button 
-            onClick={() => setMode('2D')} 
+          <button
+            onClick={() => setMode('2D')}
             className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '2D' ? 'bg-white text-black shadow-lg' : 'text-white/90 hover:text-white')}
           >
             <Layers className="w-3.5 h-3.5" /> 2D
           </button>
-          <button 
-            onClick={() => setMode('3D')} 
+          <button
+            onClick={() => setMode('3D')}
             className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '3D' ? 'bg-white text-black shadow-lg' : 'text-white/90 hover:text-white')}
           >
             <Box className="w-3.5 h-3.5" /> 3D
@@ -112,29 +148,38 @@ export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
         </div>
       </div>
 
-      <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.04] animate-fade-in stagger-4" style={{ height: '480px' }}>
-        {dimensions.width > 0 && mode === '2D' && (
+      <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.04] animate-fade-in stagger-4" style={{ height: `${HEIGHT}px` }}>
+        {isEmpty ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/20">
+            <svg className="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <circle cx="12" cy="12" r="10" strokeWidth="1" />
+              <path strokeLinecap="round" d="M8 12h8M12 8v8" strokeWidth="1" />
+            </svg>
+            <span className="text-xs uppercase tracking-widest">No skill data</span>
+          </div>
+        ) : mode === '2D' ? (
           <ForceGraph2D
-            width={dimensions.width}
-            height={dimensions.height}
+            width={width}
+            height={HEIGHT}
             graphData={graphData}
             nodeCanvasObject={draw2DNode}
             nodePointerAreaPaint={(node, color, ctx) => {
               ctx.fillStyle = color;
-              ctx.beginPath(); ctx.arc(node.x, node.y, node.val * 3 + 10, 0, 2 * Math.PI, false); ctx.fill();
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, node.val * 3 + 10, 0, 2 * Math.PI, false);
+              ctx.fill();
             }}
-            linkColor={() => 'rgba(255,255,255,0.06)'}
-            linkWidth={1.5}
-            cooldownTicks={100}
-            d3AlphaDecay={0.05}
-            d3VelocityDecay={0.15}
+            linkColor={() => 'rgba(255,255,255,0.07)'}
+            linkWidth={1.2}
+            cooldownTicks={120}
+            d3AlphaDecay={0.03}
+            d3VelocityDecay={0.2}
+            onEngineStop={() => {}} // prevent infinite re-renders
           />
-        )}
-        
-        {dimensions.width > 0 && mode === '3D' && (
+        ) : (
           <ForceGraph3D
-            width={dimensions.width}
-            height={dimensions.height}
+            width={width}
+            height={HEIGHT}
             graphData={graphData}
             nodeLabel="name"
             nodeRelSize={4}
@@ -147,11 +192,12 @@ export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
             showNavInfo={false}
           />
         )}
-        
-        {/* Helper text overlay */}
-        <div className="absolute bottom-4 right-4 pointer-events-none text-[10px] text-white uppercase tracking-widest animate-fade-in stagger-5">
-          {mode === '2D' ? 'Drag nodes to interact' : 'Drag to rotate · Scroll to zoom'}
-        </div>
+
+        {!isEmpty && (
+          <div className="absolute bottom-4 right-4 pointer-events-none text-[10px] text-white/30 uppercase tracking-widest">
+            {mode === '2D' ? 'Drag nodes to interact' : 'Drag to rotate · Scroll to zoom'}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-6 mt-4 pt-3 border-t border-white/[0.06] text-xs text-white/80 animate-fade-in-up stagger-6">
