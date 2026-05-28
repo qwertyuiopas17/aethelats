@@ -526,14 +526,42 @@ def _extract_via_vision(image_bytes: bytes, mime_type: str) -> str:
 
 
 def _extract_pdf_text(pdf_bytes: bytes) -> str:
-    """Extract text from a native (non-scanned) PDF using PyPDF2."""
+    """Extract text AND hyperlink URIs from a native (non-scanned) PDF using PyPDF2."""
     try:
         reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
         text = ""
+        link_urls = []
+
         for page in reader.pages:
+            # ── 1. Body text ──────────────────────────────────────────────────
             t = page.extract_text()
             if t:
                 text += t + "\n"
+
+            # ── 2. Hyperlink annotations (URI entries in /Annots) ─────────────
+            # Many modern resumes store GitHub/LinkedIn as clickable links only —
+            # they never appear as plain text. PyPDF2 can read these via /Annots.
+            try:
+                if "/Annots" in page:
+                    for annot_ref in page["/Annots"]:
+                        try:
+                            annot = annot_ref.get_object()
+                            if annot.get("/Subtype") == "/Link":
+                                action = annot.get("/A")
+                                if action and action.get("/S") == "/URI":
+                                    uri = str(action.get("/URI", "")).strip()
+                                    if uri and uri.startswith("http"):
+                                        link_urls.append(uri)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+        # Append discovered hyperlink URLs as plain text so regex extraction works
+        if link_urls:
+            text += "\nLinks: " + " ".join(link_urls) + "\n"
+            print(f"[FairAI] PDF hyperlinks extracted: {link_urls}")
+
         return text
     except Exception as e:
         print(f"[FairAI] PDF text extract error: {e}")
