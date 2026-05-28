@@ -259,8 +259,20 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
             </div>
           </div>
           <SkillKnowledgeGraph 
-            skillData={result.skill_matches} 
-            fallbackSkills={result.structured_data?.technical_skills}
+            skillData={null}
+            fallbackSkills={
+              // Merge: start with ALL resume skills, annotate matched ones
+              (() => {
+                const allSkills = result.structured_data?.technical_skills || [];
+                const matched = new Set((result.skill_matches || []).map(m => 
+                  (m.found_in_resume || m.canonical_name || '').toLowerCase()
+                ));
+                // Return all skills; matched ones first so they get isCore=true
+                const matchedFirst = allSkills.filter(s => matched.has(s.toLowerCase()));
+                const rest = allSkills.filter(s => !matched.has(s.toLowerCase()));
+                return [...matchedFirst, ...rest];
+              })()
+            }
           />
         </div>
       </section>

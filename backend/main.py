@@ -12,6 +12,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body, Depend
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from groq import Groq
+import datetime
 import json
 import os
 import re
@@ -2107,14 +2108,29 @@ def _generate_skills_for_role(role: str) -> list[str]:
     try:
         resp = client.chat.completions.create(
             model=MODEL,
-            messages=[{"role": "user", "content": f"List exactly 5 core skills (technical or soft) required for a '{role}'. Provide ONLY crisp, single-word or short-phrase skills (e.g. 'Python', 'Machine Learning', 'Communication'). Do not use brackets, parentheses, or long categories. Return ONLY a JSON object: {{\"skills\": [\"skill1\", \"skill2\"]}}" }],
-            temperature=0.1, max_tokens=100,
+            messages=[{"role": "user", "content": (
+                f"List exactly 8 specific TECHNICAL skills, tools, and frameworks required for a '{role}' role. "
+                "CRITICAL RULES:\n"
+                "- Return SPECIFIC tools/libraries/frameworks, NOT broad categories.\n"
+                "- WRONG: 'Machine Learning', 'Data Analysis', 'Problem Solving', 'Communication'\n"
+                "- RIGHT: 'PyTorch', 'scikit-learn', 'Pandas', 'NumPy', 'SQL', 'Git', 'Python', 'TensorFlow'\n"
+                "- Mix required programming languages, ML/data libraries, and 1-2 tools.\n"
+                "- Keep each skill short (1-3 words max). No parentheses or long descriptions.\n"
+                "Return ONLY valid JSON: {\"skills\": [\"skill1\", \"skill2\", ...]}"
+            )}],
+            temperature=0.1, max_tokens=150,
             response_format={"type": "json_object"}
         )
         data = parse_json_response(resp.choices[0].message.content)
-        return data.get("skills", ["Communication", "Problem Solving", "Teamwork", "Adaptability", "Leadership"])
+        skills = data.get("skills", [])
+        # Filter out abstract soft skills that will never semantically match resume tools
+        _abstract = {"machine learning", "data analysis", "problem solving", "communication",
+                     "teamwork", "leadership", "adaptability", "analytical skills",
+                     "critical thinking", "collaboration", "time management"}
+        skills = [s for s in skills if s.lower() not in _abstract]
+        return skills[:8] if skills else ["Python", "Git", "SQL", "Linux", "REST APIs", "Docker", "Algorithms", "Data Structures"]
     except Exception:
-        return ["Communication", "Problem Solving", "Teamwork", "Adaptability", "Leadership"]
+        return ["Python", "Git", "SQL", "Linux", "REST APIs", "Docker", "Algorithms", "Data Structures"]
 
 
 
@@ -3056,15 +3072,33 @@ Resume:
                 structured_data.get("highest_degree", ""), 0
             )
 
+            _n_projects = len(structured_data.get("projects") or [])
+            # For students: treat projects as a proxy for job entries in radar axes
+            _n_jobs_effective = _n_jobs + max(0, _n_projects - 1)  # projects beyond 1 count half
+
             # ── Impact bonus: reward bullet points with real metrics ──────────────
-            # Scan Bot 3's job_history bullets for numbers/% signs (e.g. "grew sales 40%")
+            # Scan BOTH job_history AND projects bullets for numbers/% signs
+            # This ensures student resumes with strong projects get proper credit
             _impact_bonus = 0
             _all_bullets = []
+            # Job history bullets
             for _job in (structured_data.get("job_history") or structured_data.get("experience") or []):
                 if isinstance(_job, dict):
                     _all_bullets += _job.get("responsibilities", _job.get("bullets", []))
+            # Project bullets (critical for students/freshers)
+            for _proj in (structured_data.get("projects") or []):
+                if isinstance(_proj, dict):
+                    _all_bullets += _proj.get("bullets", _proj.get("highlights", _proj.get("description", [])))
+                    # If description is a string, split into sentences
+                    desc = _proj.get("description", "")
+                    if isinstance(desc, str) and desc:
+                        _all_bullets += desc.split(".")
+            # Hackathon wins = strong impact signal
+            _hackathon_bonus = min(20, len(structured_data.get("hackathons", [])) * 7)
+            # Certifications = modest signal
+            _cert_bonus = min(10, len(structured_data.get("certifications", [])) * 3)
             _metric_bullets = sum(1 for b in _all_bullets if any(c.isdigit() or c == "%" for c in str(b)))
-            _impact_bonus = min(100, 30 + _metric_bullets * 10)   # 30 baseline, +10 per metric bullet, max 100
+            _impact_bonus = min(100, 30 + _metric_bullets * 8 + _hackathon_bonus + _cert_bonus)
 
             # ── DETERMINISTIC overall score — role-aware weighted formula ──────────
             # Detect the industry category for this role (uses the already-loaded
@@ -3110,14 +3144,14 @@ Resume:
                     "technical_depth":      min(100, int(_skill * 0.7 + _n_skills * 1.0)),
                     # Axis 2: problem-solving proxy = blend of skill + experience
                     "problem_solving":      min(100, int(_skill * 0.4 + _exp * 0.4 + _yrs * 0.5)),
-                    # Axis 3: demonstrated impact = experience score weighted by tenure + metric bullets
-                    "impact_evidence":      min(100, int(_exp * 0.5 + _yrs * 0.6 + _metric_bullets * 5)),
+                    # Axis 3: demonstrated impact — projects count for students
+                    "impact_evidence":      min(100, int(_exp * 0.4 + _yrs * 0.5 + _metric_bullets * 5 + _n_projects * 4)),
                     # Axis 4: domain / education depth
                     "domain_knowledge":     min(100, int(_edu * 0.7 + _deg_bonus * 1.5)),
-                    # Axis 5: project complexity proxy = deterministic overall minus edu
-                    "project_complexity":   min(100, int(_overall * 0.55 + _n_jobs * 1.2)),
-                    # Axis 6: communication clarity = job-history richness
-                    "communication_clarity": min(100, int(_overall * 0.4 + _n_jobs * 2.0 + 20)),
+                    # Axis 5: project complexity — use actual project count, not just jobs
+                    "project_complexity":   min(100, int(_overall * 0.45 + _n_projects * 8 + _n_jobs * 3)),
+                    # Axis 6: communication clarity — richness of both jobs + projects
+                    "communication_clarity": min(100, int(_overall * 0.4 + _n_jobs_effective * 2.0 + 20)),
                 },
 
                 "skill_usage_breakdown": skill_usage_breakdown,
@@ -4206,6 +4240,10 @@ class CoachChatRequest(_BaseModel):
     legacy_score: _Optional[float] = None
     experience_years: _Optional[float] = None
     candidate_name: _Optional[str] = ""            # first name only for personalisation
+    # Proof-of-work context from the scan result
+    proof_score: _Optional[float] = None           # 0-100 GitHub/platform score
+    github_url: _Optional[str] = ""               # candidate's GitHub profile URL
+    proof_signals: _Optional[_List[str]] = []      # e.g. ["5 public repos", "Star on PyTorch project"]
 
 
 @app.post("/coach/chat")
@@ -4254,6 +4292,14 @@ async def coach_chat(req: CoachChatRequest):
             parts.append(f"Detected skills: {', '.join(req.resume_skills[:20])}")
         if req.missing_skills:
             parts.append(f"Missing skills for target role: {', '.join(req.missing_skills[:10])}")
+        # GitHub / proof-of-work context
+        if req.proof_score is not None:
+            proof_label = "Exceptional" if req.proof_score >= 80 else "Strong" if req.proof_score >= 60 else "Moderate" if req.proof_score >= 40 else "Limited"
+            parts.append(f"GitHub/Platform Proof Score: {req.proof_score}/100 ({proof_label})")
+        if req.github_url:
+            parts.append(f"GitHub Profile: {req.github_url}")
+        if req.proof_signals:
+            parts.append(f"Verified proof signals: {'; '.join(req.proof_signals[:8])}")
         resume_block = "\n".join(parts)
 
     # ── 3. Build system prompt ─────────────────────────────────────────────

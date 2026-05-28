@@ -30,8 +30,10 @@ import numpy as np
 log = logging.getLogger("skill_matcher")
 
 # ── thresholds ────────────────────────────────────────────────────────────────
-MATCH_THRESHOLD   = 0.72   # cosine similarity >= this → matched
-PARTIAL_THRESHOLD = 0.55   # between these → partial credit (0.5 weight)
+# 0.60 full match: catches "PyTorch" ↔ "TensorFlow", "FastAPI" ↔ "Flask", etc.
+# 0.42 partial:   catches "scikit-learn" ↔ "NumPy", "Hugging Face" ↔ "PyTorch"
+MATCH_THRESHOLD   = 0.60   # cosine similarity >= this → matched
+PARTIAL_THRESHOLD = 0.42   # between these → partial credit (0.5 weight)
 MODEL_NAME        = "all-MiniLM-L6-v2"   # 90 MB, CPU-fast, great quality
 
 # ── Role category weight profiles ─────────────────────────────────────────────
@@ -47,6 +49,9 @@ ROLE_WEIGHTS: dict[str, dict[str, float]] = {
     "MARKETING":   {"skill": 0.25, "exp": 0.35, "edu": 0.10, "impact": 0.30},
     "FINANCE":     {"skill": 0.30, "exp": 0.30, "edu": 0.25, "impact": 0.15},
     "HEALTHCARE":  {"skill": 0.30, "exp": 0.25, "edu": 0.35, "impact": 0.10},
+    # Intern/fresher/entry-level: experience weight slashed, skills + education boosted
+    # Projects, certifications and skills count far more than job history for students
+    "INTERN":      {"skill": 0.50, "exp": 0.10, "edu": 0.25, "impact": 0.15},
     "DEFAULT":     {"skill": 0.40, "exp": 0.30, "edu": 0.15, "impact": 0.15},
 }
 
@@ -65,6 +70,12 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
         "deep learning, MLOps, data analyst, business intelligence, data engineer, "
         "data pipeline, analytics engineer, research scientist, computer vision, "
         "LLM, generative AI, statistics, TensorFlow, PyTorch, Spark, SQL, Tableau"
+    ),
+    "INTERN": (
+        "Intern, internship, fresher, entry level, junior, trainee, apprentice, "
+        "software intern, data intern, AI intern, ML intern, engineering intern, "
+        "summer intern, full stack intern, backend intern, frontend intern, "
+        "new graduate, recent graduate, campus hire, associate engineer, 0-1 years experience"
     ),
     "PRODUCT": (
         "Product manager, product owner, program manager, scrum master, agile coach, "
@@ -158,7 +169,14 @@ def detect_role_category(role: str) -> str:
         # If nothing is a decent match, fall back to DEFAULT
         if best_sim < 0.20:
             best_cat = "DEFAULT"
-        log.info(f"[SkillMatcher] Role '{role}' → {best_cat} (sim={best_sim:.3f})")
+        # Keyword override: if the role string explicitly mentions intern/fresher terms,
+        # force INTERN category — more reliable than cosine similarity for short phrases
+        _role_lower = role.strip().lower()
+        _intern_kw = ["intern", "internship", "fresher", "entry level", "entry-level",
+                      "trainee", "junior", "graduate trainee", "new grad"]
+        if any(kw in _role_lower for kw in _intern_kw):
+            best_cat = "INTERN"
+        log.info(f"[SkillMatcher] Role '{role}' -> {best_cat} (sim={best_sim:.3f})")
         return best_cat
     except Exception as e:
         log.warning(f"[SkillMatcher] Role detection failed: {e}")
