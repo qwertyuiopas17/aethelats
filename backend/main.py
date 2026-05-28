@@ -812,6 +812,13 @@ def _fetch_github(url: str) -> dict:
             "add files via upload", "initial commit", "first commit",
             "added files", "upload files", "update", "test", "asdf", ".",
         ]
+        # Tutorial/learning repo names — excluded from fraud signals since
+        # every developer has a few hello-world or intro repos.
+        _TUTORIAL_REPO_NAMES = {
+            "skills-introduction-to-git", "learn", "hello-world", "hello_world",
+            "first-repo", "git-practice", "practice", "test", "demo", "sandbox",
+            "learning", "tutorial", "exercises", "intro", "getting-started",
+        }
 
         for r in raw_repos[:6]:
             repo_name   = r.get("name", "")
@@ -884,10 +891,18 @@ def _fetch_github(url: str) -> dict:
                 originality = "copied_fork"
 
             # ── Code-dump detection: repo created & last-pushed on same day ───
+            # Skip tutorial repos — they always look like dumps since they're created in one go
             repo_created = (r.get("created_at") or "")[:10]
             repo_pushed  = (r.get("pushed_at")  or "")[:10]
-            if repo_created and repo_pushed and repo_created == repo_pushed and not is_fork:
+            is_tutorial  = repo_name.lower() in _TUTORIAL_REPO_NAMES or any(
+                kw in repo_name.lower() for kw in ("intro", "learn", "practice", "demo", "hello", "test")
+            )
+            if repo_created and repo_pushed and repo_created == repo_pushed and not is_fork and not is_tutorial:
                 code_dump_repos.append(repo_name)
+
+            # Track lazy commits only for non-tutorial repos
+            if is_tutorial:
+                suspicious_messages.discard(msg[:40] if 'msg' in dir() else '')
 
             enriched_repos.append({
                 "name":           repo_name,
@@ -4272,6 +4287,9 @@ class CoachChatRequest(_BaseModel):
     proof_score: _Optional[float] = None           # 0-100 GitHub/platform score
     github_url: _Optional[str] = ""               # candidate's GitHub profile URL
     proof_signals: _Optional[_List[str]] = []      # e.g. ["5 public repos", "Star on PyTorch project"]
+    # Project / hackathon context so coach doesn't hallucinate "no projects"
+    projects: _Optional[_List[str]] = []           # project titles/names from structured data
+    hackathons: _Optional[_List[str]] = []         # hackathon names from structured data
 
 
 @app.post("/coach/chat")
@@ -4320,6 +4338,11 @@ async def coach_chat(req: CoachChatRequest):
             parts.append(f"Detected skills: {', '.join(req.resume_skills[:20])}")
         if req.missing_skills:
             parts.append(f"Missing skills for target role: {', '.join(req.missing_skills[:10])}")
+        # Projects — CRITICAL: prevents coach from hallucinating "no AI/ML projects found"
+        if req.projects:
+            parts.append(f"Verified projects from resume: {'; '.join(req.projects)}")
+        if req.hackathons:
+            parts.append(f"Hackathons participated: {', '.join(req.hackathons)}")
         # GitHub / proof-of-work context
         if req.proof_score is not None:
             proof_label = "Exceptional" if req.proof_score >= 80 else "Strong" if req.proof_score >= 60 else "Moderate" if req.proof_score >= 40 else "Limited"

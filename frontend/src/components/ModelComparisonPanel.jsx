@@ -334,7 +334,6 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo,
       <SectionHeading icon={<BarChart3 className="w-3.5 h-3.5" />} label="LLM Comparison — Aethel vs Mainstream Models" />
 
       {!data ? (
-        readOnly ? null : (  // Candidates: hide the run prompt entirely
         <div className="glass-card rounded-2xl p-8 text-center">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
             <BarChart3 className="w-7 h-7 text-white/80" />
@@ -348,19 +347,20 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo,
             <Info className="w-3 h-3 inline mr-1" />
             This proves whether your unbiased model genuinely outperforms generic LLMs on fairness.
           </p>
-          <button
-            id="run-model-comparison-btn"
-            onClick={onRunTest}
-            disabled={isRunning}
-            className={`px-6 py-3 rounded-xl text-sm font-bold border transition-all hover-lift flex items-center gap-2 mx-auto ${isRunning
-              ? 'bg-white/[0.03] text-white/80 border-white/[0.06] cursor-wait'
-              : 'bg-emerald-400/10 text-emerald-300 border-emerald-400/20 hover:bg-emerald-400/20'}`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            {isRunning ? 'Running Comparison...' : isDemo ? 'View Demo Comparison' : 'Run Full Comparison'}
-          </button>
+          {!readOnly && onRunTest && (
+            <button
+              id="run-model-comparison-btn"
+              onClick={onRunTest}
+              disabled={isRunning}
+              className={`px-6 py-3 rounded-xl text-sm font-bold border transition-all hover-lift flex items-center gap-2 mx-auto ${isRunning
+                ? 'bg-white/[0.03] text-white/80 border-white/[0.06] cursor-wait'
+                : 'bg-emerald-400/10 text-emerald-300 border-emerald-400/20 hover:bg-emerald-400/20'}`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              {isRunning ? 'Running Comparison...' : isDemo ? 'View Demo Comparison' : 'Run Full Comparison'}
+            </button>
+          )}
         </div>
-        )
       ) : isRunning ? (
         <div className="glass-card rounded-2xl p-10 flex flex-col items-center gap-4">
           <div className="relative w-16 h-16">

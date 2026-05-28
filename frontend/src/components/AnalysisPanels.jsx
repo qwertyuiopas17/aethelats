@@ -154,16 +154,21 @@ export function ProofOfWorkSection({ detectedLinks, proofResult, isLoading, onFe
 
 export function BiasStabilitySection({ cfResult, isRunning, onRunTest, isDemo, readOnly }) {
   if (!cfResult && !isRunning) {
-    if (readOnly) return null; // Candidates: don't show the "run test" prompt at all — only show results
+    // Always show the panel — candidates see an info state, recruiters see the run button
     return (
       <section className="mb-6 animate-fade-in-up stagger-7">
         <SectionHeading icon={<FlaskConical className="w-3.5 h-3.5" />} label="Bias Stability Test" />
         <div className="glass-card glass-card-hover rounded-2xl p-6 flex items-center gap-5">
           <div className="w-12 h-12 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0"><FlaskConical className="w-6 h-6 text-white/90" /></div>
-          <div className="flex-1"><h4 className="text-sm font-semibold text-white mb-1">Test AI Bias Stability</h4><p className="text-xs text-white/80 leading-relaxed">Simulates 3 demographic swap experiments.</p></div>
-          <button onClick={onRunTest} className="px-5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-sm font-semibold transition-all flex items-center gap-2 shrink-0 hover-lift">
-            <FlaskConical className="w-4 h-4" />{isDemo ? 'View Demo' : 'Run Test'}
-          </button>
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-white mb-1">AI Bias Stability Test</h4>
+            <p className="text-xs text-white/70 leading-relaxed">Simulates 3 demographic swap experiments (name, institution, location) to measure how much the AI score changes — revealing hidden bias.</p>
+          </div>
+          {!readOnly && onRunTest && (
+            <button onClick={onRunTest} className="px-5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-sm font-semibold transition-all flex items-center gap-2 shrink-0 hover-lift">
+              <FlaskConical className="w-4 h-4" />{isDemo ? 'View Demo' : 'Run Test'}
+            </button>
+          )}
         </div>
       </section>
     );

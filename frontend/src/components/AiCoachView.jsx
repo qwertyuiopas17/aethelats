@@ -72,6 +72,13 @@ export default function AiCoachView({ s }) {
   const proofScore = result?.proof_score ?? null;
   const proofSignals = (result?.proof_breakdown || []).map(b => b.signal).filter(Boolean);
   const githubUrl = (result?.platform_data || []).find(p => p.platform === 'github')?.url || '';
+  // Project descriptions — so coach doesn't hallucinate "no projects"
+  const projects = (result?.structured_data?.projects || []).map(p =>
+    typeof p === 'string' ? p : (p.name || p.title || JSON.stringify(p))
+  ).filter(Boolean).slice(0, 6);
+  const hackathons = (result?.structured_data?.hackathons || []).map(h =>
+    typeof h === 'string' ? h : (h.name || h.title || '')
+  ).filter(Boolean);
   // Candidate name — first name only for personalisation
   const candidateName = (() => {
     const full = result?.structured_data?.name || result?.structured_data?.candidate_name || '';
@@ -147,6 +154,8 @@ export default function AiCoachView({ s }) {
           proof_score: proofScore,
           github_url: githubUrl,
           proof_signals: proofSignals,
+          projects: projects,
+          hackathons: hackathons,
         }),
       });
 
