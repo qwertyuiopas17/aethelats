@@ -6,8 +6,14 @@ export default function MagneticLensCursor() {
   const mouse = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const pos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [hoveredRect, setHoveredRect] = useState(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      setIsTouchDevice(true);
+      return;
+    }
+
     const onMouseMove = (e) => {
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
@@ -68,6 +74,8 @@ export default function MagneticLensCursor() {
       document.body.style.cursor = 'auto';
     };
   }, [hoveredRect]);
+
+  if (isTouchDevice) return null;
 
   return (
     <div

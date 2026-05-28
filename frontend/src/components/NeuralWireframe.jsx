@@ -5,6 +5,7 @@ export default function NeuralWireframe() {
   const requestRef = useRef(null);
   const mouse = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const targetBox = useRef(null); // Will hold bounding box of hovered magnetic element
+  const isTouchDevice = useRef(false);
 
   // Generate 20 abstract nodes
   const nodes = useRef(Array.from({ length: 20 }).map((_, i) => ({
@@ -19,12 +20,18 @@ export default function NeuralWireframe() {
   })));
 
   useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      isTouchDevice.current = true;
+    }
+
     const onMouseMove = (e) => {
+      if (isTouchDevice.current) return;
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
     };
 
     const onMouseOver = (e) => {
+      if (isTouchDevice.current) return;
       const target = e.target.closest('[data-wireframe="magnetic"]');
       if (target) {
         targetBox.current = target.getBoundingClientRect();
