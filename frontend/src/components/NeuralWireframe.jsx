@@ -7,8 +7,11 @@ export default function NeuralWireframe() {
   const targetBox = useRef(null); // Will hold bounding box of hovered magnetic element
   const isTouchDevice = useRef(false);
 
-  // Generate 20 abstract nodes
-  const nodes = useRef(Array.from({ length: 20 }).map((_, i) => ({
+  const isMobile = window.innerWidth < 768;
+  const nodeCount = isMobile ? 6 : 20;
+
+  // Generate abstract nodes
+  const nodes = useRef(Array.from({ length: nodeCount }).map((_, i) => ({
     id: i,
     baseX: Math.random() * window.innerWidth,
     baseY: Math.random() * window.innerHeight,
@@ -172,7 +175,7 @@ export default function NeuralWireframe() {
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0.1" />
           </linearGradient>
         </defs>
-        {Array.from({ length: 60 }).map((_, i) => (
+        {Array.from({ length: nodeCount * 3 }).map((_, i) => (
           <path 
             key={i} 
             stroke="url(#wireframeGrad)" 
