@@ -8,8 +8,6 @@ import { useAppState } from './components/AppLogic';
 import { NavItem, FairnessGateModal, getLogColor, LogIcon } from './components/UIHelpers';
 import LandingView from './components/LandingView';
 import UploadView from './components/UploadView';
-import MagneticLensCursor from './components/MagneticLensCursor';
-import NeuralWireframe from './components/NeuralWireframe';
 import ResultsView from './components/ResultsView';
 import HorseLoader from './components/HorseLoader';
 import BiasDashboard from './components/BiasDashboard';
@@ -128,9 +126,10 @@ function UserMenu({ user, onLogout, onClose }) {
 ══════════════════════════════════════════════════════════════ */
 function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
   return (
-    <div className="min-h-screen bg-transparent relative w-full">
-      <MagneticLensCursor />
-      <NeuralWireframe />
+    <div className="min-h-screen bg-black relative">
+      <div className="bg-criss-cross fixed z-0" />
+      <div className="fixed inset-0 pointer-events-none z-0"
+        style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%)' }} />
 
       {/* Minimal public topbar */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/[0.05]"
@@ -160,7 +159,7 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
 
       {/* Demo mode: show results + sign-up nudge */}
       {s?.isDemo && s?.result ? (
-        <div className="relative z-10 max-w-7xl mx-auto w-full">
+        <div className="relative z-10">
           <div className="px-6 py-3 flex items-center justify-between gap-4 border-b border-white/[0.05]"
             style={{ background: 'rgba(255,255,255,0.03)' }}>
             <p className="text-xs text-white/60">
@@ -175,7 +174,7 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
         </div>
       ) : (
         /* Normal landing content */
-        <div className="relative z-10 mx-auto w-full">
+        <div className="relative z-10">
           <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
         </div>
       )}
@@ -198,7 +197,11 @@ function AuthenticatedApp({ s }) {
   const goTo = step => { s.setStep(step); setMobileMenuOpen(false); };
 
   return (
-    <div className="min-h-screen text-white flex relative overflow-hidden bg-transparent w-full">
+    <div className="min-h-screen text-white flex relative overflow-hidden bg-[#000000] w-full">
+      <div className="bg-criss-cross fixed z-0" />
+      <div className="bg-scan-line fixed z-0" />
+      <div className="fixed inset-0 pointer-events-none z-0"
+        style={{ background: 'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 60%)' }} />
 
       {s.showFairnessGate && (
         <FairnessGateModal biasProxies={biasProxies} recommendation={recommendation}
@@ -213,8 +216,8 @@ function AuthenticatedApp({ s }) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* SIDEBAR - FLOATING PILL STYLE */}
-      <aside className={`w-[260px] shrink-0 glass-sidebar flex flex-col rounded-3xl m-4 z-[70] fixed md:sticky top-4 h-[calc(100vh-2rem)] transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shadow-[0_0_40px_rgba(0,0,0,0.8)]`}>
+      {/* SIDEBAR */}
+      <aside className={`w-56 shrink-0 glass-sidebar flex flex-col min-h-screen z-[70] !fixed md:!relative transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/assets/shield_logo.png" alt="Aethel" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
@@ -337,79 +340,79 @@ function AuthenticatedApp({ s }) {
 
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full">
-          <div className="max-w-[1600px] mx-auto w-full px-4 sm:px-8 py-6">
-            {s.step === 'landing' && (
-              <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
-            )}
 
-            {s.step === 'upload' && <UploadView s={s} />}
+          {s.step === 'landing' && (
+            <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
+          )}
 
-            {s.step === 'scanning' && (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in">
-                <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
-                  <HorseLoader />
+          {s.step === 'upload' && <UploadView s={s} />}
+
+          {s.step === 'scanning' && (
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
+              <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
+                <HorseLoader />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
+              
+              <div className="w-full max-w-lg glass-card rounded-2xl p-6 scan-container shadow-[0_0_50px_rgba(255,255,255,0.03)] border border-white/[0.08]">
+                <div className="flex justify-between items-end mb-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-white/50 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Audit Trail
+                  </span>
+                  <span className="text-lg font-black text-white font-mono">{s.progress}%</span>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
+                <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
+                  <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
+                </div>
                 
-                <div className="w-full max-w-lg bento-box p-6 scan-container shadow-[0_0_80px_rgba(255,255,255,0.03)] border border-white/[0.08]">
-                  <div className="flex justify-between items-end mb-3">
-                    <span className="text-xs font-bold uppercase tracking-widest text-white/50 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse shadow-[0_0_10px_#00f0ff]" /> Live Audit Trail
-                    </span>
-                    <span className="text-lg font-black text-white font-mono">{s.progress}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
-                    <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
-                  </div>
-                  
-                  {/* Vertical Text Animation Container */}
-                  <div className="space-y-3 font-mono text-xs h-48 overflow-hidden relative">
-                    {s.logs.filter(Boolean).map(log => (
-                      <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
-                        <div className="mt-0.5"><LogIcon type={log.type} /></div>
-                        <div className="leading-relaxed">{log.text}</div>
-                      </div>
-                    ))}
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-transparent to-transparent pointer-events-none" />
-                  </div>
+                {/* Vertical Text Animation Container */}
+                <div className="space-y-3 font-mono text-xs h-48 overflow-hidden relative">
+                  {s.logs.filter(Boolean).map(log => (
+                    <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
+                      <div className="mt-0.5"><LogIcon type={log.type} /></div>
+                      <div className="leading-relaxed">{log.text}</div>
+                    </div>
+                  ))}
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {s.step === 'error' && (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in">
-                <div className="max-w-md w-full glass-card rounded-2xl p-8 text-center">
-                  <XCircle className="w-12 h-12 text-white/80 mx-auto mb-4" />
-                  <h2 className="text-xl font-bold text-white mb-2">Analysis Failed</h2>
-                  <p className="text-white/60 text-sm mb-6 font-mono leading-relaxed">{s.apiError}</p>
-                  <div className="flex justify-center gap-3">
-                    <button onClick={s.reset} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><RefreshCw className="w-4 h-4" />Retry</button>
-                    <button onClick={s.loadDemo} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><Play className="w-4 h-4" />Demo</button>
-                  </div>
+          {s.step === 'error' && (
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] p-8 animate-fade-in">
+              <div className="max-w-md w-full glass-card rounded-2xl p-8 text-center">
+                <XCircle className="w-12 h-12 text-white/80 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-white mb-2">Analysis Failed</h2>
+                <p className="text-white/60 text-sm mb-6 font-mono leading-relaxed">{s.apiError}</p>
+                <div className="flex justify-center gap-3">
+                  <button onClick={s.reset} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><RefreshCw className="w-4 h-4" />Retry</button>
+                  <button onClick={s.loadDemo} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><Play className="w-4 h-4" />Demo</button>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
-            {s.step === 'coach' && <AiCoachView s={s} />}
-            {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
-            {s.step === 'talent-pool' && <TalentPoolView />}
-            {s.step === 'batch' && user?.role !== 'candidate' && (
-              <BatchUploadView
-                s={s}
-                jobs={s.batchJobs}
-                setJobs={s.setBatchJobs}
-                batchId={s.batchId}
-                setBatchId={s.setBatchId}
-                ws={s.batchWs}
-                setWs={s.setBatchWs}
-                onViewResult={(job) => {
-                  s.setResult(job.result);
-                  s.setStep('results');
-                }}
-              />
-            )}
-          </div>
+          {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
+          {s.step === 'coach' && <AiCoachView s={s} />}
+          {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
+          {s.step === 'talent-pool' && <TalentPoolView />}
+          {s.step === 'batch' && user?.role !== 'candidate' && (
+            <BatchUploadView
+              s={s}
+              jobs={s.batchJobs}
+              setJobs={s.setBatchJobs}
+              batchId={s.batchId}
+              setBatchId={s.setBatchId}
+              ws={s.batchWs}
+              setWs={s.setBatchWs}
+              onViewResult={(job) => {
+                s.setResult(job.result);
+                s.setStep('results');
+              }}
+            />
+          )}
+
         </main>
       </div>
     </div>
