@@ -3,7 +3,7 @@ import ForceGraph2D from 'react-force-graph-2d';
 import ForceGraph3D from 'react-force-graph-3d';
 import { Box, Layers } from 'lucide-react';
 
-export default function SkillKnowledgeGraph({ skillData }) {
+export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
   const [mode, setMode] = useState('2D'); // '2D' or '3D'
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const containerRef = useRef();
@@ -27,15 +27,31 @@ export default function SkillKnowledgeGraph({ skillData }) {
     const nodes = [];
     const links = [];
     
-    // Generate skills (use demo Customer Service data if no real data is passed)
-    const skills = skillData && skillData.length > 0 
-      ? [...new Set(skillData.map(s => s.canonical_name))]
-      : ['Customer Service', 'Communication', 'Teamwork', 'Conflict Resolution', 'CRM', 'Empathy', 'Problem Solving'];
+    // Normalize skill_matches — skill names can be in canonical_name, found_in_resume, or skill
+    const normalizeSkillName = (s) => s.canonical_name || s.found_in_resume || s.skill || '';
 
-    skills.forEach((skillName, i) => {
-      const matchData = skillData ? skillData.find(s => s.canonical_name === skillName) : null;
-      const isCore = matchData ? (matchData.match_type === 'exact' || matchData.match_type === 'synonym') : (i % 2 === 0);
-      nodes.push({ id: skillName, name: skillName, val: isCore ? 6 : 3, core: isCore });
+    let skills = [];
+    if (skillData && skillData.length > 0) {
+      // Use real matched skills from the result
+      const uniqueNames = [...new Set(skillData.map(normalizeSkillName).filter(Boolean))];
+      skills = uniqueNames.map(name => ({
+        name,
+        isCore: skillData.find(s => normalizeSkillName(s) === name)?.match_type === 'semantic'
+          || skillData.find(s => normalizeSkillName(s) === name)?.match_type === 'exact',
+      }));
+    } else if (fallbackSkills && fallbackSkills.length > 0) {
+      // Use actual resume skills extracted by Bot 3 / Groq
+      const uniqueNames = [...new Set(fallbackSkills.slice(0, 12).filter(Boolean))];
+      skills = uniqueNames.map((name, i) => ({ name, isCore: i < Math.ceil(uniqueNames.length / 2) }));
+    }
+    // If no skills at all — show empty graph (no demo data)
+    if (skills.length === 0) {
+      setGraphData({ nodes: [], links: [] });
+      return;
+    }
+
+    skills.forEach(({ name, isCore }) => {
+      nodes.push({ id: name, name, val: isCore ? 6 : 3, core: isCore });
     });
 
     if (nodes.length > 1) {
@@ -50,7 +66,7 @@ export default function SkillKnowledgeGraph({ skillData }) {
     }
 
     setGraphData({ nodes, links });
-  }, [skillData]);
+  }, [skillData, fallbackSkills]);
 
   const draw2DNode = (node, ctx, globalScale) => {
     const label = node.name;

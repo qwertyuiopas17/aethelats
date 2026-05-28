@@ -77,46 +77,79 @@ export function AnimatedBar({ value, delay = 0, color = 'bg-white' }) {
   );
 }
 
-export function ScoreMeter({ value, size = 160, label }) {
+export function ScoreMeter({ value, size = 180, label }) {
   const displayVal = useCountUp(value, 1500);
-  const p = Math.max(0, Math.min(100, displayVal)) / 100;
+  const pct = Math.max(0, Math.min(100, value)) / 100;
+  
+  // Arc geometry
+  const r = (size / 2) * 0.72;
+  const cx = size / 2;
+  const cy = size / 2;
+  const strokeWidth = size * 0.055;
+  const startAngle = -220; // degrees — starts bottom-left
+  const sweepDeg = 260;    // total arc sweep
+  const startRad = (startAngle * Math.PI) / 180;
+  const endRad = ((startAngle + sweepDeg * pct) * Math.PI) / 180;
+  
+  const describeArc = (cx, cy, r, startAngle, endAngle) => {
+    const s = { x: cx + r * Math.cos((startAngle * Math.PI) / 180), y: cy + r * Math.sin((startAngle * Math.PI) / 180) };
+    const e = { x: cx + r * Math.cos((endAngle * Math.PI) / 180), y: cy + r * Math.sin((endAngle * Math.PI) / 180) };
+    const large = endAngle - startAngle > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+  };
+
+  const trackPath = describeArc(cx, cy, r, startAngle, startAngle + sweepDeg);
+  const fillPath = pct > 0.005 ? describeArc(cx, cy, r, startAngle, startAngle + sweepDeg * pct) : null;
+
+  const scoreColor = value >= 75 ? '#22c55e' : value >= 50 ? '#f59e0b' : '#f43f5e';
+  const glowColor = value >= 75 ? 'rgba(34,197,94,0.6)' : value >= 50 ? 'rgba(245,158,11,0.6)' : 'rgba(244,63,94,0.6)';
+
+  // Glowing tip position
+  const tipRad = ((startAngle + sweepDeg * pct) * Math.PI) / 180;
+  const tipX = cx + r * Math.cos(tipRad);
+  const tipY = cy + r * Math.sin(tipRad);
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, perspective: '1200px' }} className="group">
-      {/* 3D Container */}
-      <div 
-        className="w-full h-full transition-transform duration-700 ease-out"
-        style={{ 
-          transformStyle: 'preserve-3d', 
-          transform: 'rotateX(60deg) rotateZ(45deg)'
-        }} 
-      >
-        {/* Base Layer */}
-        <div className="absolute inset-0 border border-white/10 rounded-3xl bg-[#0a0a0a]" style={{ transform: 'translateZ(-10px)', boxShadow: '0 20px 40px rgba(0,0,0,0.9)' }} />
-        
-        {/* Circuit Layer */}
-        <div className="absolute inset-2 border border-white/5 rounded-[20px] bg-black/50 backdrop-blur-sm flex items-center justify-center" style={{ transform: 'translateZ(10px)' }}>
-          <div className="w-full h-full rounded-[18px] border-[0.5px] border-white/[0.03]" style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px)' }} />
-        </div>
-
-        {/* Dynamic Progress Ring */}
-        <div className="absolute inset-4 rounded-full" style={{ 
-          transform: 'translateZ(30px)', 
-          background: `conic-gradient(from 225deg, #fff ${p * 360}deg, rgba(255,255,255,0.05) ${p * 360}deg)`,
-          padding: '4px',
-          WebkitMask: 'radial-gradient(transparent 60%, black 62%)'
-        }} />
-
-        {/* Floating Glass Prism Core */}
-        <div className="absolute inset-8 rounded-2xl bg-white/5 border border-white/20 backdrop-blur-md flex items-center justify-center" style={{ transform: 'translateZ(60px)', boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 20px 30px rgba(0,0,0,0.8)' }}>
-          <div className="absolute w-full h-full bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-        </div>
-      </div>
-
-      {/* Floating Text Overlay (Faces camera, breaks out of 3D context) */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] z-10 transition-transform duration-700 group-hover:-translate-y-2">
-        <span className="text-5xl font-black text-white leading-none tracking-tighter" style={{ textShadow: '0 0 20px rgba(255,255,255,0.2)' }}>{displayVal}</span>
-        <span className="text-[10px] text-white mt-1.5 font-bold tracking-[0.2em] uppercase">Score</span>
+    <div style={{ position: 'relative', width: size, height: size }} className="group">
+      <svg width={size} height={size} style={{ overflow: 'visible' }}>
+        <defs>
+          <filter id="arc-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        {/* Track */}
+        <path d={trackPath} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} strokeLinecap="round" />
+        {/* Progress arc */}
+        {fillPath && (
+          <path
+            d={fillPath}
+            fill="none"
+            stroke={scoreColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            style={{
+              filter: `drop-shadow(0 0 8px ${glowColor})`,
+              transition: 'stroke-dasharray 1.5s cubic-bezier(0.4,0,0.2,1)',
+            }}
+          />
+        )}
+        {/* Glowing tip dot */}
+        {fillPath && pct > 0.02 && (
+          <circle cx={tipX} cy={tipY} r={strokeWidth * 0.7} fill={scoreColor}
+            style={{ filter: `drop-shadow(0 0 6px ${glowColor})` }} />
+        )}
+        {/* Outer ring */}
+        <circle cx={cx} cy={cy} r={cx - 2} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
+      </svg>
+      {/* Centered score text */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="font-black text-white leading-none tracking-tighter" style={{ fontSize: size * 0.28, textShadow: `0 0 20px ${glowColor}` }}>
+          {displayVal}
+        </span>
+        <span className="text-white/50 font-bold uppercase tracking-widest mt-1" style={{ fontSize: size * 0.065 }}>
+          {label || 'Score'}
+        </span>
       </div>
     </div>
   );

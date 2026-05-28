@@ -35,6 +35,9 @@ COPY --chown=user rag_retriever.py ./rag_retriever.py
 COPY --chown=user rag_store.py ./rag_store.py
 COPY --chown=user rag_kb ./rag_kb
 COPY --chown=user rag_chroma_db ./rag_chroma_db
+# Bot 5 — semantic skill matching + weekly dataset auto-refresh
+COPY --chown=user skill_matcher.py ./skill_matcher.py
+COPY --chown=user adzuna_refresh.py ./adzuna_refresh.py
 
 # Install CPU-only torch first (separate step to use --extra-index-url)
 RUN pip install --no-cache-dir \

@@ -258,7 +258,10 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
               </div>
             </div>
           </div>
-          <SkillKnowledgeGraph skillData={result.skill_matches} />
+          <SkillKnowledgeGraph 
+            skillData={result.skill_matches} 
+            fallbackSkills={result.structured_data?.technical_skills}
+          />
         </div>
       </section>
 
@@ -320,12 +323,28 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
         </div>
       </section>
 
-      {/* Recruiter-only: counterfactual, model comparison, compliance */}
+      {/* Bias audit + model comparison — shown to all users, read-only for candidates */}
+      {!readOnly && (
+        <BiasStabilitySection 
+          cfResult={s.cfResult} 
+          isRunning={s.runningCF} 
+          onRunTest={isCandidate ? null : s.handleCounterfactualTest} 
+          isDemo={s.isDemo} 
+          readOnly={isCandidate}
+        />
+      )}
+      {!readOnly && (
+        <ModelComparisonPanel 
+          compResult={s.compResult} 
+          isRunning={s.runningComp} 
+          onRunTest={isCandidate ? null : s.handleModelComparison} 
+          isDemo={s.isDemo}
+          readOnly={isCandidate}
+        />
+      )}
+      {s.cfResult?.fairness_metrics && <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />}
       {isRecruiter && (
         <>
-          {!readOnly && <BiasStabilitySection cfResult={s.cfResult} isRunning={s.runningCF} onRunTest={s.handleCounterfactualTest} isDemo={s.isDemo} />}
-          {!readOnly && <ModelComparisonPanel compResult={s.compResult} isRunning={s.runningComp} onRunTest={s.handleModelComparison} isDemo={s.isDemo} />}
-          {s.cfResult?.fairness_metrics && <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />}
           <ComplianceDashboard result={result} cfResult={s.cfResult} />
           <ResearchCitationsSection />
         </>

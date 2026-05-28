@@ -709,49 +709,318 @@ def _extract_username_from_url(url: str, platform: str) -> str:
         return ''
 
 def _fetch_github(url: str) -> dict:
+    """
+    Fetch enriched GitHub profile data including fraud-detection signals.
+
+    Fraud signals computed:
+      - account_age_days      : brand-new account + senior claims = red flag
+      - profile_completeness  : bots never fill bio/company/location/blog
+      - external_prs_merged   : PRs merged into OTHER people's repos = strong legitimacy
+      - repos_with_code_dump  : created_at == pushed_at on same day = bulk upload
+      - suspicious_messages   : "Add files via upload" / "Initial commit" only
+      - fraud_risk            : HIGH | MEDIUM | LOW overall verdict
+    """
     try:
         parts = re.sub(r'https?://github\.com/', '', url).split('/')
         username = parts[0]
         if not username:
             return {"platform": "github", "status": "detected", "url": url, "signals": []}
-        # User profile
+
+        gh_headers = {"Accept": "application/vnd.github+json"}
+        gh_token = os.getenv("GITHUB_TOKEN", "")
+        if gh_token:
+            gh_headers["Authorization"] = f"Bearer {gh_token}"
+
+        # ── User profile ──────────────────────────────────────────────────────
         user_resp = requests.get(
             f"https://api.github.com/users/{username}",
-            headers={"Accept": "application/vnd.github+json"},
-            timeout=5
+            headers=gh_headers, timeout=6
         )
         if user_resp.status_code != 200:
             return {"platform": "github", "status": "detected", "url": url, "username": username, "signals": []}
         u = user_resp.json()
-        # Top repos
+
+        # ── Account age ───────────────────────────────────────────────────────
+        from datetime import datetime as _dt
+        created_str = u.get("created_at", "")
+        try:
+            created_dt   = _dt.strptime(created_str, "%Y-%m-%dT%H:%M:%SZ")
+            account_age_days = ((_dt.utcnow()) - created_dt).days
+        except Exception:
+            account_age_days = 9999
+
+        # ── Profile completeness (0-100) ──────────────────────────────────────
+        profile_fields = [u.get("bio"), u.get("company"), u.get("location"), u.get("blog"), u.get("twitter_username")]
+        profile_completeness = int(sum(1 for f in profile_fields if f and str(f).strip()) / len(profile_fields) * 100)
+
+        # ── External merged PRs (Search API — 1 call) ─────────────────────────
+        # PRs merged into repos NOT owned by this user = real open-source contribution
+        external_prs_merged = 0
+        try:
+            search_resp = requests.get(
+                "https://api.github.com/search/issues",
+                params={"q": f"is:pr is:merged author:{username} -user:{username}", "per_page": 1},
+                headers=gh_headers,
+                timeout=6,
+            )
+            if search_resp.status_code == 200:
+                external_prs_merged = search_resp.json().get("total_count", 0)
+        except Exception:
+            pass
+
+        # ── Top repos (sorted by stars, owner-only) ───────────────────────────
         repos_resp = requests.get(
-            f"https://api.github.com/users/{username}/repos?sort=stars&per_page=5",
-            timeout=5
+            f"https://api.github.com/users/{username}/repos?sort=stars&per_page=8&type=owner",
+            headers=gh_headers, timeout=6
         )
-        repos = repos_resp.json() if repos_resp.status_code == 200 else []
-        top_repos = [{"name": r.get("name"), "stars": r.get("stargazers_count", 0),
-                      "lang": r.get("language"), "forks": r.get("forks_count", 0)} for r in repos[:5]]
+        raw_repos = repos_resp.json() if repos_resp.status_code == 200 else []
+
+        enriched_repos      = []
+        code_dump_repos     = []      # repos where all code uploaded on day 0
+        suspicious_messages = set()   # lazy commit message patterns found
+
+        _LAZY_MSG_PATTERNS = [
+            "add files via upload", "initial commit", "first commit",
+            "added files", "upload files", "update", "test", "asdf", ".",
+        ]
+
+        for r in raw_repos[:6]:
+            repo_name   = r.get("name", "")
+            is_fork     = r.get("fork", False)
+            forked_from = ""
+
+            # ── Fork: get parent info ─────────────────────────────────────────
+            if is_fork:
+                repo_detail = requests.get(
+                    f"https://api.github.com/repos/{username}/{repo_name}",
+                    headers=gh_headers, timeout=5
+                )
+                if repo_detail.status_code == 200:
+                    parent = repo_detail.json().get("parent", {})
+                    forked_from = parent.get("full_name", "")
+
+            # ── Count commits + analyse messages ─────────────────────────────
+            user_commit_count = 0
+            commits_resp = requests.get(
+                f"https://api.github.com/repos/{username}/{repo_name}/commits"
+                f"?author={username}&per_page=10",
+                headers=gh_headers, timeout=5
+            )
+            if commits_resp.status_code == 200:
+                body = commits_resp.json() if isinstance(commits_resp.json(), list) else []
+                link_header = commits_resp.headers.get("Link", "")
+                if 'rel="last"' in link_header:
+                    last_page = re.search(r'page=(\d+)>; rel="last"', link_header)
+                    user_commit_count = int(last_page.group(1)) * 10 if last_page else len(body)
+                else:
+                    user_commit_count = len(body)
+
+                # Check commit messages for lazy/suspicious patterns
+                for commit in body:
+                    msg = (commit.get("commit", {}).get("message") or "").lower().strip()
+                    for pat in _LAZY_MSG_PATTERNS:
+                        if msg == pat or msg.startswith(pat + "\n"):
+                            suspicious_messages.add(msg[:40])
+                            break
+
+            # ── README snippet (first 500 chars) ──────────────────────────────
+            readme_snippet = ""
+            readme_resp = requests.get(
+                f"https://api.github.com/repos/{username}/{repo_name}/readme",
+                headers={**gh_headers, "Accept": "application/vnd.github.raw+json"},
+                timeout=5
+            )
+            if readme_resp.status_code == 200:
+                raw_readme = readme_resp.text
+                clean = re.sub(r'[#*`\[\]!>\-]+', ' ', raw_readme)
+                clean = re.sub(r'https?://\S+', '', clean)
+                clean = re.sub(r'\s+', ' ', clean).strip()
+                readme_snippet = clean[:500]
+
+            # ── Languages ─────────────────────────────────────────────────────
+            lang_resp = requests.get(
+                f"https://api.github.com/repos/{username}/{repo_name}/languages",
+                headers=gh_headers, timeout=4
+            )
+            languages = list(lang_resp.json().keys())[:5] if lang_resp.status_code == 200 else []
+
+            # ── Originality verdict ───────────────────────────────────────────
+            if not is_fork:
+                originality = "original"
+            elif user_commit_count >= 10:
+                originality = "heavily_contributed_fork"
+            elif user_commit_count >= 3:
+                originality = "lightly_contributed_fork"
+            else:
+                originality = "copied_fork"
+
+            # ── Code-dump detection: repo created & last-pushed on same day ───
+            repo_created = (r.get("created_at") or "")[:10]
+            repo_pushed  = (r.get("pushed_at")  or "")[:10]
+            if repo_created and repo_pushed and repo_created == repo_pushed and not is_fork:
+                code_dump_repos.append(repo_name)
+
+            enriched_repos.append({
+                "name":           repo_name,
+                "stars":          r.get("stargazers_count", 0),
+                "forks":          r.get("forks_count", 0),
+                "languages":      languages,
+                "is_fork":        is_fork,
+                "forked_from":    forked_from,
+                "user_commits":   user_commit_count,
+                "originality":    originality,
+                "readme_snippet": readme_snippet,
+                "description":    r.get("description", "") or "",
+                "updated_at":     repo_pushed,
+                "created_at":     repo_created,
+            })
+
+        original_count = sum(1 for r in enriched_repos if r["originality"] in ("original", "heavily_contributed_fork"))
+        copied_count   = sum(1 for r in enriched_repos if r["originality"] == "copied_fork")
+
+        # ── Fraud risk verdict ────────────────────────────────────────────────
+        fraud_score = 0
+        if account_age_days < 90:    fraud_score += 40
+        elif account_age_days < 180: fraud_score += 20
+        if copied_count > 0:         fraud_score += copied_count * 15
+        if external_prs_merged == 0: fraud_score += 10
+        if len(code_dump_repos) > 1: fraud_score += 15
+        if len(suspicious_messages) >= 3: fraud_score += 10
+        if profile_completeness < 20: fraud_score += 5
+
+        fraud_risk = "HIGH" if fraud_score >= 50 else ("MEDIUM" if fraud_score >= 25 else "LOW")
+
         signals = [
             f"{u.get('public_repos', 0)} public repositories",
             f"{u.get('followers', 0)} followers",
-            f"{u.get('public_gists', 0)} public gists",
+            f"{original_count} repos with verified original/contributed work",
+            f"Account age: {account_age_days} days",
+            f"Merged PRs in external repos: {external_prs_merged}",
         ]
-        if top_repos:
-            top = top_repos[0]
-            signals.append(f"Top repo: {top['name']} ({top['stars']} ⭐, {top['lang']})")
+        if copied_count:
+            signals.append(f"⚠️ {copied_count} repo(s) are copied forks with zero original commits")
+        if code_dump_repos:
+            signals.append(f"⚠️ Code dump detected: {', '.join(code_dump_repos[:3])} (created & pushed same day)")
+        if suspicious_messages:
+            signals.append(f"⚠️ Lazy commit messages: {', '.join(list(suspicious_messages)[:3])}")
+        if enriched_repos:
+            top = enriched_repos[0]
+            signals.append(f"Top repo: {top['name']} ({top['stars']}⭐, {', '.join(top['languages'][:2]) or 'N/A'}) — {top['originality']}")
+
         return {
-            "platform": "github",
-            "status": "fetched",
-            "url": url,
-            "username": username,
-            "public_repos": u.get("public_repos", 0),
-            "followers": u.get("followers", 0),
-            "top_repos": top_repos,
-            "signals": signals,
-            "bio": u.get("bio", ""),
+            "platform":              "github",
+            "status":                "fetched",
+            "url":                   url,
+            "username":              username,
+            "public_repos":          u.get("public_repos", 0),
+            "followers":             u.get("followers", 0),
+            "bio":                   u.get("bio", ""),
+            "top_repos":             enriched_repos,
+            "original_repos_count":  original_count,
+            "copied_repos_count":    copied_count,
+            "signals":               signals,
+            # ── Fraud signals block ──
+            "fraud_signals": {
+                "account_age_days":         account_age_days,
+                "account_age_flag":         (
+                    "⚠️ New account (< 3 months)"  if account_age_days < 90  else
+                    "⚠️ Recent account (< 6 months)" if account_age_days < 180 else
+                    "✓ Established account"
+                ),
+                "profile_completeness":     profile_completeness,
+                "external_prs_merged":      external_prs_merged,
+                "external_prs_flag":        (
+                    f"✓ {external_prs_merged} merged PRs in external repos" if external_prs_merged >= 1
+                    else "⚠️ No contributions to other repos detected"
+                ),
+                "repos_with_code_dump":     code_dump_repos,
+                "suspicious_commit_messages": list(suspicious_messages),
+                "fraud_risk":               fraud_risk,
+                "fraud_score":              fraud_score,
+            },
         }
     except Exception as e:
         return {"platform": "github", "status": "error", "url": url, "error": str(e), "signals": []}
+
+
+def _compute_proof_score(platform_data: list) -> tuple:
+    """
+    Deterministic proof-of-work score (0-100) derived from fetched platform data.
+    No LLM call — fully auditable.
+    Returns (proof_score: int, proof_breakdown: list[dict])
+    """
+    score     = 50   # neutral baseline
+    breakdown = []
+
+    for p in platform_data:
+        if p.get("status") != "fetched":
+            continue
+        platform = p.get("platform", "")
+
+        if platform == "github":
+            original = p.get("original_repos_count", 0)
+            copied   = p.get("copied_repos_count",   0)
+            fraud    = p.get("fraud_signals", {})
+            ext_prs  = fraud.get("external_prs_merged", 0)
+            age_days = fraud.get("account_age_days", 9999)
+            dump_ct  = len(fraud.get("repos_with_code_dump", []))
+            lazy_ct  = len(fraud.get("suspicious_commit_messages", []))
+
+            # ── Positive signals ──────────────────────────────────────────────
+            if original >= 3:
+                score += 15; breakdown.append({"signal": f"{original} original repos", "delta": +15})
+            elif original >= 1:
+                score += 7;  breakdown.append({"signal": f"{original} original repo",  "delta": +7})
+
+            if ext_prs >= 10:
+                score += 20; breakdown.append({"signal": f"{ext_prs} merged PRs in external repos", "delta": +20})
+            elif ext_prs >= 3:
+                score += 12; breakdown.append({"signal": f"{ext_prs} merged PRs in external repos", "delta": +12})
+            elif ext_prs >= 1:
+                score += 6;  breakdown.append({"signal": f"{ext_prs} merged PR in external repos",  "delta": +6})
+
+            if age_days >= 365:
+                score += 5;  breakdown.append({"signal": "Established GitHub account (1+ year)", "delta": +5})
+
+            # ── Fraud / negative signals ──────────────────────────────────────
+            if age_days < 90:
+                score -= 20; breakdown.append({"signal": "GitHub account < 3 months old", "delta": -20})
+            elif age_days < 180:
+                score -= 10; breakdown.append({"signal": "GitHub account < 6 months old", "delta": -10})
+
+            if copied > 0:
+                penalty = min(25, copied * 8)
+                score -= penalty; breakdown.append({"signal": f"{copied} copied fork(s) with no commits", "delta": -penalty})
+
+            if dump_ct >= 2:
+                score -= 10; breakdown.append({"signal": f"{dump_ct} repos are code dumps (created == pushed date)", "delta": -10})
+
+            if lazy_ct >= 3:
+                score -= 8;  breakdown.append({"signal": "Predominantly lazy commit messages", "delta": -8})
+
+            if ext_prs == 0 and original == 0:
+                score -= 5;  breakdown.append({"signal": "No original repos and no external contributions", "delta": -5})
+
+        elif platform == "leetcode":
+            problems = p.get("problems_solved", 0)
+            hard     = p.get("hard", 0)
+            if problems >= 300:
+                score += 18; breakdown.append({"signal": f"LeetCode: {problems} problems solved", "delta": +18})
+            elif problems >= 100:
+                score += 10; breakdown.append({"signal": f"LeetCode: {problems} problems solved", "delta": +10})
+            elif problems >= 30:
+                score += 5;  breakdown.append({"signal": f"LeetCode: {problems} problems solved", "delta": +5})
+            if hard >= 20:
+                score += 7;  breakdown.append({"signal": f"LeetCode: {hard} hard problems", "delta": +7})
+
+        elif platform in ("kaggle", "huggingface"):
+            score += 8; breakdown.append({"signal": f"{platform.capitalize()} profile detected", "delta": +8})
+
+        elif platform in ("google_scholar", "researchgate"):
+            score += 10; breakdown.append({"signal": f"Research presence on {platform}", "delta": +10})
+
+    final_score = max(0, min(100, score))
+    return final_score, breakdown
 
 def _fetch_leetcode(url: str) -> dict:
     try:
@@ -1229,27 +1498,42 @@ Return ONLY raw JSON:
 
 # ── Proof of Work Link Synthesis Prompt
 LINK_SYNTHESIS_PROMPT = """
-You are a technical recruiter reviewing a candidate's online presence data.
-Below is data fetched from the candidate's public profiles and links.
+You are a senior technical hiring manager reviewing a candidate's online presence for the role: {role}.
+Below is live data fetched from their public profiles.
 
-Assess what this tells you about the candidate's ACTUAL demonstrated work — independent of
-their resume. Focus only on verifiable signals (repo counts, problems solved, articles written, ratings).
+Your job:
+1. Judge each GitHub repo for ROLE-SPECIFIC IMPACT — is this project impressive and relevant to "{role}"?
+2. Flag any repos where originality="copied_fork" — these are red flags (forked repo, zero original commits).
+3. Assess LeetCode problem-solving strength relative to what "{role}" interviews typically require.
+4. Give an overall verdict on whether this online presence SUPPORTS or CONTRADICTS the candidate's resume claims.
+
+For GitHub repos, use the readme_snippet and languages to understand what the project actually does.
 
 Return ONLY raw JSON:
 {{
-  "overall_proof_score": <0-100, overall strength of demonstrated work online>,
+  "overall_proof_score": <0-100>,
   "proof_level": "<Exceptional | Strong | Moderate | Limited | None>",
-  "summary": "<2-3 sentences on what the online presence reveals about this candidate>",
-  "key_signals": ["<top 3-5 strongest evidence points across all platforms>"],
+  "summary": "<2-3 sentences: what does this online presence reveal about the candidate for {role}?>",
+  "key_signals": ["<top 3-5 strongest evidence points>"],
+  "repo_verdicts": [
+    {{
+      "repo": "<repo name>",
+      "impact": "<HIGH | MEDIUM | LOW>",
+      "relevance_to_role": "<1 sentence: is this project relevant to {role} and why>",
+      "originality_flag": "<ORIGINAL | CONTRIBUTED | COPIED>",
+      "stars": <number>
+    }}
+  ],
   "platform_assessments": [
     {{
       "platform": "<platform name>",
-      "assessment": "<1 sentence on what this platform's data reveals>",
+      "assessment": "<1 sentence on what this platform's data reveals for {role}>",
       "strength": "<strong | moderate | weak>"
     }}
   ],
-  "bias_blind_verdict": "<1 sentence on the candidate's technical credibility purely from online work — ignoring resume demographics>",
-  "ats_override_recommendation": "<None | Partial | Strong — whether online evidence should override a weak resume score>"
+  "originality_warning": null,
+  "bias_blind_verdict": "<1 sentence on technical credibility for {role} from online work only>",
+  "ats_override_recommendation": "<None | Partial | Strong>"
 }}
 
 Platform data:
@@ -1729,6 +2013,41 @@ def update_scan_kanban_stage(
     return {"ok": True, "scan_id": scan_id, "stage": body.stage}
 
 
+@app.get("/user/scans/{scan_id}/result")
+def get_scan_result(
+    scan_id: int,
+    current_user=Depends(get_current_user),
+):
+    """Return the full result JSON for a single scan record (used by Kanban report drawer)."""
+    try:
+        from database import ScanRecord, SessionLocal
+        with SessionLocal() as db:
+            record = db.query(ScanRecord).filter(
+                ScanRecord.id == scan_id,
+                ScanRecord.user_id == current_user.id,
+            ).first()
+            if not record:
+                raise HTTPException(status_code=404, detail="Scan not found or access denied.")
+            if not record.result_json:
+                raise HTTPException(status_code=404, detail="Result not available")
+            import json as _json
+            result_data = _json.loads(record.result_json) if isinstance(record.result_json, str) else record.result_json
+            return {
+                "id": record.id,
+                "role_target": record.role_target,
+                "fit_score": record.fit_score,
+                "file_name": record.file_name,
+                "candidate_id": record.candidate_id,
+                "timestamp": record.timestamp.isoformat() if record.timestamp else None,
+                "kanban_stage": record.kanban_stage or "Sourced",
+                "result": result_data,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load result: {e}")
+
+
 SUPPORTED_TYPES = {
     ".pdf":  "application/pdf",
     ".jpg":  "image/jpeg",
@@ -1788,7 +2107,7 @@ def _generate_skills_for_role(role: str) -> list[str]:
     try:
         resp = client.chat.completions.create(
             model=MODEL,
-            messages=[{"role": "user", "content": f"List exactly 5 core skills (technical or soft) required for a '{role}'. Return ONLY a JSON object: {{\"skills\": [\"skill1\", \"skill2\"]}}" }],
+            messages=[{"role": "user", "content": f"List exactly 5 core skills (technical or soft) required for a '{role}'. Provide ONLY crisp, single-word or short-phrase skills (e.g. 'Python', 'Machine Learning', 'Communication'). Do not use brackets, parentheses, or long categories. Return ONLY a JSON object: {{\"skills\": [\"skill1\", \"skill2\"]}}" }],
             temperature=0.1, max_tokens=100,
             response_format={"type": "json_object"}
         )
@@ -1987,10 +2306,10 @@ def _generate_mutations(text: str) -> dict:
         "name_neutralize":      data.get("name_neutralize", text),
     }
 
-def _synthesize_links(platform_data_list: list) -> dict:
+def _synthesize_links(platform_data_list: list, role: str = "Software Engineer") -> dict:
     """Use LLM to synthesize all platform signals into a coherent proof-of-work assessment."""
     platform_data_str = json.dumps(platform_data_list, indent=2)
-    prompt = LINK_SYNTHESIS_PROMPT.format(platform_data=platform_data_str)
+    prompt = LINK_SYNTHESIS_PROMPT.format(platform_data=platform_data_str, role=role)
     try:
         resp = client.chat.completions.create(
             model=MODEL,
@@ -2454,6 +2773,14 @@ async def execute_scan_job(job_id: str, filename: str, ext: str, pdf_bytes: byte
 
             print("[FairAI] Stage 2/3 — Structuring resume (Bot 3) + generating JD skills in parallel...")
 
+            # ── Extract profile URLs early so GitHub fetch runs in parallel ──
+            _early_urls  = extract_urls_from_text(resume_text)
+            _github_urls = [u for u in _early_urls if detect_platform(u) == "github"]
+            _lc_urls     = [u for u in _early_urls if detect_platform(u) == "leetcode"]
+            _other_proof = [u for u in _early_urls if detect_platform(u) in
+                            ("kaggle", "huggingface", "google_scholar", "researchgate")]
+            _proof_urls  = (_github_urls[:1] + _lc_urls[:1] + _other_proof[:2])[:4]
+
             if jd_skills.strip():
                 jd_skills_list = [s.strip() for s in jd_skills.split(",") if s.strip()]
                 structured_data = await loop.run_in_executor(_pool, structure_resume, sanitized)
@@ -2570,20 +2897,69 @@ Resume:
                 except Exception as e:
                     print(f"[FairAI] Groq structure fallback failed: {e}")
 
-            print(f"[FairAI] Resume structured. Running Bot 4 evaluator...")
+            print(f"[FairAI] Resume structured. Running Bot 4 evaluator + GitHub proof fetch in parallel...")
 
-            # Stage 3: Evaluate (Bot 4: Modal → HF Dedicated → HF Free API → Groq)
-            print("[FairAI] Stage 3/3 — Evaluating (Bot 4)...")
+            # Stage 3: Evaluate (Bot 4) + GitHub proof-of-work fetch — run in parallel
+            print("[FairAI] Stage 3/3 — Evaluating (Bot 4) + GitHub fraud check in parallel...")
             _t3_start = __import__('time').monotonic()
-            evaluation = await loop.run_in_executor(_pool, evaluate_resume, structured_data, jd_skills_list, role)
+
+            eval_future = loop.run_in_executor(_pool, evaluate_resume, structured_data, jd_skills_list, role)
+
+            # Fetch up to 4 proof-of-work URLs in parallel with Bot 4
+            if _proof_urls:
+                proof_futures = [loop.run_in_executor(_pool, _fetch_platform_data, u) for u in _proof_urls]
+                _eval_and_proof = await asyncio.gather(eval_future, *proof_futures)
+                evaluation       = _eval_and_proof[0]
+                _platform_data   = list(_eval_and_proof[1:])
+            else:
+                evaluation     = await eval_future
+                _platform_data = []
+
+            _proof_score, _proof_breakdown = _compute_proof_score(_platform_data)
+            print(
+                f"[FairAI] Proof-of-work score: {_proof_score}/100 "
+                f"from {len(_platform_data)} platform(s) | "
+                f"breakdown: {[(b['signal'], b['delta']) for b in _proof_breakdown]}"
+            )
+
             _t3_end = __import__('time').monotonic()
             print(f"[FairAI] ✓ Stage 3 done in {_t3_end-_t3_start:.1f}s — Bot 4 result: score={evaluation.get('overall_score', '?')}")
 
             if "error" in evaluation:
                 raise Exception(evaluation["error"])
 
+            # ── Semantic Skill Matching (overrides Bot 4's string-based skill_match_score) ──
+            try:
+                from skill_matcher import semantic_skill_score
+                resume_skills_raw = structured_data.get("technical_skills", []) if structured_data else []
+                _sem = semantic_skill_score(
+                    resume_skills=resume_skills_raw,
+                    jd_skills=jd_skills_list or [],
+                )
+                # Override Bot 4's skill_match_score with the semantic one
+                evaluation["skill_match_score"] = _sem["skill_match_score"]
+                # Store semantic data for later use in result
+                _semantic_matched_pairs  = _sem["matched_pairs"]    # [(jd_skill, resume_skill, sim), ...]
+                _semantic_partial_pairs  = _sem["partial_pairs"]
+                _semantic_missed_skills  = _sem["missed_jd_skills"]
+                _semantic_resume_matched = _sem["matched_resume_skills"]
+                print(
+                    f"[FairAI] Semantic skill match: {_sem['skill_match_score']}/100 "
+                    f"({_sem['method']}, "
+                    f"{len(_semantic_matched_pairs)} full + {len(_semantic_partial_pairs)} partial, "
+                    f"{len(_semantic_missed_skills)} missed)"
+                )
+            except Exception as _sem_err:
+                print(f"[FairAI] Semantic skill match skipped: {_sem_err}")
+                _semantic_matched_pairs  = []
+                _semantic_partial_pairs  = []
+                _semantic_missed_skills  = []
+                _semantic_resume_matched = []
+
             # Derive strengths/gaps from structured data when model returns empty arrays
             raw_strengths = evaluation.get("strengths", [])
+            raw_gaps = evaluation.get("missing_skills", [])
+
             raw_gaps = evaluation.get("missing_skills", [])
 
             # Filter out section-header strings the model sometimes echoes verbatim
@@ -2625,7 +3001,10 @@ Resume:
             if stage_callback:
                 await stage_callback(5, f"{_gaps_label} — computing percentile rank…")
                 print("[FairAI] ✓ Stage 5/8 — Percentile Rank (callback sent)")
+            # Note: recommendation threshold uses Bot 4's raw score as a preliminary label.
+            # The actual fit_score in the result is overridden by the deterministic formula below.
             recommendation = "Advance to Interview" if evaluation.get("overall_score", 0) > 75 else "Keep in Talent Pool"
+
 
             # Stage 6: Counterfactual — fire after percentile setup
             if stage_callback:
@@ -2669,7 +3048,6 @@ Resume:
             _skill   = evaluation.get("skill_match_score", 50)
             _exp     = evaluation.get("experience_score", 50)
             _edu     = evaluation.get("education_score", 50)
-            _overall = evaluation.get("overall_score", 50)
             # Pull resume signals to differentiate axes further
             _yrs     = min((structured_data.get("total_years_experience") or 0) * 8, 40)  # 0-40 pts
             _n_skills = min(len(structured_data.get("technical_skills") or []) * 3, 30)    # 0-30 pts
@@ -2677,6 +3055,52 @@ Resume:
             _deg_bonus = {"PhD": 20, "Master": 15, "Bachelor": 10, "Associate": 5}.get(
                 structured_data.get("highest_degree", ""), 0
             )
+
+            # ── Impact bonus: reward bullet points with real metrics ──────────────
+            # Scan Bot 3's job_history bullets for numbers/% signs (e.g. "grew sales 40%")
+            _impact_bonus = 0
+            _all_bullets = []
+            for _job in (structured_data.get("job_history") or structured_data.get("experience") or []):
+                if isinstance(_job, dict):
+                    _all_bullets += _job.get("responsibilities", _job.get("bullets", []))
+            _metric_bullets = sum(1 for b in _all_bullets if any(c.isdigit() or c == "%" for c in str(b)))
+            _impact_bonus = min(100, 30 + _metric_bullets * 10)   # 30 baseline, +10 per metric bullet, max 100
+
+            # ── DETERMINISTIC overall score — role-aware weighted formula ──────────
+            # Detect the industry category for this role (uses the already-loaded
+            # sentence-transformer model — zero extra memory cost)
+            try:
+                from skill_matcher import detect_role_category, get_role_weights
+                _role_category = detect_role_category(role)
+                _w = get_role_weights(_role_category)
+            except Exception as _rw_err:
+                print(f"[FairAI] Role weight detection failed ({_rw_err}), using DEFAULT weights.")
+                _role_category = "DEFAULT"
+                _w = {"skill": 0.40, "exp": 0.30, "edu": 0.15, "impact": 0.15}
+
+            _overall = int(
+                _skill        * _w["skill"] +
+                _exp          * _w["exp"]   +
+                _edu          * _w["edu"]   +
+                _impact_bonus * _w["impact"]
+            )
+            # Clamp to 0-100 before proof adjustment
+            _overall = max(0, min(100, _overall))
+
+            # ── Proof-of-work adjustment (GitHub + LeetCode + Kaggle etc.) ────
+            # Maps proof_score 0-100 → adjustment -10..+10
+            # proof=50 (no data) → 0 adjustment (neutral)
+            # proof=100 (exceptional) → +10
+            # proof=0   (fraud signals) → -10
+            _proof_adj = int(round((_proof_score - 50) * 0.20))   # -10 to +10
+            _overall   = max(0, min(100, _overall + _proof_adj))
+            print(
+                f"[FairAI] Deterministic score: role_category={_role_category} "
+                f"weights={_w} skill={_skill} exp={_exp} edu={_edu} "
+                f"impact={_impact_bonus} proof={_proof_score}(adj={_proof_adj:+d}) → overall={_overall}"
+            )
+
+
             result = {
                 "fit_score": _overall,
                 "fit_level": evaluation.get("recommendation", "Partial Match"),
@@ -2686,26 +3110,47 @@ Resume:
                     "technical_depth":      min(100, int(_skill * 0.7 + _n_skills * 1.0)),
                     # Axis 2: problem-solving proxy = blend of skill + experience
                     "problem_solving":      min(100, int(_skill * 0.4 + _exp * 0.4 + _yrs * 0.5)),
-                    # Axis 3: demonstrated impact = experience score weighted by tenure length
-                    "impact_evidence":      min(100, int(_exp * 0.6 + _yrs * 0.8)),
+                    # Axis 3: demonstrated impact = experience score weighted by tenure + metric bullets
+                    "impact_evidence":      min(100, int(_exp * 0.5 + _yrs * 0.6 + _metric_bullets * 5)),
                     # Axis 4: domain / education depth
                     "domain_knowledge":     min(100, int(_edu * 0.7 + _deg_bonus * 1.5)),
-                    # Axis 5: project complexity proxy = overall minus edu (rewards doers over degree-holders)
+                    # Axis 5: project complexity proxy = deterministic overall minus edu
                     "project_complexity":   min(100, int(_overall * 0.55 + _n_jobs * 1.2)),
-                    # Axis 6: communication clarity = dynamic based on job-history richness
+                    # Axis 6: communication clarity = job-history richness
                     "communication_clarity": min(100, int(_overall * 0.4 + _n_jobs * 2.0 + 20)),
                 },
+
                 "skill_usage_breakdown": skill_usage_breakdown,
                 "contextual_ratio": 0.5,
                 "keyword_stuffing_detected": False,
-                "skill_matches": [{"found_in_resume": s, "canonical_name": s, "match_type": "exact"} for s in short_skills[:8]],
+                # Semantic matches: show both full and partial hits with similarity score
+                "skill_matches": (
+                    [{"found_in_resume": pair[1], "canonical_name": pair[0],
+                      "match_type": "semantic", "similarity": pair[2]}
+                     for pair in _semantic_matched_pairs[:8]]
+                    +
+                    [{"found_in_resume": pair[1], "canonical_name": pair[0],
+                      "match_type": "partial", "similarity": pair[2]}
+                     for pair in _semantic_partial_pairs[:4]]
+                ) or [{"found_in_resume": s, "canonical_name": s, "match_type": "exact"}
+                      for s in short_skills[:8]],
                 "strong_signals": [{"signal": s, "weight": "high"} for s in raw_strengths],
-                "gaps": [{"gap": g, "severity": "minor"} for g in raw_gaps],
+                # Gaps now come from semantic matcher (missed JD skills) — more accurate than Bot 4
+                "gaps": (
+                    [{"gap": g, "severity": "major"} for g in _semantic_missed_skills]
+                    if _semantic_missed_skills else
+                    [{"gap": g, "severity": "minor"} for g in raw_gaps]
+                ),
                 "recommendation": evaluation.get("recommendation", "Schedule Screening Call"),
                 "legacy_ats_verdict": "Flagged for Review",
                 "bias_proxies": [],
                 "feature_attributions": [],
-                "structured_data": structured_data or {}
+                "structured_data": structured_data or {},
+                # ── Proof-of-work (GitHub / LeetCode / Kaggle) ──────────────
+                "proof_score":     _proof_score,
+                "proof_breakdown": _proof_breakdown,
+                "proof_adj":       _proof_adj,
+                "platform_data":   _platform_data,
             }
             print("[FairAI] Primary system (Bot 3 + Bot 4) success.")
         except Exception as e:
@@ -3243,7 +3688,7 @@ async def analyze_links(payload: dict = Body(...)):
     has_real_data = any(p.get("status") == "fetched" for p in platform_data)
 
     if has_real_data:
-        synthesis = await loop.run_in_executor(pool, _synthesize_links, platform_data)
+        synthesis = await loop.run_in_executor(pool, _synthesize_links, platform_data, role)
     else:
         # All platforms just "detected" — still give a meaningful response
         synthesis = {
@@ -3812,21 +4257,21 @@ async def coach_chat(req: CoachChatRequest):
         resume_block = "\n".join(parts)
 
     # ── 3. Build system prompt ─────────────────────────────────────────────
-    system_prompt = """You are Aethel's AI Career Coach — an expert, direct, and empathetic career advisor \
-specializing in the Indian tech job market.
+    system_prompt = """You are Aethel's AI Career Coach — but act like a Senior Staff Engineer or Hiring Manager at a top Indian product company (like FAANG, Flipkart, or Swiggy). 
+You've screened 1,000+ resumes. You know exactly why candidates get rejected and what they need to do to land 20+ LPA offers.
 
 Your personality:
-- Specific and data-driven, never vague. Name exact courses, tools, timelines, companies.
-- Empathetic but honest — tell the truth about gaps, but always with a constructive path forward.
-- Aware of the Indian job market: Naukri, LinkedIn India, service vs product companies, tier-1/2/3 colleges.
-- Never say "As an AI language model..." — just answer like a senior mentor would.
+- Brutally honest but deeply motivating. You don't sugarcoat, but you always provide a concrete, step-by-step action plan to win.
+- Talk like a senior mentor talking to a junior over coffee. Use a direct, conversational tone. ("Here's the reality...", "Listen, your skills are good but...", "We need to fix this gap.")
+- Highly specific. Never say "learn databases." Say "You need to understand Postgres indexing, connection pooling, and Redis caching."
+- Never say "As an AI..." or "I am a language model." You are their senior mentor. Period.
 
-Rules:
-- Base your advice on the candidate's actual resume data below (if provided).
-- Use the knowledge base context below for salary, skill demand, and course data.
-- Keep answers focused. Use bullet points for action items. Max 4-5 sentences per paragraph.
-- If asked about salaries, cite actual ranges from the knowledge base, not guesses.
-- If asked about skills, name the specific tools/courses, not just categories.
+CRITICAL RULES:
+1. FORCE CONTEXT: You MUST explicitly reference the candidate's actual FairAI score, detected skills, or missing skills from the resume data below in your responses. Prove to them you read their resume.
+2. CALL OUT GAPS: If they are missing skills, call it out directly ("You're aiming for Backend Engineer but you're missing Docker and System Design. That's a dealbreaker right now.").
+3. CITE REAL DATA: Use the provided knowledge base context to quote exact salary benchmarks (in LPA), top hiring cities, and exact skill demand percentages. Don't guess.
+4. ACTIONABLE ROADMAPS: If they ask how to improve, give them a specific 30-day or 60-day roadmap with exact topics to learn and projects to build.
+5. Keep answers punchy. Use bold text for emphasis. Use bullet points for roadmaps. Short, scannable paragraphs.
 """
 
     if resume_block:
@@ -3850,7 +4295,7 @@ Rules:
         response = client.chat.completions.create(
             model=MODEL,
             messages=messages,
-            max_tokens=800,
+            max_tokens=1024,
             temperature=0.65,
         )
         reply = response.choices[0].message.content.strip()
@@ -3859,3 +4304,99 @@ Rules:
     except Exception as e:
         print(f"[Coach] Groq error: {e}")
         raise HTTPException(status_code=502, detail=f"Coach LLM error: {str(e)}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WEEKLY DATASET REFRESH  (/admin/refresh-dataset)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/admin/refresh-dataset")
+async def trigger_dataset_refresh(request: Request):
+    """
+    Manually trigger the weekly Adzuna India dataset refresh.
+    Requires the ADMIN_KEY environment variable to be set and passed as
+    the X-Admin-Key header for basic protection.
+
+    This runs in the background — returns immediately with a job ID.
+    Check /admin/refresh-status for progress.
+    """
+    admin_key = os.getenv("ADMIN_KEY", "")
+    x_admin_key = request.headers.get("x-admin-key", "")
+    if admin_key and x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+
+
+    import threading
+    refresh_status["running"] = True
+    refresh_status["started_at"] = datetime.utcnow().isoformat()
+    refresh_status["result"] = None
+
+    def _run():
+        try:
+            from adzuna_refresh import run_weekly_refresh
+            result = run_weekly_refresh()
+            refresh_status["result"] = result
+        except Exception as e:
+            refresh_status["result"] = {"status": "error", "reason": str(e)}
+        finally:
+            refresh_status["running"] = False
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    return {
+        "message": "Dataset refresh started in background",
+        "check_status": "/admin/refresh-status"
+    }
+
+
+@app.get("/admin/refresh-status")
+async def get_refresh_status():
+    """Check the status of the currently running (or last completed) dataset refresh."""
+    return refresh_status
+
+
+# Shared status dict for the refresh job
+refresh_status = {
+    "running": False,
+    "started_at": None,
+    "result": None,
+}
+
+# ── Weekly cron: auto-refresh every Sunday at 02:00 UTC ──────────────────────
+import threading as _threading
+import time as _time
+
+def _weekly_cron():
+    """Background thread that triggers run_weekly_refresh() every Sunday at 02:00 UTC."""
+    from datetime import datetime as _dt
+    import logging as _log
+    log = _log.getLogger("weekly_cron")
+
+    # Only run if Adzuna keys are configured
+    if not os.getenv("ADZUNA_APP_ID") or not os.getenv("ADZUNA_APP_KEY"):
+        log.info("[Weekly Cron] ADZUNA_APP_ID/APP_KEY not set — auto-refresh disabled.")
+        return
+
+    log.info("[Weekly Cron] Started. Will refresh every Sunday at 02:00 UTC.")
+    while True:
+        now = _dt.utcnow()
+        # Sunday = weekday 6
+        if now.weekday() == 6 and now.hour == 2 and now.minute < 5:
+            log.info("[Weekly Cron] Triggering weekly Adzuna refresh...")
+            try:
+                from adzuna_refresh import run_weekly_refresh
+                result = run_weekly_refresh()
+                log.info(f"[Weekly Cron] Done: {result}")
+                refresh_status["result"] = result
+                refresh_status["running"] = False
+            except Exception as e:
+                log.error(f"[Weekly Cron] Refresh failed: {e}")
+            _time.sleep(3600)   # sleep 1 hour after running to avoid double trigger
+        else:
+            _time.sleep(300)    # check every 5 minutes
+
+_cron_thread = _threading.Thread(target=_weekly_cron, daemon=True)
+_cron_thread.start()
+
+

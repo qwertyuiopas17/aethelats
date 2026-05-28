@@ -152,8 +152,9 @@ export function ProofOfWorkSection({ detectedLinks, proofResult, isLoading, onFe
   );
 }
 
-export function BiasStabilitySection({ cfResult, isRunning, onRunTest, isDemo }) {
+export function BiasStabilitySection({ cfResult, isRunning, onRunTest, isDemo, readOnly }) {
   if (!cfResult && !isRunning) {
+    if (readOnly) return null; // Candidates: don't show the "run test" prompt at all — only show results
     return (
       <section className="mb-6 animate-fade-in-up stagger-7">
         <SectionHeading icon={<FlaskConical className="w-3.5 h-3.5" />} label="Bias Stability Test" />

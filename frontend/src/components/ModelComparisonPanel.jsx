@@ -323,7 +323,7 @@ function AggregateBanner({ data }) {
 }
 
 /* ─── Main export ────────────────────────────────────────────── */
-export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo }) {
+export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo, readOnly }) {
   const [activeTab, setActiveTab] = useState('cards');   // 'cards' | 'table'
   const data = compResult;
   const fairaiModel = data?.models?.find(m => m.is_own_model);
@@ -334,6 +334,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
       <SectionHeading icon={<BarChart3 className="w-3.5 h-3.5" />} label="LLM Comparison — Aethel vs Mainstream Models" />
 
       {!data ? (
+        readOnly ? null : (  // Candidates: hide the run prompt entirely
         <div className="glass-card rounded-2xl p-8 text-center">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
             <BarChart3 className="w-7 h-7 text-white/80" />
@@ -359,6 +360,7 @@ export function ModelComparisonPanel({ compResult, isRunning, onRunTest, isDemo 
             {isRunning ? 'Running Comparison...' : isDemo ? 'View Demo Comparison' : 'Run Full Comparison'}
           </button>
         </div>
+        )
       ) : isRunning ? (
         <div className="glass-card rounded-2xl p-10 flex flex-col items-center gap-4">
           <div className="relative w-16 h-16">

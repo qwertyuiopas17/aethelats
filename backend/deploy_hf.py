@@ -23,8 +23,12 @@ pinned: false
 FastAPI backend for the Aethel anti-bias hiring intelligence engine.
 
 ## Secrets Required
-- `HF_TOKEN` — HuggingFace Inference API access
+- `HF_TOKEN` — HuggingFace Inference API access + auto-refresh push-back
 - `GROQ_PRIMARY_KEY_1` — Groq API key for LLM fallback
+- `ADZUNA_APP_ID` — Adzuna API (weekly dataset refresh)
+- `ADZUNA_APP_KEY` — Adzuna API (weekly dataset refresh)
+- `HF_SPACE_NAME` — e.g. Unded-17/aethel-backend-v3 (for auto push-back)
+- `ADMIN_KEY` — Optional secret for /admin/refresh-dataset endpoint
 """
 
 def deploy():
@@ -63,6 +67,9 @@ def deploy():
         "backend/auth.py":             "auth.py",
         "backend/email_service.py":    "email_service.py",
         "backend/Dockerfile":          "Dockerfile",
+        # ── Bot 5 additions ───────────────────────────────────────
+        "backend/adzuna_refresh.py":   "adzuna_refresh.py",   # weekly data refresh + HF push-back
+        "backend/skill_matcher.py":    "skill_matcher.py",    # semantic skill scoring
     }
 
     for local_path, remote_path in files.items():
