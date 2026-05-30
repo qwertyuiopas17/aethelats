@@ -37,24 +37,10 @@ export default function MagneticLensCursor() {
 
       if (hoveredRect) {
         // Snap to button bounds
-        cursorRef.current.style.transform = `translate(${hoveredRect.left}px, ${hoveredRect.top}px)`;
-        cursorRef.current.style.width = `${hoveredRect.width}px`;
-        cursorRef.current.style.height = `${hoveredRect.height}px`;
-        cursorRef.current.style.borderRadius = '12px'; // Matches rounded-xl
-        cursorRef.current.style.opacity = '1';
-        cursorRef.current.style.backdropFilter = 'invert(1) grayscale(1)';
-        cursorRef.current.style.backgroundColor = 'transparent';
-        cursorRef.current.style.border = '1px solid rgba(255,255,255,0.5)';
+        cursorRef.current.style.transform = `translate3d(${hoveredRect.left}px, ${hoveredRect.top}px, 0)`;
       } else {
         // Default dot
-        cursorRef.current.style.transform = `translate(calc(${pos.current.x}px - 50%), calc(${pos.current.y}px - 50%))`;
-        cursorRef.current.style.width = '12px';
-        cursorRef.current.style.height = '12px';
-        cursorRef.current.style.borderRadius = '50%';
-        cursorRef.current.style.opacity = '0.5';
-        cursorRef.current.style.backdropFilter = 'none';
-        cursorRef.current.style.backgroundColor = 'white';
-        cursorRef.current.style.border = 'none';
+        cursorRef.current.style.transform = `translate3d(calc(${pos.current.x}px - 50%), calc(${pos.current.y}px - 50%), 0)`;
       }
 
       requestRef.current = requestAnimationFrame(render);
@@ -73,7 +59,32 @@ export default function MagneticLensCursor() {
       cancelAnimationFrame(requestRef.current);
       document.body.style.cursor = 'auto';
     };
+  }, [hoveredRect]); // hoveredRect dependency means this effect resets when hover state changes
+
+  // Update heavy visual styles ONLY when hoveredRect changes, not 60fps!
+  useEffect(() => {
+    if (!cursorRef.current) return;
+    
+    if (hoveredRect) {
+      cursorRef.current.style.width = `${hoveredRect.width}px`;
+      cursorRef.current.style.height = `${hoveredRect.height}px`;
+      cursorRef.current.style.borderRadius = '12px';
+      cursorRef.current.style.opacity = '1';
+      cursorRef.current.style.backdropFilter = 'invert(1) grayscale(1)';
+      cursorRef.current.style.backgroundColor = 'transparent';
+      cursorRef.current.style.border = '1px solid rgba(255,255,255,0.5)';
+    } else {
+      cursorRef.current.style.width = '12px';
+      cursorRef.current.style.height = '12px';
+      cursorRef.current.style.borderRadius = '50%';
+      cursorRef.current.style.opacity = '0.5';
+      cursorRef.current.style.backdropFilter = 'none';
+      cursorRef.current.style.backgroundColor = 'white';
+      cursorRef.current.style.border = 'none';
+    }
   }, [hoveredRect]);
+
+
 
   if (isTouchDevice) return null;
 

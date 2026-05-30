@@ -11,6 +11,7 @@ import UploadView from './components/UploadView';
 import MagneticLensCursor from './components/MagneticLensCursor';
 import NeuralWireframe from './components/NeuralWireframe';
 import ResultsView from './components/ResultsView';
+import CircuitLoader from './components/CircuitLoader';
 import HorseLoader from './components/HorseLoader';
 import BiasDashboard from './components/BiasDashboard';
 import TalentPoolView from './components/TalentPoolView';
@@ -23,28 +24,23 @@ import { useAuth } from './context/AuthContext';
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(e) { return { error: e }; }
-  render() {
-    if (this.state.error) return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-8">
-        <div className="max-w-lg glass-card rounded-2xl p-8 text-center">
-          <AlertTriangle className="w-10 h-10 text-white/90 mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-white mb-2">Render Error</h2>
-          <p className="text-white/90 text-sm font-mono">{this.state.error.message}</p>
-        </div>
-      </div>
-    );
-    return this.props.children;
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, errorInfo) { console.error(error, errorInfo); }
+  render() { 
+    if (this.state.error) return <div className="p-4 text-red-500 font-mono text-sm bg-red-500/10 rounded-xl border border-red-500/20 m-4">Error: {this.state.error.message}</div>;
+    return this.props.children; 
   }
 }
+
+
 
 /* ── Compact "Coming Soon" nav item ── */
 function ComingSoonNavItem({ icon, label }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/25 cursor-default select-none">
-      <span className="text-white/20">{icon}</span>
-      <span className="text-sm font-medium text-white/25 flex-1">{label}</span>
-      <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25 border border-white/[0.05]">
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/25 cursor-default select-none overflow-hidden">
+      <span className="shrink-0 text-white/20">{icon}</span>
+      <span className="text-sm font-medium text-white/25 flex-1 whitespace-nowrap overflow-hidden transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">{label}</span>
+      <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25 border border-white/[0.05] transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">
         Soon
       </span>
     </div>
@@ -70,7 +66,7 @@ function AuthModal({ onClose }) {
       {/* Scrollable Container */}
       <div className="relative min-h-screen flex items-center justify-center p-4 py-12">
         {/* Modal content — positioned above backdrop */}
-        <div className="relative w-full max-w-4xl animate-scale-in">
+        <div className="relative w-full max-w-4xl animate-neural-expand">
         {/* Dismiss button */}
         <button
           onClick={onClose}
@@ -146,11 +142,7 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
           {s?.isDemo && (
             <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-white/70 border border-white/[0.08]">Demo</span>
           )}
-          <button onClick={onSignIn}
-            className="hidden sm:block px-4 py-2 text-sm font-semibold text-white/80 hover:text-white border border-white/[0.10]
-              hover:border-white/20 rounded-xl transition-all hover:bg-white/[0.04]">
-            Sign In
-          </button>
+
           <button onClick={onGetStarted}
             className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-black bg-white rounded-xl hover:bg-white/90 active:scale-95 transition-all whitespace-nowrap">
             Get Started Free
@@ -191,6 +183,34 @@ function AuthenticatedApp({ s }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen]     = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [loaderPhase, setLoaderPhase]       = useState('loading'); // 'loading', 'forming', 'complete'
+  const scanStartTimeRef = React.useRef(Date.now());
+
+  React.useEffect(() => {
+    if (s.step === 'scanning') {
+      scanStartTimeRef.current = Date.now();
+      setLoaderPhase('loading');
+
+      // Preload the horse SVG image in the background (zero DOM cost)
+      const img = new Image();
+      img.src = '/assets/horse_animated.svg';
+      
+      const onReady = () => {
+        const elapsed = Date.now() - scanStartTimeRef.current;
+        const remainingTime = Math.max(0, 4000 - elapsed);
+        
+        setTimeout(() => {
+          setLoaderPhase('forming');
+          // After 3s shield trace, show the horse
+          setTimeout(() => setLoaderPhase('complete'), 3000);
+        }, remainingTime);
+      };
+
+      // If already cached, fire immediately; otherwise wait for load
+      if (img.complete) onReady();
+      else img.onload = onReady;
+    }
+  }, [s.step]);
 
   const biasProxies    = s.result?.bias_proxies || [];
   const recommendation = s.result?.recommendation || 'Schedule Screening Call';
@@ -198,7 +218,8 @@ function AuthenticatedApp({ s }) {
   const goTo = step => { s.setStep(step); setMobileMenuOpen(false); };
 
   return (
-    <div className="min-h-screen text-white flex relative overflow-hidden bg-transparent w-full">
+    <div className="h-screen text-white flex relative overflow-hidden bg-transparent w-full">
+      <div className="bg-criss-cross fixed inset-0 z-0" />
 
       {s.showFairnessGate && (
         <FairnessGateModal biasProxies={biasProxies} recommendation={recommendation}
@@ -213,12 +234,13 @@ function AuthenticatedApp({ s }) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* SIDEBAR - FLOATING PILL STYLE */}
-      <aside className={`w-[260px] shrink-0 glass-sidebar flex flex-col rounded-3xl m-4 z-[70] fixed md:sticky top-4 h-[calc(100vh-2rem)] transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shadow-[0_0_40px_rgba(0,0,0,0.8)]`}>
+      {/* SIDEBAR - Option 2: Flush to the edges */}
+      <aside className={`group w-[88px] hover:w-[260px] shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} transition-all duration-300 overflow-hidden`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/assets/shield_logo.png" alt="Aethel" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
-            <div>
+          <div className="flex items-center gap-2 relative">
+            <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[1.5]" />
+            <img src="/assets/shield_logo.png" alt="Aethel" className="relative z-10 shrink-0" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
+            <div className="relative z-10 ml-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-300 whitespace-nowrap overflow-hidden">
               <div className="text-lg font-bold text-white tracking-tight">Aethel</div>
               <div className="text-[8px] font-bold uppercase tracking-[0.25em] text-white/40">Precision Recruitment</div>
             </div>
@@ -229,10 +251,12 @@ function AuthenticatedApp({ s }) {
         </div>
 
         <div className="px-3 py-4">
-          <button onClick={s.reset}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/15
-              text-white text-sm font-semibold hover:bg-white/[0.06] transition-all mb-4">
-            {user?.role === 'candidate' ? '+ Audit Resume' : '+ Add Candidate'}
+          <button onClick={s.reset} data-cursor="magnetic"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl btn-premium magnetic-btn text-sm font-semibold mb-4 overflow-hidden whitespace-nowrap">
+            <span className="shrink-0 text-lg">+</span>
+            <span className="opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-300">
+              {user?.role === 'candidate' ? 'Audit Resume' : 'Add Candidate'}
+            </span>
           </button>
         </div>
 
@@ -241,7 +265,9 @@ function AuthenticatedApp({ s }) {
             label="Home" active={s.step === 'landing'} onClick={() => goTo('landing')} />
           <NavItem icon={<Users className="w-4 h-4" />}
             label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
-          {user?.role !== 'candidate' && <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />}
+          {user?.role !== 'candidate' && (
+            <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />
+          )}
           {user?.role === 'candidate' && (
             <NavItem icon={<Activity className="w-4 h-4" />}
               label="AI Coach" active={s.step === 'coach'} onClick={() => goTo('coach')} />
@@ -265,20 +291,21 @@ function AuthenticatedApp({ s }) {
           )}
         </nav>
 
-        <div className="p-4 border-t border-white/[0.06] space-y-1">
+        <div className="px-3 pb-4 space-y-0.5">
           <button onClick={() => window.open('mailto:support@aethel.ai', '_blank')}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:text-white transition-colors rounded-xl hover:bg-white/[0.04]">
-            <HelpCircle className="w-4 h-4" /> Support
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:text-white transition-colors rounded-xl hover:bg-white/[0.04] overflow-hidden">
+            <div className="shrink-0"><HelpCircle className="w-4 h-4" /></div>
+            <span className="whitespace-nowrap overflow-hidden transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">Support</span>
           </button>
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-xs font-bold text-white">
+          <div className="flex items-center gap-3 px-3 py-2 overflow-hidden">
+            <div className="shrink-0 w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-xs font-bold text-white">
               {user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : 'ME'}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto whitespace-nowrap overflow-hidden">
               <div className="text-xs font-semibold text-white truncate">{user?.name}</div>
               <div className="text-[10px] text-white/40 truncate">{user?.role}</div>
             </div>
-            <button onClick={logout} className="text-white/30 hover:text-white/70 transition-colors" title="Sign out">
+            <button onClick={logout} className="shrink-0 transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto text-white/30 hover:text-white/70" title="Sign out">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -286,12 +313,16 @@ function AuthenticatedApp({ s }) {
       </aside>
 
       {/* MAIN */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 w-full">
-        {/* TOPBAR */}
-        <header className="h-14 shrink-0 border-b border-white/[0.06] backdrop-blur-md z-50 flex items-center justify-between px-4 sm:px-6"
-          style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="flex items-center gap-3">
-            <button className="md:hidden p-1 -ml-1 text-white/80 hover:text-white" onClick={() => setMobileMenuOpen(true)}>
+      <div className="flex-1 flex flex-col h-full min-w-0 w-full relative">
+        {/* TOPBAR - Option 2: Flush Gradient Fade */}
+        <header className="h-20 shrink-0 z-50 flex items-start justify-between px-4 sm:px-6 pt-4 pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)',
+            transform: 'translateZ(0)',
+            willChange: 'transform'
+          }}>
+          <div className="flex items-center gap-3 pointer-events-auto">
+            <button className="md:hidden text-white hover:text-white/80" onClick={() => setMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2">
@@ -299,7 +330,7 @@ function AuthenticatedApp({ s }) {
               <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
             </div>
           </div>
-          <div className="flex items-center gap-3 relative">
+          <div className="flex items-center gap-3 relative pointer-events-auto">
             {s.isDemo && s.step === 'results' && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-white/70 border border-white/[0.08]">Demo</span>
             )}
@@ -337,7 +368,7 @@ function AuthenticatedApp({ s }) {
 
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full">
-          <div className="max-w-[1600px] mx-auto w-full px-4 sm:px-8 py-6">
+          <div className={`mx-auto w-full px-4 sm:px-8 py-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
             {s.step === 'landing' && (
               <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
             )}
@@ -345,11 +376,23 @@ function AuthenticatedApp({ s }) {
             {s.step === 'upload' && <UploadView s={s} />}
 
             {s.step === 'scanning' && (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in">
-                <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
-                  <HorseLoader />
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
+              <>
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in relative z-10">
+                  {/* Central 160x160 area for the loaders */}
+                  <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
+                    
+                    {/* SVG Circuit Loader / Shield Trace */}
+                    <CircuitLoader phase={loaderPhase} />
+
+                    {/* Actual HorseLoader — only mounted AFTER shield animation completes */}
+                    <div 
+                      className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${loaderPhase === 'complete' ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}
+                      style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+                    >
+                      <HorseLoader />
+                    </div>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
                 
                 <div className="w-full max-w-lg bento-box p-6 scan-container shadow-[0_0_80px_rgba(255,255,255,0.03)] border border-white/[0.08]">
                   <div className="flex justify-between items-end mb-3">
@@ -374,6 +417,7 @@ function AuthenticatedApp({ s }) {
                   </div>
                 </div>
               </div>
+              </>
             )}
 
             {s.step === 'error' && (
@@ -381,7 +425,9 @@ function AuthenticatedApp({ s }) {
                 <div className="max-w-md w-full glass-card rounded-2xl p-8 text-center">
                   <XCircle className="w-12 h-12 text-white/80 mx-auto mb-4" />
                   <h2 className="text-xl font-bold text-white mb-2">Analysis Failed</h2>
-                  <p className="text-white/60 text-sm mb-6 font-mono leading-relaxed">{s.apiError}</p>
+                  <p className="text-white/60 text-sm mb-6 font-mono leading-relaxed">
+                    {typeof s.apiError === 'object' ? (s.apiError?.message || s.apiError?.detail || JSON.stringify(s.apiError)) : s.apiError}
+                  </p>
                   <div className="flex justify-center gap-3">
                     <button onClick={s.reset} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><RefreshCw className="w-4 h-4" />Retry</button>
                     <button onClick={s.loadDemo} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><Play className="w-4 h-4" />Demo</button>

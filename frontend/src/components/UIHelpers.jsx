@@ -43,8 +43,8 @@ export function NavItem({ icon, label, active, onClick }) {
       (active
         ? 'tab-3d-active'
         : 'text-white/90 hover:text-white hover:bg-white/[0.04] border border-transparent hover:border-white/[0.04]')}>
-      {icon}
-      <span>{label}</span>
+      <div className="shrink-0">{icon}</div>
+      <span className="whitespace-nowrap overflow-hidden transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">{label}</span>
     </button>
   );
 }

@@ -188,10 +188,6 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
         
         {/* Left: TextReveal Massive Typography */}
         <div className="flex-1 flex flex-col justify-center max-w-2xl text-left">
-          <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-white/10 bg-white/[0.02] backdrop-blur-md mb-8 animate-fade-in-up w-max">
-            <div className="w-1.5 h-1.5 rounded-full bg-white/40 shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
-            <span className="text-[11px] font-bold tracking-[0.2em] text-white/60 uppercase">Aethel Intelligence</span>
-          </div>
 
           <h1 className="text-6xl sm:text-7xl lg:text-[85px] font-black tracking-tighter text-white leading-[0.95] mb-8">
             <TextReveal text="Your resume deserves" delay={0.1} />
@@ -303,29 +299,7 @@ export default function LandingView({ onGetStarted, onLoadDemo }) {
         </div>
       </div>
 
-      {/* ── final CTA ── */}
-      <div className="px-4 sm:px-8 pb-10 text-center animate-fade-in-up w-full" style={{ animationDelay: '0.5s' }}>
-        <p className="text-white/30 text-xs mb-4 uppercase tracking-widest font-bold">
-          Ready to see the bias in your resume's evaluations?
-        </p>
-        <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3">
-          <button
-            onClick={onGetStarted}
-            className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 active:scale-95 transition-all"
-          >
-            <Zap className="w-4 h-4" />
-            Start Free Audit
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onLoadDemo}
-            className="w-full sm:w-auto justify-center flex items-center gap-2 px-5 py-3 rounded-xl border border-white/[0.10] text-white/70 text-sm font-semibold hover:bg-white/[0.04] hover:text-white transition-all"
-          >
-            <Play className="w-4 h-4" />
-            Try Demo First
-          </button>
-        </div>
-      </div>
+
 
     </div>
   );

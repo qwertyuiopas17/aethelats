@@ -65,6 +65,14 @@ export const DEMO_RESULT = {
     { found_in_resume: 'Python', canonical_name: 'Python', match_type: 'exact' },
     { found_in_resume: 'Postgres', canonical_name: 'PostgreSQL', match_type: 'synonym' },
   ],
+  structured_data: {
+    highest_degree: "B.Tech in Computer Science",
+    technical_skills: ["Python", "React", "Node.js", "AWS", "Redis", "Docker", "Kubernetes", "PostgreSQL", "Data Visualization", "Big Data", "System Design"],
+    experience: [
+      { title: "Senior Software Engineer", company: "TechNova Solutions", date_range: "2020 - Present", duration_months: 36, type: "Job" },
+      { title: "Software Engineer", company: "Innovate Inc", date_range: "2018 - 2020", duration_months: 24, type: "Job" }
+    ]
+  },
   strong_signals: [
     { signal: 'Distributed Systems', evidence: 'Built distributed task queue handling 50k jobs/day on AWS ECS', weight: 'high' },
     { signal: 'Open Source', evidence: 'Maintainer of 1.2k-star React state management library', weight: 'high' },

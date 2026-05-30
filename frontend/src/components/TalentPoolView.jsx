@@ -67,7 +67,12 @@ export default function TalentPoolView() {
   const uniqueBatches = [...new Set(scans.filter(s => s.batch_id).map(s => s.batch_id))];
 
   return (
-    <div className="p-4 sm:p-8 animate-fade-in">
+    <div className="p-4 sm:p-8 animate-fade-in relative min-h-screen">
+      {/* Option C: Ethereal Background Mesh - Fades out the global grid behind the Kanban board */}
+      <div className="absolute inset-0 pointer-events-none z-[-1]" style={{
+        background: 'radial-gradient(circle at 50% 60%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%)'
+      }} />
+      
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>

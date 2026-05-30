@@ -90,12 +90,10 @@ function DNASparkCard({ skillMatches, fitScore }) {
   return (
     <div className="space-y-1.5 mt-2">
       <div className="flex items-end gap-[2px] h-12 bg-black/40 rounded border border-white/[0.04] p-1 relative overflow-hidden group shadow-[inset_0_1px_8px_rgba(0,0,0,0.8)] backdrop-blur-sm">
-        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 group-hover:animate-pulse pointer-events-none z-20 transition-opacity duration-300" />
         
         {top5.map((skill, idx) => {
           const skillName = skill.canonical_name || skill.skill || 'Unknown';
           const heightPercent = barHeights[idx] || 50;
-          const displayHeight = mounted ? heightPercent : 0;
           const rawScore = skill.score ?? skill.relevance ?? skill.match_score;
           const displayScore = rawScore != null
             ? (rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100))
@@ -111,37 +109,20 @@ function DNASparkCard({ skillMatches, fitScore }) {
           const colors = palette[idx % 5];
 
           return (
-            <div key={idx} className="flex-1 h-full relative group/bar" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
-              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" className="opacity-90 group-hover/bar:opacity-100 transition-opacity">
-                 <defs>
-                   {/* Varied Monochrome Gradient */}
-                   <linearGradient id={`shard-${idx}`} x1="0" y1="1" x2="0" y2="0">
-                     <stop offset="0%" stopColor={colors.bottom} />
-                     <stop offset="100%" stopColor={colors.top} />
-                   </linearGradient>
-                   <filter id={`glow-${idx}`} x="-20%" y="-20%" width="140%" height="140%">
-                     <feGaussianBlur stdDeviation="2" result="blur" />
-                     <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                   </filter>
-                 </defs>
-                 
-                 <rect x="0" y="0" width="100" height="100" fill="rgba(255,255,255,0.03)" />
-
-                 <rect 
-                   x="10" y={100 - displayHeight} 
-                   width="80" height={displayHeight} 
-                   fill={`url(#shard-${idx})`} 
-                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
-                 />
-                 <rect 
-                   x="10" y={100 - displayHeight} 
-                   width="80" height={displayHeight} 
-                   fill="none" 
-                   stroke={colors.stroke} 
-                   strokeWidth="1.5" 
-                   className="transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)]" 
-                 />
-               </svg>
+            <div key={idx} className="flex-1 h-full relative group/bar bg-white/[0.03]" title={`${skillName}: ${displayScore ?? 'N/A'}${rawScore != null ? '%' : ''}`}>
+              <div 
+                className="absolute bottom-0 left-[10%] w-[80%] origin-bottom"
+                style={{
+                  height: `${heightPercent}%`,
+                  transform: `scaleY(${mounted ? 1 : 0})`,
+                  background: `linear-gradient(to top, ${colors.bottom}, ${colors.top})`,
+                  border: `1px solid ${colors.stroke}`,
+                  transitionProperty: 'transform',
+                  transitionDuration: '1.5s',
+                  transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)',
+                  willChange: 'transform'
+                }}
+              />
             </div>
           );
         })}
@@ -727,6 +708,7 @@ function KanbanColumn({ stage, cards, onMove, movingId, onDragStart, onDrop, isD
 
   return (
     <div className={`flex flex-col min-w-[320px] w-[320px] flex-shrink-0 rounded-[24px] bg-[#0c0c0c] shadow-[inset_0_4px_30px_rgba(0,0,0,1)] border-b border-white/[0.05] p-4 transition-all duration-500 ${ring}`}
+         style={{ transform: 'translateZ(0)', willChange: 'transform' }}
          title={heatmapTooltip || undefined}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-4 px-1">
@@ -939,20 +921,7 @@ export default function KanbanBoardView({ scans: initialScans }) {
   const allRejected = scans.filter(s => (s.kanban_stage || 'Sourced') === 'Rejected');
 
   return (
-    <div className="relative min-h-screen w-full bg-black">
-      {/* Global Diamond Wireframe Background */}
-      <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="diamond-mesh-global" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-              <path d="M40 0 L80 40 L40 80 L0 40 Z" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-              <path d="M0 0 L80 80 M80 0 L0 80" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#diamond-mesh-global)" />
-        </svg>
-      </div>
-
+    <div className="relative min-h-screen w-full">
       <div className="relative z-10">
       {moveError && (
         <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-red-500/[0.06] border border-red-500/15 text-red-300 text-sm">
@@ -961,12 +930,31 @@ export default function KanbanBoardView({ scans: initialScans }) {
         </div>
       )}
 
-      <VelocityBar scans={scans} />
-      <BatchLegend
-        batches={batches}
-        activeBatch={activeBatch}
-        onToggle={(id) => setActiveBatch(prev => prev === id ? null : id)}
-      />
+      {/* Top Panels Container (Diamond background isolated here) */}
+      <div 
+        className="relative rounded-2xl bg-black border border-white/[0.05] shadow-[0_4px_40px_rgba(0,0,0,0.5)] overflow-hidden p-4 mb-6"
+        style={{ transform: 'translateZ(0)', willChange: 'transform' }}
+      >
+        <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="diamond-mesh-panel" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+                <path d="M40 0 L80 40 L40 80 L0 40 Z" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+                <path d="M0 0 L80 80 M80 0 L0 80" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#diamond-mesh-panel)" />
+          </svg>
+        </div>
+        <div className="relative z-10 flex flex-col gap-4">
+          <VelocityBar scans={scans} />
+          <BatchLegend
+            batches={batches}
+            activeBatch={activeBatch}
+            onToggle={(id) => setActiveBatch(prev => prev === id ? null : id)}
+          />
+        </div>
+      </div>
 
       <div className="flex gap-4 overflow-x-auto pb-4" ref={scrollContainerRef}>
         {STAGES.map(stage => (
