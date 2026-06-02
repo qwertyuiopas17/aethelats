@@ -388,12 +388,13 @@ function AuthenticatedApp({ s }) {
         )}
 
         {/* PAGE CONTENT */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full">
-          <div className={`mx-auto w-full px-4 sm:px-8 py-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
-            <Suspense fallback={<PageLoader />}>
-              {s.step === 'landing' && (
-                <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
-              )}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full flex flex-col">
+          <Suspense fallback={<PageLoader />}>
+            {s.step === 'coach' ? (
+              <AiCoachView s={s} />
+            ) : (
+              <div className={`mx-auto w-full px-4 sm:px-8 py-6 flex-1 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
+                {s.step === 'landing' && <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />}
 
               {s.step === 'upload' && <UploadView s={s} />}
 
@@ -459,7 +460,6 @@ function AuthenticatedApp({ s }) {
               )}
 
               {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
-              {s.step === 'coach' && <AiCoachView s={s} />}
               {s.step === 'analytics' && user?.role !== 'candidate' && (
                 <>
                   {/* Mobile restriction for recruiter dashboard */}

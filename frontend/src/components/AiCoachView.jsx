@@ -192,13 +192,13 @@ export default function AiCoachView({ s }) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row absolute inset-0 overflow-hidden bg-black/60 backdrop-blur-xl">
+    <div className="flex flex-col lg:flex-row w-full h-full flex-1 overflow-hidden bg-black/60 backdrop-blur-xl">
 
       {/* ── LEFT PANEL: Resume Context ── */}
       <aside className={`
         w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] 
         overflow-y-auto p-6 space-y-6 bg-[#0a0a0a] lg:bg-black/40 
-        absolute lg:static inset-0 z-[60] lg:z-auto transition-transform duration-400 ease-out
+        fixed lg:static inset-x-0 bottom-0 top-20 lg:top-auto z-[100] lg:z-auto transition-transform duration-400 ease-out
         ${isContextOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}
       `}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.05),transparent_70%)]" />
@@ -303,7 +303,7 @@ export default function AiCoachView({ s }) {
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)]" />
 
         {/* Chat header */}
-        <div className="shrink-0 flex items-center justify-between px-4 sm:px-8 py-4 border-b border-white/[0.06] bg-black/40 backdrop-blur-md relative z-10">
+        <div className="shrink-0 flex items-center justify-between px-6 sm:px-8 py-4 border-b border-white/[0.06] bg-black/40 backdrop-blur-md relative z-10">
           <div>
             <div className="text-base font-extrabold text-white tracking-tight">Career Q&A</div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-0.5 hidden sm:block">Backed by real Indian job market data</div>
@@ -346,7 +346,7 @@ export default function AiCoachView({ s }) {
         </div>
 
         {/* Input area */}
-        <div className="shrink-0 px-4 sm:px-8 py-5 border-t border-white/[0.06] bg-black/60 backdrop-blur-xl relative z-10">
+        <div className="shrink-0 px-6 sm:px-8 py-4 border-t border-white/[0.06] bg-black/60 backdrop-blur-xl relative z-10">
           <div className="max-w-4xl mx-auto flex gap-3 items-end relative">
             <div className="flex-1 relative group">
               <div className="absolute inset-0 bg-white/[0.02] rounded-2xl blur-md transition-all duration-300 group-focus-within:bg-white/[0.04]" />
@@ -383,7 +383,7 @@ export default function AiCoachView({ s }) {
               }
             </button>
           </div>
-          <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mt-4 text-center">
+          <div className="hidden sm:block text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mt-3 text-center">
             Press Enter to send · Shift+Enter for new line · Backed by 97k Indian job postings
           </div>
         </div>
