@@ -254,7 +254,7 @@ function AuthenticatedApp({ s }) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* SIDEBAR - Option 2: Flush to the edges */}
+      {/* SIDEBAR - Mobile drawer with backdrop */}
       <aside className={`group w-[88px] hover:w-[260px] shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} transition-all duration-300 overflow-hidden`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2 relative">
@@ -271,7 +271,7 @@ function AuthenticatedApp({ s }) {
         </div>
 
         <div className="px-3 py-4">
-          <button onClick={s.reset} data-cursor="magnetic"
+          <button onClick={() => { s.reset(); setMobileMenuOpen(false); }} data-cursor="magnetic"
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl btn-premium magnetic-btn text-sm font-semibold mb-4 overflow-hidden whitespace-nowrap">
             <span className="shrink-0 text-lg">+</span>
             <span className="opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-300">
@@ -312,7 +312,7 @@ function AuthenticatedApp({ s }) {
         </nav>
 
         <div className="px-3 pb-4 space-y-0.5">
-          <button onClick={() => window.open('mailto:support@aethel.ai', '_blank')}
+          <button onClick={() => { window.open('mailto:support@aethel.ai', '_blank'); setMobileMenuOpen(false); }}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:text-white transition-colors rounded-xl hover:bg-white/[0.04] overflow-hidden">
             <div className="shrink-0"><HelpCircle className="w-4 h-4" /></div>
             <span className="whitespace-nowrap overflow-hidden transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto">Support</span>
@@ -325,7 +325,7 @@ function AuthenticatedApp({ s }) {
               <div className="text-xs font-semibold text-white truncate">{user?.name}</div>
               <div className="text-[10px] text-white/40 truncate">{user?.role}</div>
             </div>
-            <button onClick={logout} className="shrink-0 transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto text-white/30 hover:text-white/70" title="Sign out">
+            <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="shrink-0 transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto text-white/30 hover:text-white/70" title="Sign out">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -459,7 +459,35 @@ function AuthenticatedApp({ s }) {
 
               {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
               {s.step === 'coach' && <AiCoachView s={s} />}
-              {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
+              {s.step === 'analytics' && user?.role !== 'candidate' && (
+                <>
+                  {/* Mobile restriction for recruiter dashboard */}
+                  <div className="block lg:hidden">
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 py-12">
+                      <div className="glass-card rounded-2xl p-8 max-w-md text-center border border-white/[0.08]">
+                        <div className="w-16 h-16 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center mx-auto mb-6">
+                          <BarChart2 className="w-8 h-8 text-white/60" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-3">Desktop Required</h2>
+                        <p className="text-sm text-white/60 leading-relaxed mb-6">
+                          The Analytics Dashboard is optimized for desktop viewing. Please access this page from a laptop or PC for the best experience.
+                        </p>
+                        <button
+                          onClick={() => goTo('talent-pool')}
+                          className="px-6 py-2.5 rounded-xl text-sm font-semibold btn-premium flex items-center gap-2 mx-auto"
+                        >
+                          <Users className="w-4 h-4" />
+                          Go to Talent Pipeline
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Desktop view */}
+                  <div className="hidden lg:block">
+                    <BiasDashboard />
+                  </div>
+                </>
+              )}
               {s.step === 'talent-pool' && <TalentPoolView />}
               {s.step === 'batch' && user?.role !== 'candidate' && (
                 <BatchUploadView
