@@ -1,8 +1,30 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Layers } from 'lucide-react';
 
-const ForceGraph2D = React.lazy(() => import('react-force-graph-2d'));
-const ForceGraph3D = React.lazy(() => import('react-force-graph-3d'));
+// Helper to handle Vite chunk load errors (e.g. "Failed to fetch dynamically imported module")
+// It forces a page reload once if the chunk fails to load, which fixes stale cache issues.
+const lazyWithRetry = (componentImport) =>
+  React.lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+    );
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+        window.location.reload();
+        // Return a promise that never resolves while the page reloads
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
+const ForceGraph2D = lazyWithRetry(() => import('react-force-graph-2d'));
+const ForceGraph3D = lazyWithRetry(() => import('react-force-graph-3d'));
 
 export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
   const [mode, setMode] = useState('2D');
