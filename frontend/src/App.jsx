@@ -535,8 +535,9 @@ function AuthenticatedApp({ s }) {
                   }}
                 />
               )}
-            </Suspense>
-          </div>
+            </div>
+            )}
+          </Suspense>
         </main>
       </div>
     </div>
