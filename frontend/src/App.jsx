@@ -388,7 +388,7 @@ function AuthenticatedApp({ s }) {
 
         {/* PAGE CONTENT */}
         <main className="h-full overflow-y-auto overflow-x-hidden relative z-10 w-full">
-          <div className={`mx-auto w-full px-4 sm:px-8 pt-20 pb-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
+          <div className={`mx-auto w-full pt-20 pb-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
             <Suspense fallback={<PageLoader />}>
               {s.step === 'landing' && (
                 <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
