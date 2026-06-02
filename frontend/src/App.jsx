@@ -255,7 +255,7 @@ function AuthenticatedApp({ s }) {
       )}
 
       {/* SIDEBAR - Mobile drawer with backdrop */}
-      <aside className={`group shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] transition-all duration-300 overflow-hidden ${mobileMenuOpen ? 'translate-x-0 w-full md:w-[260px]' : '-translate-x-full md:translate-x-0 w-[88px] hover:w-[260px] md:w-[88px]'}`}>
+      <aside className={`group shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] transition-all duration-300 overflow-hidden ${mobileMenuOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 w-[88px] hover:w-[260px]'}`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2 relative">
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[1.5]" />
@@ -334,9 +334,9 @@ function AuthenticatedApp({ s }) {
       </aside>
 
       {/* MAIN */}
-      <div className="flex-1 h-full min-w-0 w-full relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 w-full relative">
         {/* TOPBAR - Option 2: Flush Gradient Fade */}
-        <header className="absolute top-0 left-0 right-0 h-28 z-50 flex items-start justify-between px-4 sm:px-6 pt-4 pointer-events-none"
+        <header className="h-20 shrink-0 z-50 flex items-start justify-between px-4 sm:px-6 pt-4 pointer-events-none"
           style={{ 
             background: 'linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)',
             transform: 'translateZ(0)',
@@ -346,7 +346,7 @@ function AuthenticatedApp({ s }) {
             <button className="md:hidden text-white hover:text-white/80" onClick={() => setMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex md:hidden items-center gap-2">
+            <div className="flex items-center gap-2">
               <img src="/assets/shield_logo.webp" alt="Aethel Logo" className="w-6 h-6 object-contain" />
               <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
             </div>
@@ -388,8 +388,8 @@ function AuthenticatedApp({ s }) {
         )}
 
         {/* PAGE CONTENT */}
-        <main className="h-full overflow-y-auto overflow-x-hidden relative z-10 w-full">
-          <div className={`mx-auto w-full pt-16 md:pt-20 pb-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full">
+          <div className={`mx-auto w-full px-4 sm:px-8 py-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
             <Suspense fallback={<PageLoader />}>
               {s.step === 'landing' && (
                 <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
