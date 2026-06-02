@@ -255,7 +255,7 @@ function AuthenticatedApp({ s }) {
       )}
 
       {/* SIDEBAR - Mobile drawer with backdrop */}
-      <aside className={`group w-[88px] hover:w-[260px] shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} transition-all duration-300 overflow-hidden`}>
+      <aside className={`group shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] transition-all duration-300 overflow-hidden ${mobileMenuOpen ? 'translate-x-0 w-[260px] is-mobile-open' : '-translate-x-full md:translate-x-0 w-[88px] hover:w-[260px]'}`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2 relative">
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[1.5]" />
@@ -488,7 +488,37 @@ function AuthenticatedApp({ s }) {
                   </div>
                 </>
               )}
-              {s.step === 'talent-pool' && <TalentPoolView />}
+              {s.step === 'talent-pool' && (
+                user?.role !== 'candidate' ? (
+                  <>
+                    <div className="block lg:hidden">
+                      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 py-12">
+                        <div className="glass-card rounded-2xl p-8 max-w-md text-center border border-white/[0.08]">
+                          <div className="w-16 h-16 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center mx-auto mb-6">
+                            <Users className="w-8 h-8 text-white/60" />
+                          </div>
+                          <h2 className="text-xl font-bold text-white mb-3">Desktop Required</h2>
+                          <p className="text-sm text-white/60 leading-relaxed mb-6">
+                            The Recruiter Dashboard is optimized for desktop viewing. Please access this page from a laptop or PC for the best experience.
+                          </p>
+                          <button
+                            onClick={() => goTo('upload')}
+                            className="px-6 py-2.5 rounded-xl text-sm font-semibold btn-premium flex items-center gap-2 mx-auto"
+                          >
+                            <Shield className="w-4 h-4" />
+                            Go to New Audit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="hidden lg:block">
+                      <TalentPoolView />
+                    </div>
+                  </>
+                ) : (
+                  <TalentPoolView />
+                )
+              )}
               {s.step === 'batch' && user?.role !== 'candidate' && (
                 <BatchUploadView
                   s={s}

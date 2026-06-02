@@ -659,3 +659,16 @@
 .group:hover .cube-core {
   opacity: 0.6;
 }
+
+/* ═══ MOBILE NAV EXPAND ═══ */
+.is-mobile-open .opacity-0.w-0 {
+  opacity: 1 !important;
+  width: auto !important;
+}
+.is-mobile-open .group-hover\:opacity-100 {
+  opacity: 1 !important;
+}
+.is-mobile-open .group-hover\:w-auto {
+  width: auto !important;
+}
+
