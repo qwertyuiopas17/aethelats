@@ -15,16 +15,39 @@ import { useAuth } from './context/AuthContext';
 // ── Eager imports (always visible/critical path) ──
 import LandingView from './components/LandingView';
 
+// ── Helper to handle Vite chunk load errors gracefully ──
+// If a user has a stale session and tries to load a view that was updated,
+// Vite will throw a chunk load error. This forces a single reload to get fresh assets.
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+    );
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+        window.location.reload();
+        // Return a promise that never resolves while the page reloads
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
 // ── Lazy-loaded route-level components (code-split by Vite) ──
-const UploadView = lazy(() => import('./components/UploadView'));
-const ResultsView = lazy(() => import('./components/ResultsView'));
-const BiasDashboard = lazy(() => import('./components/BiasDashboard'));
-const TalentPoolView = lazy(() => import('./components/TalentPoolView'));
-const BatchUploadView = lazy(() => import('./components/BatchUploadView'));
-const AuthView = lazy(() => import('./components/AuthView'));
-const PipelineVisualizer = lazy(() => import('./components/PipelineVisualizer'));
-const AiCoachView = lazy(() => import('./components/AiCoachView'));
-const RecruiterVerificationModal = lazy(() => import('./components/RecruiterVerificationModal'));
+const UploadView = lazyWithRetry(() => import('./components/UploadView'));
+const ResultsView = lazyWithRetry(() => import('./components/ResultsView'));
+const BiasDashboard = lazyWithRetry(() => import('./components/BiasDashboard'));
+const TalentPoolView = lazyWithRetry(() => import('./components/TalentPoolView'));
+const BatchUploadView = lazyWithRetry(() => import('./components/BatchUploadView'));
+const AuthView = lazyWithRetry(() => import('./components/AuthView'));
+const PipelineVisualizer = lazyWithRetry(() => import('./components/PipelineVisualizer'));
+const AiCoachView = lazyWithRetry(() => import('./components/AiCoachView'));
+const RecruiterVerificationModal = lazyWithRetry(() => import('./components/RecruiterVerificationModal'));
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
