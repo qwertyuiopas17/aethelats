@@ -13,11 +13,9 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-// Pure black background with geometric pattern
+// Pure black background - simple for email compatibility
 const main = {
   backgroundColor: "#000000",
-  backgroundImage: "linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
-  backgroundSize: "60px 60px",
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   padding: "40px 20px",
 };
@@ -28,9 +26,8 @@ const container = {
   padding: "0",
   maxWidth: "560px",
   backgroundColor: "#0a0a0a",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: "16px",
-  boxShadow: "0 20px 40px -10px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255, 255, 255, 0.03)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "12px",
   overflow: "hidden",
 };
 
@@ -38,7 +35,7 @@ const container = {
 const header = {
   padding: "40px 32px 32px",
   textAlign: "center" as const,
-  borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
 };
 
 const logoImage = {
@@ -84,20 +81,20 @@ const message = {
   margin: "0 0 32px",
 };
 
-// OTP Section - pure monochrome with brighter accents
+// OTP Section - pure monochrome, email-safe
 const otpSection = {
   padding: "32px 24px",
   margin: "0 0 32px",
-  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  backgroundColor: "rgba(255, 255, 255, 0.03)",
   borderRadius: "12px",
   textAlign: "center" as const,
-  border: "1px solid rgba(255, 255, 255, 0.08)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
 };
 
 const otpLabel = {
   fontSize: "10px",
   fontWeight: "700",
-  color: "rgba(255, 255, 255, 0.6)",
+  color: "rgba(255, 255, 255, 0.5)",
   letterSpacing: "2px",
   textTransform: "uppercase" as const,
   margin: "0 0 20px",
@@ -113,10 +110,9 @@ const otpDigit = {
   fontWeight: "900",
   color: "#ffffff",
   backgroundColor: "#000000",
-  border: "1px solid rgba(255, 255, 255, 0.25)",
-  borderRadius: "10px",
+  border: "2px solid rgba(255, 255, 255, 0.2)",
+  borderRadius: "8px",
   margin: "0 4px 8px",
-  boxShadow: "0 0 20px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0,0,0,0.8)",
 };
 
 const expiryNote = {
@@ -137,7 +133,7 @@ const warningText = {
 };
 
 const divider = {
-  borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
   margin: "0 0 24px",
 };
 
