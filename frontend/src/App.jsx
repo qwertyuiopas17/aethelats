@@ -12,8 +12,10 @@ import CircuitLoader from './components/CircuitLoader';
 import HorseLoader from './components/HorseLoader';
 import { useAuth } from './context/AuthContext';
 
+// ── Eager imports (always visible/critical path) ──
+import LandingView from './components/LandingView';
+
 // ── Lazy-loaded route-level components (code-split by Vite) ──
-const LandingView = lazy(() => import('./components/LandingView'));
 const UploadView = lazy(() => import('./components/UploadView'));
 const ResultsView = lazy(() => import('./components/ResultsView'));
 const BiasDashboard = lazy(() => import('./components/BiasDashboard'));
@@ -184,9 +186,7 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
       ) : (
         /* Normal landing content */
         <div className="relative z-10 mx-auto w-full">
-          <Suspense fallback={<PageLoader />}>
-            <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
-          </Suspense>
+          <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
         </div>
       )}
     </div>
