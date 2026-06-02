@@ -13,62 +13,62 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-// Premium dark background with email-safe styling
-// Radial gradients don't work in many email clients, so we use a solid dark bg with subtle accents via borders
+// Pure monochrome aesthetic - white on black, no colors
+// Inspired by the neural network wireframe and premium glass-morphism
 const main = {
-  backgroundColor: "#0a0a0a",
+  backgroundColor: "#000000",
   fontFamily:
     "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif",
   padding: "60px 20px",
 };
 
-// Premium glass-like container with cyan accent border
+// Premium glass container - pure white borders, subtle glow
 const container = {
   margin: "0 auto",
   padding: "0",
   width: "520px",
   maxWidth: "100%",
-  backgroundColor: "rgba(15, 15, 15, 0.98)",
-  border: "1px solid rgba(0, 240, 255, 0.15)",
+  backgroundColor: "rgba(10, 10, 10, 0.95)",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
   borderRadius: "20px",
-  boxShadow: "0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset",
+  boxShadow: "0 25px 50px -12px rgba(0,0,0,0.9), inset 0 1px 1px 0 rgba(255,255,255,0.05)",
   overflow: "hidden",
 };
 
 const header = {
   padding: "48px 40px 40px",
   textAlign: "center" as const,
-  background: "linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 0%, transparent 100%)",
-  borderBottom: "1px solid rgba(0, 240, 255, 0.08)",
+  background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0%, transparent 100%)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
 };
 
 const logoImage = {
   margin: "0 auto",
   display: "block",
   borderRadius: "16px",
-  backgroundColor: "rgba(0, 240, 255, 0.05)",
-  padding: "8px",
-  border: "1px solid rgba(0, 240, 255, 0.2)",
-  boxShadow: "0 0 20px rgba(0, 240, 255, 0.15), 0 4px 12px rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(255, 255, 255, 0.04)",
+  padding: "12px",
+  border: "1px solid rgba(255, 255, 255, 0.15)",
+  boxShadow: "0 0 30px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0,0,0,0.5)",
 };
 
 const logoText = {
-  fontSize: "26px",
-  fontWeight: "800",
+  fontSize: "28px",
+  fontWeight: "900",
   color: "#ffffff",
-  letterSpacing: "-0.5px",
+  letterSpacing: "-0.8px",
   margin: "24px 0 0",
   textAlign: "center" as const,
-  textShadow: "0 2px 10px rgba(0, 240, 255, 0.2)",
+  textShadow: "0 2px 12px rgba(255, 255, 255, 0.15)",
 };
 
 const subtitle = {
-  fontSize: "10px",
-  fontWeight: "700",
-  color: "rgba(0, 240, 255, 0.6)",
-  letterSpacing: "4px",
+  fontSize: "9px",
+  fontWeight: "800",
+  color: "rgba(255, 255, 255, 0.4)",
+  letterSpacing: "5px",
   textTransform: "uppercase" as const,
-  margin: "8px 0 0",
+  margin: "10px 0 0",
   textAlign: "center" as const,
 };
 
@@ -93,36 +93,38 @@ const message = {
 const otpContainer = {
   margin: "0 0 40px",
   textAlign: "center" as const,
-  padding: "24px 0",
-  background: "linear-gradient(to bottom, rgba(0, 240, 255, 0.02) 0%, transparent 100%)",
+  padding: "32px 0",
+  background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 0%, transparent 100%)",
   borderRadius: "16px",
+  border: "1px solid rgba(255, 255, 255, 0.03)",
 };
 
 const otpLabel = {
-  margin: "0 0 16px",
-  fontSize: "11px",
-  fontWeight: "700",
-  color: "rgba(0, 240, 255, 0.7)",
-  letterSpacing: "2px",
+  margin: "0 0 20px",
+  fontSize: "10px",
+  fontWeight: "800",
+  color: "rgba(255, 255, 255, 0.5)",
+  letterSpacing: "3px",
   textTransform: "uppercase" as const,
 };
 
-// Premium 3D glowing OTP boxes with cyan accent
+// Premium monochrome OTP boxes - pure white glow, inspired by neural nodes
 const otpDigit = {
   display: "inline-block",
-  width: "52px",
-  height: "68px",
-  lineHeight: "68px",
+  width: "56px",
+  height: "72px",
+  lineHeight: "72px",
   textAlign: "center" as const,
-  fontSize: "32px",
-  fontWeight: "800",
-  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  fontSize: "36px",
+  fontWeight: "900",
+  backgroundColor: "rgba(0, 0, 0, 0.8)",
   color: "#ffffff",
-  border: "1px solid rgba(0, 240, 255, 0.25)",
+  border: "1px solid rgba(255, 255, 255, 0.2)",
   borderRadius: "14px",
-  margin: "0 5px",
-  boxShadow: "0 0 20px rgba(0, 240, 255, 0.15), inset 0 1px 2px rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.4)",
-  textShadow: "0 2px 8px rgba(0, 240, 255, 0.3)",
+  margin: "0 4px",
+  boxShadow: "0 0 25px rgba(255, 255, 255, 0.1), inset 0 1px 2px rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.5)",
+  textShadow: "0 2px 12px rgba(255, 255, 255, 0.3)",
+  letterSpacing: "0px",
 };
 
 const warning = {
@@ -138,7 +140,7 @@ const warning = {
 };
 
 const hr = {
-  borderColor: "rgba(0, 240, 255, 0.1)",
+  borderColor: "rgba(255, 255, 255, 0.08)",
   margin: "0 0 28px",
 };
 
@@ -151,9 +153,9 @@ const footer = {
 };
 
 const link = {
-  color: "rgba(0, 240, 255, 0.9)",
+  color: "#ffffff",
   textDecoration: "none",
-  fontWeight: "600",
+  fontWeight: "700",
 };
 
 export default function VerificationEmail() {
