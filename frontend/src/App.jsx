@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect } from 'react';
+import React, { Component, useState, useEffect, Suspense, lazy } from 'react';
 import {
   AlertTriangle, AlertCircle, Shield, Users, Activity, BarChart2,
   RefreshCw, XCircle, Play, Bell, HelpCircle, Layers,
@@ -6,21 +6,23 @@ import {
 } from 'lucide-react';
 import { useAppState } from './components/AppLogic';
 import { NavItem, FairnessGateModal, getLogColor, LogIcon } from './components/UIHelpers';
-import LandingView from './components/LandingView';
-import UploadView from './components/UploadView';
 import MagneticLensCursor from './components/MagneticLensCursor';
 import NeuralWireframe from './components/NeuralWireframe';
-import ResultsView from './components/ResultsView';
 import CircuitLoader from './components/CircuitLoader';
 import HorseLoader from './components/HorseLoader';
-import BiasDashboard from './components/BiasDashboard';
-import TalentPoolView from './components/TalentPoolView';
-import BatchUploadView from './components/BatchUploadView';
-import AuthView from './components/AuthView';
-import PipelineVisualizer from './components/PipelineVisualizer';
-import RecruiterVerificationModal from './components/RecruiterVerificationModal';
-import AiCoachView from './components/AiCoachView';
 import { useAuth } from './context/AuthContext';
+
+// ── Lazy-loaded route-level components (code-split by Vite) ──
+const LandingView = lazy(() => import('./components/LandingView'));
+const UploadView = lazy(() => import('./components/UploadView'));
+const ResultsView = lazy(() => import('./components/ResultsView'));
+const BiasDashboard = lazy(() => import('./components/BiasDashboard'));
+const TalentPoolView = lazy(() => import('./components/TalentPoolView'));
+const BatchUploadView = lazy(() => import('./components/BatchUploadView'));
+const AuthView = lazy(() => import('./components/AuthView'));
+const PipelineVisualizer = lazy(() => import('./components/PipelineVisualizer'));
+const AiCoachView = lazy(() => import('./components/AiCoachView'));
+const RecruiterVerificationModal = lazy(() => import('./components/RecruiterVerificationModal'));
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -30,6 +32,18 @@ class ErrorBoundary extends Component {
     if (this.state.error) return <div className="p-4 text-red-500 font-mono text-sm bg-red-500/10 rounded-xl border border-red-500/20 m-4">Error: {this.state.error.message}</div>;
     return this.props.children; 
   }
+}
+
+/* ── Minimal loading fallback for lazy-loaded routes ── */
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh] animate-fade-in">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <span className="text-xs text-white/30 uppercase tracking-widest font-semibold">Loading</span>
+      </div>
+    </div>
+  );
 }
 
 
@@ -132,7 +146,7 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
       <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/[0.05]"
         style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-2.5">
-          <img src="/assets/shield_logo.png" alt="Aethel" style={{ width: 34, height: 34, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(255,255,255,0.2))' }} />
+          <img src="/assets/shield_logo.webp" alt="Aethel" style={{ width: 34, height: 34, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(255,255,255,0.2))' }} />
           <div>
             <div className="text-base font-black text-white tracking-tight">Aethel</div>
             <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 -mt-0.5">Precision Recruitment</div>
@@ -163,12 +177,16 @@ function PublicLanding({ onSignIn, onGetStarted, onLoadDemo, s }) {
               Audit My Resume — Free →
             </button>
           </div>
-          <ResultsView s={s} />
+          <Suspense fallback={<PageLoader />}>
+            <ResultsView s={s} />
+          </Suspense>
         </div>
       ) : (
         /* Normal landing content */
         <div className="relative z-10 mx-auto w-full">
-          <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
+          <Suspense fallback={<PageLoader />}>
+            <LandingView onGetStarted={onGetStarted} onLoadDemo={onLoadDemo} />
+          </Suspense>
         </div>
       )}
     </div>
@@ -227,7 +245,9 @@ function AuthenticatedApp({ s }) {
       )}
 
       {showVerificationModal && (
-        <RecruiterVerificationModal onClose={() => setShowVerificationModal(false)} />
+        <Suspense fallback={null}>
+          <RecruiterVerificationModal onClose={() => setShowVerificationModal(false)} />
+        </Suspense>
       )}
 
       {mobileMenuOpen && (
@@ -239,7 +259,7 @@ function AuthenticatedApp({ s }) {
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2 relative">
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[1.5]" />
-            <img src="/assets/shield_logo.png" alt="Aethel" className="relative z-10 shrink-0" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
+            <img src="/assets/shield_logo.webp" alt="Aethel" className="relative z-10 shrink-0" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
             <div className="relative z-10 ml-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto transition-all duration-300 whitespace-nowrap overflow-hidden">
               <div className="text-lg font-bold text-white tracking-tight">Aethel</div>
               <div className="text-[8px] font-bold uppercase tracking-[0.25em] text-white/40">Precision Recruitment</div>
@@ -261,7 +281,7 @@ function AuthenticatedApp({ s }) {
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5">
-          <NavItem icon={<img src="/assets/shield_logo.png" alt="" className="w-4 h-4 object-contain" />}
+          <NavItem icon={<img src="/assets/shield_logo.webp" alt="" className="w-4 h-4 object-contain" />}
             label="Home" active={s.step === 'landing'} onClick={() => goTo('landing')} />
           <NavItem icon={<Users className="w-4 h-4" />}
             label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
@@ -326,7 +346,7 @@ function AuthenticatedApp({ s }) {
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2">
-              <img src="/assets/shield_logo.png" alt="Aethel Logo" className="w-6 h-6 object-contain" />
+              <img src="/assets/shield_logo.webp" alt="Aethel Logo" className="w-6 h-6 object-contain" />
               <span className="text-sm font-bold text-white tracking-tight">Aethel ATS</span>
             </div>
           </div>
@@ -369,92 +389,94 @@ function AuthenticatedApp({ s }) {
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full">
           <div className={`mx-auto w-full px-4 sm:px-8 py-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
-            {s.step === 'landing' && (
-              <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
-            )}
+            <Suspense fallback={<PageLoader />}>
+              {s.step === 'landing' && (
+                <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
+              )}
 
-            {s.step === 'upload' && <UploadView s={s} />}
+              {s.step === 'upload' && <UploadView s={s} />}
 
-            {s.step === 'scanning' && (
-              <>
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in relative z-10">
-                  {/* Central 160x160 area for the loaders */}
-                  <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
+              {s.step === 'scanning' && (
+                <>
+                  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in relative z-10">
+                    {/* Central 160x160 area for the loaders */}
+                    <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
+                      
+                      {/* SVG Circuit Loader / Shield Trace */}
+                      <CircuitLoader phase={loaderPhase} />
+
+                      {/* Actual HorseLoader — only mounted AFTER shield animation completes */}
+                      <div 
+                        className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${loaderPhase === 'complete' ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}
+                        style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+                      >
+                        <HorseLoader />
+                      </div>
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
+                  
+                  <div className="w-full max-w-lg bento-box p-6 scan-container shadow-[0_0_80px_rgba(255,255,255,0.03)] border border-white/[0.08]">
+                    <div className="flex justify-between items-end mb-3">
+                      <span className="text-xs font-bold uppercase tracking-widest text-white/50 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse shadow-[0_0_10px_#00f0ff]" /> Live Audit Trail
+                      </span>
+                      <span className="text-lg font-black text-white font-mono">{s.progress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
+                      <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
+                    </div>
                     
-                    {/* SVG Circuit Loader / Shield Trace */}
-                    <CircuitLoader phase={loaderPhase} />
-
-                    {/* Actual HorseLoader — only mounted AFTER shield animation completes */}
-                    <div 
-                      className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${loaderPhase === 'complete' ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}
-                      style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
-                    >
-                      <HorseLoader />
+                    {/* Vertical Text Animation Container */}
+                    <div className="space-y-3 font-mono text-xs h-48 overflow-hidden relative">
+                      {s.logs.filter(Boolean).map(log => (
+                        <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
+                          <div className="mt-0.5"><LogIcon type={log.type} /></div>
+                          <div className="leading-relaxed">{log.text}</div>
+                        </div>
+                      ))}
+                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-transparent to-transparent pointer-events-none" />
                     </div>
                   </div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Analyzing Candidate Profile</h2>
-                
-                <div className="w-full max-w-lg bento-box p-6 scan-container shadow-[0_0_80px_rgba(255,255,255,0.03)] border border-white/[0.08]">
-                  <div className="flex justify-between items-end mb-3">
-                    <span className="text-xs font-bold uppercase tracking-widest text-white/50 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse shadow-[0_0_10px_#00f0ff]" /> Live Audit Trail
-                    </span>
-                    <span className="text-lg font-black text-white font-mono">{s.progress}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden mb-6">
-                    <div className="h-full bg-white rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: s.progress + '%' }} />
-                  </div>
-                  
-                  {/* Vertical Text Animation Container */}
-                  <div className="space-y-3 font-mono text-xs h-48 overflow-hidden relative">
-                    {s.logs.filter(Boolean).map(log => (
-                      <div key={log.id} className={'flex items-start gap-3 animate-fade-in-up ' + getLogColor(log.type)}>
-                        <div className="mt-0.5"><LogIcon type={log.type} /></div>
-                        <div className="leading-relaxed">{log.text}</div>
-                      </div>
-                    ))}
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-transparent to-transparent pointer-events-none" />
+                </div>
+                </>
+              )}
+
+              {s.step === 'error' && (
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in">
+                  <div className="max-w-md w-full glass-card rounded-2xl p-8 text-center">
+                    <XCircle className="w-12 h-12 text-white/80 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-white mb-2">Analysis Failed</h2>
+                    <p className="text-white/60 text-sm mb-6 font-mono leading-relaxed">
+                      {typeof s.apiError === 'object' ? (s.apiError?.message || s.apiError?.detail || JSON.stringify(s.apiError)) : s.apiError}
+                    </p>
+                    <div className="flex justify-center gap-3">
+                      <button onClick={s.reset} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><RefreshCw className="w-4 h-4" />Retry</button>
+                      <button onClick={s.loadDemo} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><Play className="w-4 h-4" />Demo</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              </>
-            )}
+              )}
 
-            {s.step === 'error' && (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] p-8 animate-fade-in">
-                <div className="max-w-md w-full glass-card rounded-2xl p-8 text-center">
-                  <XCircle className="w-12 h-12 text-white/80 mx-auto mb-4" />
-                  <h2 className="text-xl font-bold text-white mb-2">Analysis Failed</h2>
-                  <p className="text-white/60 text-sm mb-6 font-mono leading-relaxed">
-                    {typeof s.apiError === 'object' ? (s.apiError?.message || s.apiError?.detail || JSON.stringify(s.apiError)) : s.apiError}
-                  </p>
-                  <div className="flex justify-center gap-3">
-                    <button onClick={s.reset} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><RefreshCw className="w-4 h-4" />Retry</button>
-                    <button onClick={s.loadDemo} className="px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 btn-premium"><Play className="w-4 h-4" />Demo</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
-            {s.step === 'coach' && <AiCoachView s={s} />}
-            {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
-            {s.step === 'talent-pool' && <TalentPoolView />}
-            {s.step === 'batch' && user?.role !== 'candidate' && (
-              <BatchUploadView
-                s={s}
-                jobs={s.batchJobs}
-                setJobs={s.setBatchJobs}
-                batchId={s.batchId}
-                setBatchId={s.setBatchId}
-                ws={s.batchWs}
-                setWs={s.setBatchWs}
-                onViewResult={(job) => {
-                  s.setResult(job.result);
-                  s.setStep('results');
-                }}
-              />
-            )}
+              {s.step === 'results' && s.result && <ResultsView s={s} onOpenCoach={() => goTo('coach')} />}
+              {s.step === 'coach' && <AiCoachView s={s} />}
+              {s.step === 'analytics' && user?.role !== 'candidate' && <BiasDashboard />}
+              {s.step === 'talent-pool' && <TalentPoolView />}
+              {s.step === 'batch' && user?.role !== 'candidate' && (
+                <BatchUploadView
+                  s={s}
+                  jobs={s.batchJobs}
+                  setJobs={s.setBatchJobs}
+                  batchId={s.batchId}
+                  setBatchId={s.setBatchId}
+                  ws={s.batchWs}
+                  setWs={s.setBatchWs}
+                  onViewResult={(job) => {
+                    s.setResult(job.result);
+                    s.setStep('results');
+                  }}
+                />
+              )}
+            </Suspense>
           </div>
         </main>
       </div>
@@ -520,7 +542,9 @@ export default function App() {
 
       {/* ── Auth modal ── */}
       {showAuth && !isLoggedIn && (
-        <AuthModal onClose={() => setShowAuth(false)} />
+        <Suspense fallback={null}>
+          <AuthModal onClose={() => setShowAuth(false)} />
+        </Suspense>
       )}
     </ErrorBoundary>
   );

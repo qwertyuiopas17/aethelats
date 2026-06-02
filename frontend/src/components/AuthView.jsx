@@ -346,7 +346,7 @@ function BrandPanel() {
     <div className="hidden lg:flex flex-col justify-center p-10 border border-white/[0.06] border-r-0
       rounded-l-2xl bg-white/[0.02] backdrop-blur-sm">
       <div className="flex items-center gap-3 mb-8">
-        <img src="/assets/shield_logo.png" alt="Aethel"
+        <img src="/assets/shield_logo.webp" alt="Aethel"
           style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
         <div>
           <div className="text-xl font-black text-white tracking-tight">Aethel</div>
@@ -408,7 +408,7 @@ export default function AuthView({ isModal = false }) {
       <div className="glass-card rounded-2xl lg:rounded-l-none lg:rounded-r-2xl p-8 lg:p-10 border border-white/[0.08]">
         {/* Mobile logo (shown only when BrandPanel is hidden) */}
         <div className="flex lg:hidden items-center gap-2 mb-6">
-          <img src="/assets/shield_logo.png" alt="Aethel"
+          <img src="/assets/shield_logo.webp" alt="Aethel"
             style={{ width: 32, height: 32, objectFit: 'contain' }} />
           <span className="text-lg font-black text-white">Aethel</span>
         </div>

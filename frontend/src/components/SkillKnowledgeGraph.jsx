@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
-import ForceGraph3D from 'react-force-graph-3d';
 import { Box, Layers } from 'lucide-react';
+
+const ForceGraph2D = React.lazy(() => import('react-force-graph-2d'));
+const ForceGraph3D = React.lazy(() => import('react-force-graph-3d'));
 
 export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
   const [mode, setMode] = useState('2D');
@@ -157,40 +158,48 @@ export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
             </svg>
             <span className="text-xs uppercase tracking-widest">No skill data</span>
           </div>
-        ) : mode === '2D' ? (
-          <ForceGraph2D
-            width={width}
-            height={HEIGHT}
-            graphData={graphData}
-            nodeCanvasObject={draw2DNode}
-            nodePointerAreaPaint={(node, color, ctx) => {
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, node.val * 3 + 10, 0, 2 * Math.PI, false);
-              ctx.fill();
-            }}
-            linkColor={() => 'rgba(255,255,255,0.07)'}
-            linkWidth={1.2}
-            cooldownTicks={120}
-            d3AlphaDecay={0.03}
-            d3VelocityDecay={0.2}
-            onEngineStop={() => {}} // prevent infinite re-renders
-          />
         ) : (
-          <ForceGraph3D
-            width={width}
-            height={HEIGHT}
-            graphData={graphData}
-            nodeLabel="name"
-            nodeRelSize={4}
-            nodeVal={node => node.val}
-            nodeColor={node => node.core ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}
-            nodeResolution={16}
-            linkColor={() => 'rgba(255,255,255,0.1)'}
-            linkWidth={0.5}
-            backgroundColor="#0a0a0a"
-            showNavInfo={false}
-          />
+          <React.Suspense fallback={
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            </div>
+          }>
+            {mode === '2D' ? (
+              <ForceGraph2D
+                width={width}
+                height={HEIGHT}
+                graphData={graphData}
+                nodeCanvasObject={draw2DNode}
+                nodePointerAreaPaint={(node, color, ctx) => {
+                  ctx.fillStyle = color;
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, node.val * 3 + 10, 0, 2 * Math.PI, false);
+                  ctx.fill();
+                }}
+                linkColor={() => 'rgba(255,255,255,0.07)'}
+                linkWidth={1.2}
+                cooldownTicks={120}
+                d3AlphaDecay={0.03}
+                d3VelocityDecay={0.2}
+                onEngineStop={() => {}} // prevent infinite re-renders
+              />
+            ) : (
+              <ForceGraph3D
+                width={width}
+                height={HEIGHT}
+                graphData={graphData}
+                nodeLabel="name"
+                nodeRelSize={4}
+                nodeVal={node => node.val}
+                nodeColor={node => node.core ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}
+                nodeResolution={16}
+                linkColor={() => 'rgba(255,255,255,0.1)'}
+                linkWidth={0.5}
+                backgroundColor="#0a0a0a"
+                showNavInfo={false}
+              />
+            )}
+          </React.Suspense>
         )}
 
         {!isEmpty && (

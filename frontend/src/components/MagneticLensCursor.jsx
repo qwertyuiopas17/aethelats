@@ -5,7 +5,8 @@ export default function MagneticLensCursor() {
   const requestRef = useRef(null);
   const mouse = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const pos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-  const [hoveredRect, setHoveredRect] = useState(null);
+  const hoveredRectRef = useRef(null);
+  const [hoveredRect, setHoveredRect] = useState(null);  // kept for the style effect only
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   useEffect(() => {
@@ -22,8 +23,11 @@ export default function MagneticLensCursor() {
     const onMouseOver = (e) => {
       const target = e.target.closest('button, a, [data-cursor="magnetic"]');
       if (target) {
-        setHoveredRect(target.getBoundingClientRect());
+        const rect = target.getBoundingClientRect();
+        hoveredRectRef.current = rect;
+        setHoveredRect(rect);
       } else {
+        hoveredRectRef.current = null;
         setHoveredRect(null);
       }
     };
@@ -35,9 +39,9 @@ export default function MagneticLensCursor() {
       pos.current.x += (mouse.current.x - pos.current.x) * 0.15;
       pos.current.y += (mouse.current.y - pos.current.y) * 0.15;
 
-      if (hoveredRect) {
+      if (hoveredRectRef.current) {
         // Snap to button bounds
-        cursorRef.current.style.transform = `translate3d(${hoveredRect.left}px, ${hoveredRect.top}px, 0)`;
+        cursorRef.current.style.transform = `translate3d(${hoveredRectRef.current.left}px, ${hoveredRectRef.current.top}px, 0)`;
       } else {
         // Default dot
         cursorRef.current.style.transform = `translate3d(calc(${pos.current.x}px - 50%), calc(${pos.current.y}px - 50%), 0)`;
@@ -59,7 +63,7 @@ export default function MagneticLensCursor() {
       cancelAnimationFrame(requestRef.current);
       document.body.style.cursor = 'auto';
     };
-  }, [hoveredRect]); // hoveredRect dependency means this effect resets when hover state changes
+  }, []); // stable — never re-registers listeners
 
   // Update heavy visual styles ONLY when hoveredRect changes, not 60fps!
   useEffect(() => {
