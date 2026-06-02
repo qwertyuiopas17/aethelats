@@ -321,7 +321,7 @@ export default function AiCoachView({ s }) {
         </div>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 space-y-8 relative z-10">
+        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 space-y-8 relative z-10">
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center h-full gap-5 text-center animate-fade-in-up">
               <div className="w-20 h-20 rounded-3xl glass-card flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.05)] relative overflow-hidden group">
@@ -355,7 +355,7 @@ export default function AiCoachView({ s }) {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about salaries, skills, career paths, interviews..."
+                placeholder="Ask about salaries, skills, career paths..."
                 rows={1}
                 disabled={loading}
                 className="w-full resize-none rounded-2xl px-5 py-4 text-sm text-white placeholder-white/30
