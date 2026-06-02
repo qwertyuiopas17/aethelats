@@ -13,182 +13,145 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-// Dark teal/green background matching your site
+// Pure black background with geometric pattern
 const main = {
-  backgroundColor: "#0a0f0f",
-  backgroundImage: "radial-gradient(ellipse at top, rgba(10, 30, 30, 0.8) 0%, rgba(5, 15, 15, 1) 50%)",
-  fontFamily:
-    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  padding: "40px 0",
+  backgroundColor: "#000000",
+  backgroundImage: "linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
+  backgroundSize: "60px 60px",
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  padding: "40px 20px",
 };
 
-// Premium container with depth
+// Dark container - pure monochrome
 const container = {
   margin: "0 auto",
   padding: "0",
-  maxWidth: "600px",
-  backgroundColor: "rgba(15, 20, 20, 0.95)",
+  maxWidth: "560px",
+  backgroundColor: "#0a0a0a",
   border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: "24px",
-  boxShadow: "0 30px 60px -15px rgba(0,0,0,0.9), inset 0 1px 2px 0 rgba(255,255,255,0.04)",
+  borderRadius: "16px",
+  boxShadow: "0 20px 40px -10px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255, 255, 255, 0.03)",
   overflow: "hidden",
 };
 
-// Decorative top bar
-const topBar = {
-  height: "4px",
-  background: "linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.15) 100%)",
-};
-
-// Hero section with logo
-const hero = {
-  padding: "56px 48px 40px",
+// Simple header - monochrome
+const header = {
+  padding: "40px 32px 32px",
   textAlign: "center" as const,
-  background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 0%, transparent 100%)",
-};
-
-const logoWrapper = {
-  margin: "0 auto 28px",
-  width: "72px",
-  height: "72px",
-  display: "inline-block",
-  padding: "16px",
-  backgroundColor: "rgba(255, 255, 255, 0.03)",
-  borderRadius: "20px",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  boxShadow: "0 0 40px rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0,0,0,0.4)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 };
 
 const logoImage = {
-  width: "40px",
-  height: "40px",
   display: "block",
+  margin: "0 auto 24px",
+  width: "48px",
+  height: "48px",
 };
 
 const brandName = {
-  fontSize: "32px",
+  fontSize: "24px",
   fontWeight: "900",
   color: "#ffffff",
-  letterSpacing: "-1px",
-  margin: "0 0 8px",
-  textShadow: "0 2px 16px rgba(255, 255, 255, 0.12)",
+  letterSpacing: "-0.5px",
+  margin: "0 0 6px",
 };
 
 const brandTagline = {
-  fontSize: "11px",
+  fontSize: "10px",
   fontWeight: "700",
   color: "rgba(255, 255, 255, 0.35)",
-  letterSpacing: "4px",
+  letterSpacing: "3px",
   textTransform: "uppercase" as const,
   margin: "0",
 };
 
-// Content area
+// Content
 const content = {
-  padding: "0 48px 48px",
+  padding: "32px",
 };
 
 const greeting = {
-  fontSize: "18px",
+  fontSize: "16px",
   fontWeight: "600",
   color: "rgba(255, 255, 255, 0.95)",
-  margin: "0 0 16px",
-  lineHeight: "1.4",
+  margin: "0 0 12px",
 };
 
 const message = {
-  fontSize: "15px",
+  fontSize: "14px",
   color: "rgba(255, 255, 255, 0.65)",
-  lineHeight: "1.7",
-  margin: "0 0 40px",
+  lineHeight: "1.6",
+  margin: "0 0 32px",
 };
 
-// OTP Section - the star of the show
+// OTP Section - pure monochrome with brighter accents
 const otpSection = {
-  padding: "40px 32px",
-  margin: "0 0 40px",
-  backgroundColor: "rgba(0, 0, 0, 0.3)",
-  borderRadius: "20px",
-  border: "1px solid rgba(255, 255, 255, 0.06)",
-  boxShadow: "inset 0 2px 8px rgba(0,0,0,0.5)",
+  padding: "32px 24px",
+  margin: "0 0 32px",
+  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  borderRadius: "12px",
   textAlign: "center" as const,
+  border: "1px solid rgba(255, 255, 255, 0.08)",
 };
 
 const otpLabel = {
-  fontSize: "11px",
-  fontWeight: "800",
-  color: "rgba(255, 255, 255, 0.45)",
-  letterSpacing: "3px",
+  fontSize: "10px",
+  fontWeight: "700",
+  color: "rgba(255, 255, 255, 0.6)",
+  letterSpacing: "2px",
   textTransform: "uppercase" as const,
-  margin: "0 0 24px",
-};
-
-const otpDigitWrapper = {
-  display: "inline-block",
-  margin: "0 auto",
+  margin: "0 0 20px",
 };
 
 const otpDigit = {
   display: "inline-block",
-  width: "64px",
-  height: "80px",
-  lineHeight: "80px",
+  width: "48px",
+  height: "56px",
+  lineHeight: "56px",
   textAlign: "center" as const,
-  fontSize: "42px",
+  fontSize: "28px",
   fontWeight: "900",
   color: "#ffffff",
-  backgroundColor: "rgba(0, 0, 0, 0.6)",
-  border: "2px solid rgba(255, 255, 255, 0.18)",
-  borderRadius: "16px",
-  margin: "0 6px",
-  boxShadow: "0 0 30px rgba(255, 255, 255, 0.08), inset 0 2px 4px rgba(255,255,255,0.06), 0 8px 24px rgba(0,0,0,0.6)",
-  textShadow: "0 2px 16px rgba(255, 255, 255, 0.25)",
-  letterSpacing: "-2px",
+  backgroundColor: "#000000",
+  border: "1px solid rgba(255, 255, 255, 0.25)",
+  borderRadius: "10px",
+  margin: "0 4px 8px",
+  boxShadow: "0 0 20px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0,0,0,0.8)",
 };
 
 const expiryNote = {
-  fontSize: "13px",
+  fontSize: "12px",
   color: "rgba(255, 255, 255, 0.4)",
-  margin: "24px 0 0",
-  lineHeight: "1.6",
-};
-
-// Security warning
-const warningBox = {
-  padding: "20px 24px",
-  margin: "0 0 40px",
-  backgroundColor: "rgba(255, 255, 255, 0.015)",
-  borderRadius: "16px",
-  border: "1px solid rgba(255, 255, 255, 0.04)",
-  textAlign: "center" as const,
+  margin: "16px 0 0",
 };
 
 const warningText = {
-  fontSize: "13px",
-  color: "rgba(255, 255, 255, 0.45)",
-  lineHeight: "1.7",
-  margin: "0",
+  fontSize: "12px",
+  color: "rgba(255, 255, 255, 0.4)",
+  lineHeight: "1.6",
+  textAlign: "center" as const,
+  margin: "0 0 32px",
+  padding: "16px",
+  backgroundColor: "rgba(255, 255, 255, 0.02)",
+  borderRadius: "8px",
 };
 
-// Footer
 const divider = {
   borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-  margin: "0 0 32px",
+  margin: "0 0 24px",
 };
 
 const footer = {
-  fontSize: "13px",
+  fontSize: "12px",
   color: "rgba(255, 255, 255, 0.35)",
-  lineHeight: "1.7",
+  lineHeight: "1.6",
   textAlign: "center" as const,
   margin: "0",
 };
 
 const link = {
   color: "#ffffff",
-  textDecoration: "none",
-  fontWeight: "600",
-  borderBottom: "1px solid rgba(255,255,255,0.2)",
+  textDecoration: "underline",
 };
 
 export default function VerificationEmail() {
@@ -214,64 +177,45 @@ export default function VerificationEmail() {
       <Preview>Your Aethel ATS verification code</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Decorative top bar */}
-          <div style={topBar} />
-          
-          {/* Hero section with logo */}
-          <Section style={hero}>
-            <div style={logoWrapper}>
-              <Img
-                src="https://huggingface.co/spaces/Unded-17/aethel-backend-v3/resolve/main/shield_logo.png"
-                width="40"
-                height="40"
-                alt="Aethel ATS"
-                style={logoImage}
-              />
-            </div>
+          <Section style={header}>
+            <Img
+              src="https://huggingface.co/spaces/Unded-17/aethel-backend-v3/resolve/main/shield_logo.png"
+              width="48"
+              height="48"
+              alt="Aethel ATS"
+              style={logoImage}
+            />
             <Heading style={brandName}>Aethel ATS</Heading>
             <Text style={brandTagline}>Precision Recruitment</Text>
           </Section>
 
-          {/* Main content */}
           <Section style={content}>
-            <Text style={greeting}>
-              Hi {namePlaceholder},
-            </Text>
+            <Text style={greeting}>Hi {namePlaceholder},</Text>
             <Text style={message}>
               Here is your secure verification code to {purposePlaceholder}.
             </Text>
 
-            {/* OTP Section */}
             <div style={otpSection}>
               <Text style={otpLabel}>Verification Code</Text>
-              <div style={otpDigitWrapper}>
+              <div>
                 {digitPlaceholders.map((digit, i) => (
-                  <span key={i} style={otpDigit}>
-                    {digit}
-                  </span>
+                  <span key={i} style={otpDigit}>{digit}</span>
                 ))}
               </div>
               <Text style={expiryNote}>
-                This code expires in <strong style={{color: "#ffffff"}}>10 minutes</strong>
+                Expires in <strong style={{color: "#fff"}}>10 minutes</strong>
               </Text>
             </div>
 
-            {/* Security warning */}
-            <div style={warningBox}>
-              <Text style={warningText}>
-                If you didn't request this code, you can safely ignore this email.
-              </Text>
-            </div>
+            <Text style={warningText}>
+              If you didn't request this code, you can safely ignore this email.
+            </Text>
 
             <Hr style={divider} />
 
-            {/* Footer */}
             <Text style={footer}>
-              Secure email from <strong style={{color: "rgba(255,255,255,0.7)"}}>Aethel ATS</strong><br />
-              Questions? Reach us at{" "}
-              <a href="mailto:support@aethel.ai" style={link}>
-                support@aethel.ai
-              </a>
+              Secure email from <strong>Aethel ATS</strong><br />
+              Questions? <a href="mailto:support@aethel.ai" style={link}>support@aethel.ai</a>
             </Text>
           </Section>
         </Container>
