@@ -260,7 +260,7 @@ function AuthenticatedApp({ s }) {
           <div className="flex items-center gap-2 relative">
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[1.5]" />
             <img src="/assets/shield_logo.webp" alt="Aethel" className="relative z-10 shrink-0" style={{ width: 40, height: 40, objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))' }} />
-            <div className="relative z-10 ml-1 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-[.is-mobile-open]:opacity-100 group-[.is-mobile-open]:w-auto transition-all duration-300 whitespace-nowrap overflow-hidden">
+            <div className={`relative z-10 ml-1 transition-all duration-300 whitespace-nowrap overflow-hidden ${mobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>
               <div className="text-lg font-bold text-white tracking-tight">Aethel</div>
               <div className="text-[8px] font-bold uppercase tracking-[0.25em] text-white/40">Precision Recruitment</div>
             </div>
@@ -274,7 +274,7 @@ function AuthenticatedApp({ s }) {
           <button onClick={() => { s.reset(); setMobileMenuOpen(false); }} data-cursor="magnetic"
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl btn-premium magnetic-btn text-sm font-semibold mb-4 overflow-hidden whitespace-nowrap">
             <span className="shrink-0 text-lg">+</span>
-            <span className="opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-[.is-mobile-open]:opacity-100 group-[.is-mobile-open]:w-auto transition-all duration-300">
+            <span className={`transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>
               {user?.role === 'candidate' ? 'Audit Resume' : 'Add Candidate'}
             </span>
           </button>
@@ -282,19 +282,20 @@ function AuthenticatedApp({ s }) {
 
         <nav className="flex-1 px-3 space-y-0.5">
           <NavItem icon={<img src="/assets/shield_logo.webp" alt="" className="w-4 h-4 object-contain" />}
-            label="Home" active={s.step === 'landing'} onClick={() => goTo('landing')} />
+            label="Home" active={s.step === 'landing'} onClick={() => goTo('landing')} expanded={mobileMenuOpen} />
           <NavItem icon={<Users className="w-4 h-4" />}
-            label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} />
+            label={user?.role === 'candidate' ? 'My Resumes' : 'Talent Pipeline'} active={s.step === 'talent-pool'} onClick={() => goTo('talent-pool')} expanded={mobileMenuOpen} />
           {user?.role !== 'candidate' && (
-            <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" />
+            <ComingSoonNavItem icon={<FileText className="w-4 h-4" />} label="JD Matching" expanded={mobileMenuOpen} />
           )}
           {user?.role === 'candidate' && (
             <NavItem icon={<Activity className="w-4 h-4" />}
-              label="AI Coach" active={s.step === 'coach'} onClick={() => goTo('coach')} />
+              label="AI Coach" active={s.step === 'coach'} onClick={() => goTo('coach')} expanded={mobileMenuOpen} />
           )}
           {user?.role !== 'candidate' && (
             <NavItem icon={<Layers className="w-4 h-4" />}
               label="Batch Upload" active={s.step === 'batch'} 
+              expanded={mobileMenuOpen}
               onClick={() => {
                 if (user?.role === 'recruiter' && !user?.is_recruiter_verified) {
                   setShowVerificationModal(true);
@@ -304,10 +305,10 @@ function AuthenticatedApp({ s }) {
               }} />
           )}
           <NavItem icon={<Shield className="w-4 h-4" />}
-            label={user?.role === 'candidate' ? 'New Audit' : 'Audit Trail'} active={s.step === 'upload' || s.step === 'scanning'} onClick={() => goTo('upload')} />
+            label={user?.role === 'candidate' ? 'New Audit' : 'Audit Trail'} active={s.step === 'upload' || s.step === 'scanning'} onClick={() => goTo('upload')} expanded={mobileMenuOpen} />
           {user?.role !== 'candidate' && (
             <NavItem icon={<BarChart2 className="w-4 h-4" />}
-              label="Analytics" active={s.step === 'analytics'} onClick={() => goTo('analytics')} />
+              label="Analytics" active={s.step === 'analytics'} onClick={() => goTo('analytics')} expanded={mobileMenuOpen} />
           )}
         </nav>
 
@@ -315,17 +316,17 @@ function AuthenticatedApp({ s }) {
           <button onClick={() => { window.open('mailto:support@aethel.ai', '_blank'); setMobileMenuOpen(false); }}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:text-white transition-colors rounded-xl hover:bg-white/[0.04] overflow-hidden">
             <div className="shrink-0"><HelpCircle className="w-4 h-4" /></div>
-            <span className="whitespace-nowrap overflow-hidden transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-[.is-mobile-open]:opacity-100 group-[.is-mobile-open]:w-auto">Support</span>
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>Support</span>
           </button>
           <div className="flex items-center gap-3 px-3 py-2 overflow-hidden">
             <div className="shrink-0 w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-xs font-bold text-white">
               {user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : 'ME'}
             </div>
-            <div className="flex-1 min-w-0 transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-[.is-mobile-open]:opacity-100 group-[.is-mobile-open]:w-auto whitespace-nowrap overflow-hidden">
+            <div className={`flex-1 min-w-0 transition-all duration-300 whitespace-nowrap overflow-hidden ${mobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>
               <div className="text-xs font-semibold text-white truncate">{user?.name}</div>
               <div className="text-[10px] text-white/40 truncate">{user?.role}</div>
             </div>
-            <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="shrink-0 transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-[.is-mobile-open]:opacity-100 group-[.is-mobile-open]:w-auto text-white/30 hover:text-white/70" title="Sign out">
+            <button onClick={() => { logout(); setMobileMenuOpen(false); }} className={`shrink-0 transition-all duration-300 text-white/30 hover:text-white/70 ${mobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`} title="Sign out">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>

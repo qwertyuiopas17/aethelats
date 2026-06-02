@@ -37,15 +37,32 @@ export function Pill({ children, variant }) {
   return <span className={'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ' + (m[variant] || 'bg-white/[0.05] text-white border-white/10')}>{children}</span>;
 }
 
-export function NavItem({ icon, label, active, onClick }) {
+export function NavItem({ icon, label, active, onClick, expanded }) {
   return (
     <button onClick={onClick} className={'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-400 ease-out ' +
       (active
         ? 'tab-3d-active'
         : 'text-white/90 hover:text-white hover:bg-white/[0.04] border border-transparent hover:border-white/[0.04]')}>
       <div className="shrink-0">{icon}</div>
-      <span className="whitespace-nowrap overflow-hidden transition-all duration-300 opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto group-[.is-mobile-open]:opacity-100 group-[.is-mobile-open]:w-auto">{label}</span>
+      <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>
+        {label}
+      </span>
     </button>
+  );
+}
+
+export/* ── Compact "Coming Soon" nav item ── */
+function ComingSoonNavItem({ icon, label, expanded }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/25 cursor-default select-none overflow-hidden">
+      <span className="shrink-0 text-white/20">{icon}</span>
+      <span className={`text-sm font-medium text-white/25 flex-1 whitespace-nowrap overflow-hidden transition-all duration-300 ${expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>
+        {label}
+      </span>
+      <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25 border border-white/[0.05] transition-all duration-300 ${expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-auto'}`}>
+        Soon
+      </span>
+    </div>
   );
 }
 
