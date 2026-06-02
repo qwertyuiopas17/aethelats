@@ -255,7 +255,7 @@ function AuthenticatedApp({ s }) {
       )}
 
       {/* SIDEBAR - Mobile drawer with backdrop */}
-      <aside className={`group shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] transition-all duration-300 overflow-hidden ${mobileMenuOpen ? 'translate-x-0 w-[260px] is-mobile-open' : '-translate-x-full md:translate-x-0 w-[88px] hover:w-[260px] md:w-[88px]'}`}>
+      <aside className={`group shrink-0 glass-sidebar flex flex-col m-0 z-[70] fixed md:sticky top-0 h-screen border-r border-white/[0.06] transition-all duration-300 overflow-hidden ${mobileMenuOpen ? 'translate-x-0 w-full md:w-[260px]' : '-translate-x-full md:translate-x-0 w-[88px] hover:w-[260px] md:w-[88px]'}`}>
         <div className="px-5 py-6 border-b border-white/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-2 relative">
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-[1.5]" />
@@ -389,7 +389,7 @@ function AuthenticatedApp({ s }) {
 
         {/* PAGE CONTENT */}
         <main className="h-full overflow-y-auto overflow-x-hidden relative z-10 w-full">
-          <div className={`mx-auto w-full pt-20 pb-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
+          <div className={`mx-auto w-full pt-16 md:pt-20 pb-6 ${s.step === 'talent-pool' ? 'max-w-none' : 'max-w-[1600px]'}`}>
             <Suspense fallback={<PageLoader />}>
               {s.step === 'landing' && (
                 <LandingView onGetStarted={() => goTo('upload')} onLoadDemo={s.loadDemo} />
