@@ -35,7 +35,7 @@ export default function UploadView({ s }) {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div>
           <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Compliance Engine</div>
-          <h1 className="text-4xl font-extrabold text-white mb-4 tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-white mb-4 tracking-tight">
             {isCandidate ? 'Audit Your Resume' : 'Resume Bias Audit'}
           </h1>
           <p className="text-white/70 text-sm max-w-xl leading-relaxed mb-8">

@@ -310,8 +310,8 @@ export default function AiCoachView({ s }) {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setIsContextOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white hover:bg-white/[0.06] border border-white/20 transition-all shadow-[0_0_10px_rgba(255,255,255,0.1)]">
-              Context & Ideas
+              className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-white hover:bg-white/[0.06] border border-white/20 transition-all">
+              Context
             </button>
             <button onClick={handleReset} title="Reset conversation"
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/[0.06] border border-transparent hover:border-white/[0.15] hover-lift transition-all">
@@ -329,8 +329,8 @@ export default function AiCoachView({ s }) {
                 <Sparkles className="w-8 h-8 text-white/80" />
               </div>
               <div>
-                <div className="text-2xl font-black tracking-tight text-white mb-2">Your AI Career Coach</div>
-                <div className="text-sm text-white/50 max-w-md mx-auto leading-relaxed">
+              <div className="text-xl sm:text-2xl font-black tracking-tight text-white mb-2">Your AI Career Coach</div>
+              <div className="text-xs sm:text-sm text-white/50 max-w-md mx-auto leading-relaxed px-4">
                   Ask anything about salaries, skills to learn, career transitions, or interview prep — all backed by 97,000 real Indian job postings.
                 </div>
               </div>
@@ -372,10 +372,10 @@ export default function AiCoachView({ s }) {
             <button
               onClick={() => sendMessage(input)}
               disabled={loading || !input.trim()}
-              className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300
                 disabled:opacity-30 disabled:cursor-not-allowed
                 bg-white text-black font-bold border border-white hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.1)]
-                hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover-lift active:scale-95 z-10"
+                hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-95 z-10"
             >
               {loading
                 ? <RefreshCw className="w-5 h-5 animate-spin" />

@@ -62,9 +62,9 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
   };
 
   return (
-    <div className="p-8 pb-20 max-w-6xl animate-fade-in">
+    <div className="p-4 sm:p-8 pb-20 max-w-6xl animate-fade-in">
       {biasProxies.length > 0 && !s.fairnessConfirmed && (
-        <div className="mb-4 rounded-2xl warning-card-yellow px-6 py-4 flex items-start gap-4 no-print animate-fade-in-up">
+        <div className="mb-4 rounded-2xl warning-card-yellow px-4 sm:px-6 py-4 flex items-start gap-3 sm:gap-4 no-print animate-fade-in-up">
           <AlertTriangle className="w-5 h-5 text-black shrink-0 mt-0.5" />
           <div className="flex-1"><div className="font-semibold text-black mb-0.5">Fairness Review Required</div><p className="text-xs text-black/80">{biasProxies.length} bias proxies detected. Acknowledge before proceeding.</p></div>
           <button onClick={() => s.handlePrimaryAction(recommendation)} className="px-4 py-2 rounded-xl bg-black/10 hover:bg-black/20 border border-black/20 text-black text-xs font-bold transition-colors shrink-0">Review →</button>
@@ -91,13 +91,13 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
             }
           </p>
         </div>
-        <div className="flex items-center gap-3 no-print">
+        <div className="flex flex-wrap items-center gap-3 no-print">
           {isRecruiter && (
             <>
               <button
                 onClick={handleExportPDF}
                 disabled={exporting}
-                className="px-4 py-2.5 rounded-xl text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift disabled:opacity-50 disabled:cursor-wait"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all flex items-center gap-2 hover-lift disabled:opacity-50 disabled:cursor-wait"
               >
                 <Download className="w-4 h-4" />
                 {exporting ? 'Generating…' : 'Download Audit Report'}
@@ -157,10 +157,10 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
             { label: 'Adaptability', value: radar.impact_evidence || 78, level: 'Proficient' },
             { label: 'Risk Tolerance', value: radar.domain_knowledge || 82, level: 'Moderate' }
           ].map((item, i) => (
-            <div key={i} className="flex items-center gap-4 mb-4 last:mb-0">
-              <span className="text-sm text-white w-40 shrink-0">{item.label}</span>
+            <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 last:mb-0">
+              <span className="text-sm text-white sm:w-40 shrink-0">{item.label}</span>
               <div className="flex-1"><AnimatedBar value={item.value} delay={i * 200} color="bg-white/40" /></div>
-              <span className="text-sm font-semibold text-white w-24 text-right">{item.level}</span>
+              <span className="text-sm font-semibold text-white sm:w-24 sm:text-right">{item.level}</span>
             </div>
           ))}
         </div>
