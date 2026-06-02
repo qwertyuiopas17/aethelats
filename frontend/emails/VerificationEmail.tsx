@@ -13,53 +13,59 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-// The website uses a dark background with subtle cyan/purple radial gradients.
-// We can use a linear gradient in email for better compatibility, simulating the glow.
+// Premium dark background with email-safe styling
+// Radial gradients don't work in many email clients, so we use a solid dark bg with subtle accents via borders
 const main = {
-  backgroundColor: "#000000",
-  backgroundImage: "radial-gradient(circle at top right, rgba(0, 240, 255, 0.1) 0%, transparent 60%), radial-gradient(circle at bottom left, rgba(176, 38, 255, 0.1) 0%, transparent 60%)",
+  backgroundColor: "#0a0a0a",
   fontFamily:
     "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif",
-  padding: "60px 0",
+  padding: "60px 20px",
 };
 
-// Premium glass-like bento box
+// Premium glass-like container with cyan accent border
 const container = {
   margin: "0 auto",
   padding: "0",
   width: "520px",
-  backgroundColor: "rgba(10, 10, 10, 0.95)",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: "16px",
-  boxShadow: "0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 1px 0 rgba(255,255,255,0.05)",
+  maxWidth: "100%",
+  backgroundColor: "rgba(15, 15, 15, 0.98)",
+  border: "1px solid rgba(0, 240, 255, 0.15)",
+  borderRadius: "20px",
+  boxShadow: "0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset",
   overflow: "hidden",
 };
 
 const header = {
-  padding: "40px 40px 32px",
+  padding: "48px 40px 40px",
   textAlign: "center" as const,
+  background: "linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 0%, transparent 100%)",
+  borderBottom: "1px solid rgba(0, 240, 255, 0.08)",
 };
 
 const logoImage = {
   margin: "0 auto",
   display: "block",
-  borderRadius: "12px",
-  boxShadow: "0 0 20px rgba(255,255,255,0.1)",
+  borderRadius: "16px",
+  backgroundColor: "rgba(0, 240, 255, 0.05)",
+  padding: "8px",
+  border: "1px solid rgba(0, 240, 255, 0.2)",
+  boxShadow: "0 0 20px rgba(0, 240, 255, 0.15), 0 4px 12px rgba(0,0,0,0.5)",
 };
 
 const logoText = {
-  fontSize: "24px",
+  fontSize: "26px",
   fontWeight: "800",
   color: "#ffffff",
   letterSpacing: "-0.5px",
   margin: "24px 0 0",
   textAlign: "center" as const,
+  textShadow: "0 2px 10px rgba(0, 240, 255, 0.2)",
 };
 
 const subtitle = {
-  fontSize: "11px",
-  fontWeight: "600",
-  color: "rgba(255,255,255,0.5)",
+  fontSize: "10px",
+  fontWeight: "700",
+  color: "rgba(0, 240, 255, 0.6)",
   letterSpacing: "4px",
   textTransform: "uppercase" as const,
   margin: "8px 0 0",
@@ -67,70 +73,87 @@ const subtitle = {
 };
 
 const content = {
-  padding: "0 40px 40px",
+  padding: "40px 40px 48px",
 };
 
 const greeting = {
   margin: "0 0 16px",
-  fontSize: "16px",
-  fontWeight: "500",
+  fontSize: "17px",
+  fontWeight: "600",
   color: "#ffffff",
 };
 
 const message = {
-  margin: "0 0 32px",
+  margin: "0 0 36px",
   fontSize: "15px",
-  color: "rgba(255,255,255,0.7)",
-  lineHeight: "1.6",
+  color: "rgba(255,255,255,0.75)",
+  lineHeight: "1.7",
 };
 
 const otpContainer = {
-  margin: "0 0 32px",
+  margin: "0 0 40px",
   textAlign: "center" as const,
+  padding: "24px 0",
+  background: "linear-gradient(to bottom, rgba(0, 240, 255, 0.02) 0%, transparent 100%)",
+  borderRadius: "16px",
 };
 
-// Sleek 3D glowing OTP boxes
+const otpLabel = {
+  margin: "0 0 16px",
+  fontSize: "11px",
+  fontWeight: "700",
+  color: "rgba(0, 240, 255, 0.7)",
+  letterSpacing: "2px",
+  textTransform: "uppercase" as const,
+};
+
+// Premium 3D glowing OTP boxes with cyan accent
 const otpDigit = {
   display: "inline-block",
-  width: "48px",
-  height: "64px",
-  lineHeight: "64px",
+  width: "52px",
+  height: "68px",
+  lineHeight: "68px",
   textAlign: "center" as const,
-  fontSize: "28px",
-  fontWeight: "700",
-  backgroundColor: "rgba(255,255,255,0.03)",
+  fontSize: "32px",
+  fontWeight: "800",
+  backgroundColor: "rgba(0, 0, 0, 0.6)",
   color: "#ffffff",
-  border: "1px solid rgba(255,255,255,0.15)",
-  borderRadius: "12px",
-  margin: "0 6px",
-  boxShadow: "inset 0 2px 4px rgba(255,255,255,0.05)",
+  border: "1px solid rgba(0, 240, 255, 0.25)",
+  borderRadius: "14px",
+  margin: "0 5px",
+  boxShadow: "0 0 20px rgba(0, 240, 255, 0.15), inset 0 1px 2px rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.4)",
+  textShadow: "0 2px 8px rgba(0, 240, 255, 0.3)",
 };
 
 const warning = {
-  margin: "0 0 32px",
+  margin: "0 0 36px",
   fontSize: "13px",
-  color: "rgba(255,255,255,0.4)",
-  lineHeight: "1.6",
+  color: "rgba(255,255,255,0.5)",
+  lineHeight: "1.7",
   textAlign: "center" as const,
+  padding: "16px 20px",
+  backgroundColor: "rgba(255, 255, 255, 0.02)",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.05)",
 };
 
 const hr = {
-  borderColor: "rgba(255,255,255,0.05)",
-  margin: "0 0 24px",
+  borderColor: "rgba(0, 240, 255, 0.1)",
+  margin: "0 0 28px",
 };
 
 const footer = {
   margin: "0",
   fontSize: "12px",
-  color: "rgba(255,255,255,0.3)",
+  color: "rgba(255,255,255,0.4)",
   textAlign: "center" as const,
-  lineHeight: "1.5",
+  lineHeight: "1.6",
 };
 
 const link = {
-  color: "#ffffff",
+  color: "rgba(0, 240, 255, 0.9)",
   textDecoration: "none",
-  fontWeight: "500",
+  fontWeight: "600",
 };
 
 export default function VerificationEmail() {
@@ -178,6 +201,7 @@ export default function VerificationEmail() {
             </Text>
             
             <Section style={otpContainer}>
+              <Text style={otpLabel}>Your Verification Code</Text>
               {digitPlaceholders.map((digit, i) => (
                 <span key={i} style={otpDigit}>
                   {digit}
