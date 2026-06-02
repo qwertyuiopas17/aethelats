@@ -129,11 +129,13 @@ export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
         <div>
           <h3 className="text-base font-bold text-white animate-slide-in-right stagger-1">Skill Knowledge Graph</h3>
           <p className="text-xs text-white/80 mt-0.5 animate-slide-in-right stagger-2">
-            Interactive physics-based topology
+            <span className="hidden lg:inline">Interactive physics-based topology</span>
+            <span className="lg:hidden">Detected skills from resume</span>
             {graphData.nodes.length > 0 && <span className="ml-2 text-white/40">· {graphData.nodes.length} skills</span>}
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06] animate-scale-in stagger-3">
+        {/* 2D/3D toggle — desktop only */}
+        <div className="hidden lg:flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06] animate-scale-in stagger-3">
           <button
             onClick={() => setMode('2D')}
             className={'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ' + (mode === '2D' ? 'bg-white text-black shadow-lg' : 'text-white/90 hover:text-white')}
@@ -149,71 +151,103 @@ export default function SkillKnowledgeGraph({ skillData, fallbackSkills }) {
         </div>
       </div>
 
-      <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.04] animate-fade-in stagger-4" style={{ height: `${HEIGHT}px` }}>
+      {/* ── MOBILE: Compact Chip Layout ── */}
+      <div className="lg:hidden">
         {isEmpty ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/20">
-            <svg className="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <circle cx="12" cy="12" r="10" strokeWidth="1" />
-              <path strokeLinecap="round" d="M8 12h8M12 8v8" strokeWidth="1" />
-            </svg>
-            <span className="text-xs uppercase tracking-widest">No skill data</span>
+          <div className="flex items-center justify-center py-8 text-white/20 text-xs uppercase tracking-widest">
+            No skill data
           </div>
         ) : (
-          <React.Suspense fallback={
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            </div>
-          }>
-            {mode === '2D' ? (
-              <ForceGraph2D
-                width={width}
-                height={HEIGHT}
-                graphData={graphData}
-                nodeCanvasObject={draw2DNode}
-                nodePointerAreaPaint={(node, color, ctx) => {
-                  ctx.fillStyle = color;
-                  ctx.beginPath();
-                  ctx.arc(node.x, node.y, node.val * 3 + 10, 0, 2 * Math.PI, false);
-                  ctx.fill();
-                }}
-                linkColor={() => 'rgba(255,255,255,0.07)'}
-                linkWidth={1.2}
-                cooldownTicks={120}
-                d3AlphaDecay={0.03}
-                d3VelocityDecay={0.2}
-                onEngineStop={() => {}} // prevent infinite re-renders
-              />
-            ) : (
-              <ForceGraph3D
-                width={width}
-                height={HEIGHT}
-                graphData={graphData}
-                nodeLabel="name"
-                nodeRelSize={4}
-                nodeVal={node => node.val}
-                nodeColor={node => node.core ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}
-                nodeResolution={16}
-                linkColor={() => 'rgba(255,255,255,0.1)'}
-                linkWidth={0.5}
-                backgroundColor="#0a0a0a"
-                showNavInfo={false}
-              />
-            )}
-          </React.Suspense>
-        )}
-
-        {!isEmpty && (
-          <div className="absolute bottom-4 right-4 pointer-events-none text-[10px] text-white/30 uppercase tracking-widest">
-            {mode === '2D' ? 'Drag nodes to interact' : 'Drag to rotate · Scroll to zoom'}
+          <div className="flex flex-wrap gap-2 py-2">
+            {graphData.nodes.map(node => (
+              <span
+                key={node.id}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  node.core
+                    ? 'bg-white/[0.06] text-white border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.05)]'
+                    : 'bg-white/[0.02] text-white/50 border-white/[0.06]'
+                }`}
+              >
+                {node.core && <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/40 mr-1.5 align-middle" />}
+                {node.name}
+              </span>
+            ))}
           </div>
         )}
+        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.06] text-[10px] text-white/50">
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-white/40" /> Core</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-white/15" /> Related</span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-6 mt-4 pt-3 border-t border-white/[0.06] text-xs text-white/80 animate-fade-in-up stagger-6">
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-white/20 border border-white/30" /> Core Skill</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-white/10 border border-white/15" /> Related Tech</span>
-        <span className="flex items-center gap-1.5"><span className="w-6 h-px bg-white/15" /> Relevance</span>
-        <span className="ml-auto text-white">Aethel AI Engine</span>
+      {/* ── DESKTOP: Full Interactive Graph ── */}
+      <div className="hidden lg:block">
+        <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-white/[0.04] animate-fade-in stagger-4" style={{ height: `${HEIGHT}px` }}>
+          {isEmpty ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/20">
+              <svg className="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" strokeWidth="1" />
+                <path strokeLinecap="round" d="M8 12h8M12 8v8" strokeWidth="1" />
+              </svg>
+              <span className="text-xs uppercase tracking-widest">No skill data</span>
+            </div>
+          ) : (
+            <React.Suspense fallback={
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              </div>
+            }>
+              {mode === '2D' ? (
+                <ForceGraph2D
+                  width={width}
+                  height={HEIGHT}
+                  graphData={graphData}
+                  nodeCanvasObject={draw2DNode}
+                  nodePointerAreaPaint={(node, color, ctx) => {
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.val * 3 + 10, 0, 2 * Math.PI, false);
+                    ctx.fill();
+                  }}
+                  linkColor={() => 'rgba(255,255,255,0.07)'}
+                  linkWidth={1.2}
+                  cooldownTicks={120}
+                  d3AlphaDecay={0.03}
+                  d3VelocityDecay={0.2}
+                  onEngineStop={() => {}}
+                />
+              ) : (
+                <ForceGraph3D
+                  width={width}
+                  height={HEIGHT}
+                  graphData={graphData}
+                  nodeLabel="name"
+                  nodeRelSize={4}
+                  nodeVal={node => node.val}
+                  nodeColor={node => node.core ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}
+                  nodeResolution={16}
+                  linkColor={() => 'rgba(255,255,255,0.1)'}
+                  linkWidth={0.5}
+                  backgroundColor="#0a0a0a"
+                  showNavInfo={false}
+                />
+              )}
+            </React.Suspense>
+          )}
+
+          {!isEmpty && (
+            <div className="absolute bottom-4 right-4 pointer-events-none text-[10px] text-white/30 uppercase tracking-widest">
+              {mode === '2D' ? 'Drag nodes to interact' : 'Drag to rotate · Scroll to zoom'}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-white/[0.06] text-xs text-white/80 animate-fade-in-up stagger-6">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-white/20 border border-white/30" /> Core Skill</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-white/10 border border-white/15" /> Related Tech</span>
+          <span className="flex items-center gap-1.5"><span className="w-6 h-px bg-white/15" /> Relevance</span>
+          <span className="ml-auto text-white">Aethel AI Engine</span>
+        </div>
       </div>
     </div>
   );

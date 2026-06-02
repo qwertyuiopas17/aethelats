@@ -1,11 +1,12 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench, BarChart2, Users, Sparkles, ArrowRight } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw, Printer, Eye, Target, ClipboardList, TrendingUp, TrendingDown, Shield, Download, FileText, Clock, Wrench, BarChart2, Users, Sparkles, ArrowRight, Brain, Cpu, Globe } from 'lucide-react';
 import { SectionHeading, Pill, ScoreMeter, AnimatedBar, useCountUp, getFitVariant } from './UIHelpers';
 import { PercentileBadge, PIIStripPanel, SkillDepthSection, SkillMatchSection } from './FeatureSections';
 import { ProofOfWorkSection, BiasStabilitySection } from './AnalysisPanels';
 import { FeatureAttributionChart, FairnessMetricsCard, ComplianceDashboard, ResearchCitationsSection } from './CompliancePanels';
 import { ModelComparisonPanel } from './ModelComparisonPanel';
 import SkillKnowledgeGraph from './SkillKnowledgeGraph';
+import { MobileSection, CircuitConnector } from './MobileAccordion';
 import { SEVERITY_STYLE, BIAS_TYPE_LABELS } from './constants';
 import { useAuth } from '../context/AuthContext';
 
@@ -149,213 +150,231 @@ export default function ResultsView({ s, readOnly = false, onOpenCoach }) {
         </div>
       )}
 
+      <CircuitConnector />
+
       {/* Cognitive & Behavioral Analysis */}
-      <section className="mb-6 animate-fade-in-up stagger-4">
-        <div className="glass-card glass-card-hover rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-5">Cognitive & Behavioral Analysis</h3>
-          {[{ label: 'Strategic Thinking', value: radar.problem_solving || 85, level: 'Superior' },
-            { label: 'Adaptability', value: radar.impact_evidence || 78, level: 'Proficient' },
-            { label: 'Risk Tolerance', value: radar.domain_knowledge || 82, level: 'Moderate' }
-          ].map((item, i) => (
-            <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 last:mb-0">
-              <span className="text-sm text-white sm:w-40 shrink-0">{item.label}</span>
-              <div className="flex-1"><AnimatedBar value={item.value} delay={i * 200} color="bg-white/40" /></div>
-              <span className="text-sm font-semibold text-white sm:w-24 sm:text-right">{item.level}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <MobileSection title="Cognitive Analysis" badge="3 metrics" icon={<Brain className="w-3.5 h-3.5" />} className="mb-6">
+        <section className="animate-fade-in-up stagger-4">
+          <div className="glass-card glass-card-hover rounded-2xl p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-bold text-white mb-5">Cognitive & Behavioral Analysis</h3>
+            {[{ label: 'Strategic Thinking', value: radar.problem_solving || 85, level: 'Superior' },
+              { label: 'Adaptability', value: radar.impact_evidence || 78, level: 'Proficient' },
+              { label: 'Risk Tolerance', value: radar.domain_knowledge || 82, level: 'Moderate' }
+            ].map((item, i) => (
+              <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 last:mb-0">
+                <span className="text-sm text-white sm:w-40 shrink-0">{item.label}</span>
+                <div className="flex-1"><AnimatedBar value={item.value} delay={i * 200} color="bg-white/40" /></div>
+                <span className="text-sm font-semibold text-white sm:w-24 sm:text-right">{item.level}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </MobileSection>
 
       {/* Reasoning (Bot 4 Analysis Paragraph) */}
       {result.summary && (
-        <section className="mb-6 animate-fade-in-up stagger-4">
-          <div className="glass-card glass-card-hover rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10"><Target className="w-24 h-24 text-white" /></div>
-            <div className="flex items-center gap-2 mb-4 relative z-10">
-              <span className="text-sm font-bold text-white">REASONING</span>
+        <MobileSection title="AI Reasoning" badge={result.summary.slice(0, 30) + '…'} icon={<Target className="w-3.5 h-3.5" />} className="mb-6">
+          <section className="animate-fade-in-up stagger-4">
+            <div className="glass-card glass-card-hover rounded-2xl p-4 sm:p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10"><Target className="w-24 h-24 text-white" /></div>
+              <div className="flex items-center gap-2 mb-4 relative z-10">
+                <span className="text-sm font-bold text-white">REASONING</span>
+              </div>
+              <p className="text-sm text-white/90 leading-relaxed relative z-10">{result.summary}</p>
             </div>
-            <p className="text-sm text-white/90 leading-relaxed relative z-10">{result.summary}</p>
-          </div>
-        </section>
+          </section>
+        </MobileSection>
       )}
 
       {/* Structured Analysis (Bot 3 Data) */}
       {result.structured_data && (
-        <section className="mb-6 animate-fade-in-up stagger-5">
-          <SectionHeading icon={<FileText className="w-3.5 h-3.5" />} label="Structured Analysis" rightBadge={<span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold uppercase tracking-wider">BIAS-FREE</span>} />
-          <div className="glass-card glass-card-hover rounded-2xl p-6">
-            
-            {/* Experience */}
-            {(() => {
-              const sd = result.structured_data;
-              const roles = (sd.experience && sd.experience.length > 0) ? sd.experience
-                : (sd.work_experience_summary?.roles?.length > 0) ? sd.work_experience_summary.roles
-                : (sd.job_history && sd.job_history.length > 0) ? sd.job_history
-                : [];
-              return (
-                <div className="mb-6">
-                  <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Work Experience ({roles.length} {roles.length === 1 ? 'role' : 'roles'}{sd.work_experience_summary ? ` · ${sd.work_experience_summary.total_years || 0} yrs total` : ''})</h4>
-                  {roles.length > 0 ? (
-                    <div className="space-y-3">
-                      {roles.map((job, idx) => (
-                        <div key={idx} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-white text-sm">{job.title || 'Role'}</span>
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${(job.type || 'Job') === 'Internship' ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' : 'bg-white/10 text-white border-white/20'}`}>{(job.type || 'Job') === 'Internship' ? '🎓 Internship' : '💼 Job'}</span>
+        <MobileSection title="Structured Analysis" badge={`${result.structured_data.technical_skills?.length || 0} skills`} icon={<FileText className="w-3.5 h-3.5" />} className="mb-6">
+          <section className="animate-fade-in-up stagger-5">
+            <SectionHeading icon={<FileText className="w-3.5 h-3.5" />} label="Structured Analysis" rightBadge={<span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold uppercase tracking-wider">BIAS-FREE</span>} />
+            <div className="glass-card glass-card-hover rounded-2xl p-4 sm:p-6">
+              
+              {/* Experience */}
+              {(() => {
+                const sd = result.structured_data;
+                const roles = (sd.experience && sd.experience.length > 0) ? sd.experience
+                  : (sd.work_experience_summary?.roles?.length > 0) ? sd.work_experience_summary.roles
+                  : (sd.job_history && sd.job_history.length > 0) ? sd.job_history
+                  : [];
+                return (
+                  <div className="mb-6">
+                    <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Work Experience ({roles.length} {roles.length === 1 ? 'role' : 'roles'}{sd.work_experience_summary ? ` · ${sd.work_experience_summary.total_years || 0} yrs total` : ''})</h4>
+                    {roles.length > 0 ? (
+                      <div className="space-y-3">
+                        {roles.map((job, idx) => (
+                          <div key={idx} className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <span className="font-bold text-white text-sm">{job.title || 'Role'}</span>
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${(job.type || 'Job') === 'Internship' ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' : 'bg-white/10 text-white border-white/20'}`}>{(job.type || 'Job') === 'Internship' ? '🎓 Intern' : '💼 Job'}</span>
+                              </div>
+                              {job.duration_months > 0 && <span className="text-xs text-white/60">{job.duration_months >= 12 ? `${Math.floor(job.duration_months/12)}y ${job.duration_months%12}m` : `${job.duration_months}m`}</span>}
                             </div>
-                            {job.duration_months > 0 && <span className="text-xs text-white/60">{job.duration_months >= 12 ? `${Math.floor(job.duration_months/12)}y ${job.duration_months%12}m` : `${job.duration_months}m`}</span>}
+                            {(job.company || job.date_range) && (
+                              <div className="text-xs text-white/50 mt-1.5 flex gap-3">
+                                {job.company && <span>{job.company}</span>}
+                                {job.date_range && <span>{job.date_range}</span>}
+                              </div>
+                            )}
                           </div>
-                          {(job.company || job.date_range) && (
-                            <div className="text-xs text-white/50 mt-1.5 flex gap-3">
-                              {job.company && <span>{job.company}</span>}
-                              {job.date_range && <span>{job.date_range}</span>}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-white/50 italic">No experience data extracted.</div>
-                  )}
-                </div>
-              );
-            })()}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-white/50 italic">No experience data extracted.</div>
+                    )}
+                  </div>
+                );
+              })()}
 
-            {/* Education */}
-            <div className="mb-6 bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">
-              <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Highest Degree</h4>
-              <div className="text-lg font-bold text-white">{result.structured_data.highest_degree || 'None'}</div>
-            </div>
-
-            {/* Technical Skills */}
-            <div>
-              <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Wrench className="w-3.5 h-3.5" /> Technical Skills ({result.structured_data.technical_skills?.length || 0})</h4>
-              <div className="flex flex-wrap gap-2">
-                {(result.structured_data.technical_skills || []).map((skill, idx) => (
-                  <span key={idx} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-500/10 text-cyan-200 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
-                    # {skill}
-                  </span>
-                ))}
+              {/* Education */}
+              <div className="mb-6 bg-white/[0.03] border border-white/[0.05] rounded-xl p-4">
+                <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Highest Degree</h4>
+                <div className="text-lg font-bold text-white">{result.structured_data.highest_degree || 'None'}</div>
               </div>
-            </div>
 
-          </div>
-        </section>
+              {/* Technical Skills */}
+              <div>
+                <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2"><Wrench className="w-3.5 h-3.5" /> Technical Skills ({result.structured_data.technical_skills?.length || 0})</h4>
+                <div className="flex flex-wrap gap-2">
+                  {(result.structured_data.technical_skills || []).map((skill, idx) => (
+                    <span key={idx} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-500/10 text-cyan-200 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                      # {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </section>
+        </MobileSection>
       )}
 
       {/* Skill Analysis with Knowledge Graph */}
-      <section className="mb-6 animate-fade-in-up stagger-5">
-        <SectionHeading icon={<Target className="w-3.5 h-3.5" />} label="Skill Analysis — Insights" />
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
-          <div className="space-y-4">
-            <div className="glass-card glass-card-hover rounded-2xl p-5">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-2xl">👤</div>
-                <div><div className="text-lg font-bold text-white">Candidate Profile</div><p className="text-xs text-white/90">{s.jobRole ? s.jobRole + ' Candidate' : 'Candidate Evaluation'}</p>
-                  <div className="flex gap-2 mt-1"><span className="text-[10px] px-2 py-0.5 rounded-full bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/20 font-bold">● Verified</span><span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white border border-white/[0.08] font-bold">98% Match</span></div>
+      <MobileSection title="Skill Graph" badge={`${result.structured_data?.technical_skills?.length || 0} skills`} icon={<Target className="w-3.5 h-3.5" />} className="mb-6">
+        <section className="animate-fade-in-up stagger-5">
+          <SectionHeading icon={<Target className="w-3.5 h-3.5" />} label="Skill Analysis — Insights" />
+          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
+            <div className="space-y-4">
+              <div className="glass-card glass-card-hover rounded-2xl p-5">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-2xl">👤</div>
+                  <div><div className="text-lg font-bold text-white">Candidate Profile</div><p className="text-xs text-white/90">{s.jobRole ? s.jobRole + ' Candidate' : 'Candidate Evaluation'}</p>
+                    <div className="flex gap-2 mt-1"><span className="text-[10px] px-2 py-0.5 rounded-full bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/20 font-bold">● Verified</span><span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white border border-white/[0.08] font-bold">98% Match</span></div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <SkillKnowledgeGraph 
-            skillData={null}
-            fallbackSkills={
-              // Merge: start with ALL resume skills, annotate matched ones
-              (() => {
-                const allSkills = result.structured_data?.technical_skills || [];
-                const matched = new Set((result.skill_matches || []).map(m => 
-                  (m.found_in_resume || m.canonical_name || '').toLowerCase()
-                ));
-                // Return all skills; matched ones first so they get isCore=true
-                const matchedFirst = allSkills.filter(s => matched.has(s.toLowerCase()));
-                const rest = allSkills.filter(s => !matched.has(s.toLowerCase()));
-                return [...matchedFirst, ...rest];
-              })()
-            }
-          />
-        </div>
-      </section>
-
-      <ProofOfWorkSection detectedLinks={result.detected_links || (s.isDemo ? [{ url: '#', platform: 'github' }, { url: '#', platform: 'leetcode' }, { url: '#', platform: 'linkedin' }] : [])} proofResult={s.proofResult} isLoading={s.proofLoading} onFetch={s.handleProofOfWork} isDemo={s.isDemo} />
-
-      {biasProxies.length > 0 && (
-        <section className="mb-6 animate-fade-in-up stagger-6">
-          <SectionHeading icon={<Eye className="w-3.5 h-3.5" />} label={'Bias Proxies — ' + biasProxies.length + ' Found'} />
-          <div className="glass-card glass-card-hover rounded-2xl overflow-hidden">
-            <div className="hidden lg:grid grid-cols-12 gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-              <div className="col-span-3 text-xs font-bold uppercase tracking-widest text-white">Proxy</div>
-              <div className="col-span-2 text-xs font-bold uppercase tracking-widest text-white">Type</div>
-              <div className="col-span-1 text-xs font-bold uppercase tracking-widest text-white text-center">Risk</div>
-              <div className="col-span-6 text-xs font-bold uppercase tracking-widest text-white">Explanation</div>
-            </div>
-            <div className="divide-y divide-white/[0.04]">{biasProxies.map((proxy, idx) => {
-              const sev = SEVERITY_STYLE[proxy.severity] || SEVERITY_STYLE.low;
-              const bt = BIAS_TYPE_LABELS[proxy.bias_type] || BIAS_TYPE_LABELS.gender;
-              return (
-                <div key={idx} className="flex flex-col lg:grid lg:grid-cols-12 gap-2 lg:gap-3 px-4 lg:px-5 py-4 items-start hover:bg-white/[0.02] transition-colors animate-table-row" style={{ animationDelay: (idx * 0.1) + 's' }}>
-                  <div className="lg:col-span-3 flex items-center gap-2">
-                    <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Proxy</span>
-                    <code className={'text-[11px] px-2 py-1 rounded-lg border font-mono font-semibold break-words max-w-[200px] sm:max-w-none ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>"{proxy.text}"</code>
-                  </div>
-                  <div className="lg:col-span-2 flex items-center gap-2">
-                    <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Type</span>
-                    <span className={'text-[11px] font-semibold px-2 py-0.5 rounded-md border ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>{bt.label}</span>
-                  </div>
-                  <div className="lg:col-span-1 flex lg:justify-center items-center gap-2 lg:pt-0.5">
-                    <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Risk</span>
-                    <span className={'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ' + sev.bg + ' ' + sev.text + ' ' + sev.border}>{proxy.severity}</span>
-                  </div>
-                  <div className="lg:col-span-6 text-xs text-white/90 leading-relaxed mt-2 lg:mt-0 flex items-start gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
-                    <span>{proxy.explanation}</span>
-                  </div>
-                </div>
-              );
-            })}</div>
+            <SkillKnowledgeGraph 
+              skillData={null}
+              fallbackSkills={
+                (() => {
+                  const allSkills = result.structured_data?.technical_skills || [];
+                  const matched = new Set((result.skill_matches || []).map(m => 
+                    (m.found_in_resume || m.canonical_name || '').toLowerCase()
+                  ));
+                  const matchedFirst = allSkills.filter(s => matched.has(s.toLowerCase()));
+                  const rest = allSkills.filter(s => !matched.has(s.toLowerCase()));
+                  return [...matchedFirst, ...rest];
+                })()
+              }
+            />
           </div>
         </section>
+      </MobileSection>
+
+      <MobileSection title="Proof of Work" badge="Verify" icon={<Globe className="w-3.5 h-3.5" />} className="mb-6">
+        <ProofOfWorkSection detectedLinks={result.detected_links || (s.isDemo ? [{ url: '#', platform: 'github' }, { url: '#', platform: 'leetcode' }, { url: '#', platform: 'linkedin' }] : [])} proofResult={s.proofResult} isLoading={s.proofLoading} onFetch={s.handleProofOfWork} isDemo={s.isDemo} />
+      </MobileSection>
+
+      {biasProxies.length > 0 && (
+        <MobileSection title="Bias Proxies" badge={`${biasProxies.length} found`} icon={<Eye className="w-3.5 h-3.5" />} className="mb-6">
+          <section className="animate-fade-in-up stagger-6">
+            <SectionHeading icon={<Eye className="w-3.5 h-3.5" />} label={'Bias Proxies — ' + biasProxies.length + ' Found'} />
+            <div className="glass-card glass-card-hover rounded-2xl overflow-hidden">
+              <div className="hidden lg:grid grid-cols-12 gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+                <div className="col-span-3 text-xs font-bold uppercase tracking-widest text-white">Proxy</div>
+                <div className="col-span-2 text-xs font-bold uppercase tracking-widest text-white">Type</div>
+                <div className="col-span-1 text-xs font-bold uppercase tracking-widest text-white text-center">Risk</div>
+                <div className="col-span-6 text-xs font-bold uppercase tracking-widest text-white">Explanation</div>
+              </div>
+              <div className="divide-y divide-white/[0.04]">{biasProxies.map((proxy, idx) => {
+                const sev = SEVERITY_STYLE[proxy.severity] || SEVERITY_STYLE.low;
+                const bt = BIAS_TYPE_LABELS[proxy.bias_type] || BIAS_TYPE_LABELS.gender;
+                return (
+                  <div key={idx} className="flex flex-col lg:grid lg:grid-cols-12 gap-2 lg:gap-3 px-4 lg:px-5 py-4 items-start hover:bg-white/[0.02] transition-colors animate-table-row" style={{ animationDelay: (idx * 0.1) + 's' }}>
+                    <div className="lg:col-span-3 flex items-center gap-2">
+                      <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Proxy</span>
+                      <code className={'text-[11px] px-2 py-1 rounded-lg border font-mono font-semibold break-words max-w-[200px] sm:max-w-none ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>"{proxy.text}"</code>
+                    </div>
+                    <div className="lg:col-span-2 flex items-center gap-2">
+                      <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Type</span>
+                      <span className={'text-[11px] font-semibold px-2 py-0.5 rounded-md border ' + bt.bg + ' ' + bt.color + ' ' + bt.border}>{bt.label}</span>
+                    </div>
+                    <div className="lg:col-span-1 flex lg:justify-center items-center gap-2 lg:pt-0.5">
+                      <span className="lg:hidden text-[10px] font-bold uppercase tracking-wider text-white/40 w-12 shrink-0">Risk</span>
+                      <span className={'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ' + sev.bg + ' ' + sev.text + ' ' + sev.border}>{proxy.severity}</span>
+                    </div>
+                    <div className="lg:col-span-6 text-xs text-white/90 leading-relaxed mt-2 lg:mt-0 flex items-start gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
+                      <span>{proxy.explanation}</span>
+                    </div>
+                  </div>
+                );
+              })}</div>
+            </div>
+          </section>
+        </MobileSection>
       )}
 
-      <section className="mb-6 animate-fade-in-up stagger-6">
-        <SectionHeading icon={<ClipboardList className="w-3.5 h-3.5" />} label="Signals & Gaps" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow">
-            <div className="flex items-center gap-2 mb-4"><TrendingUp className="w-4 h-4 text-white/90" /><h4 className="font-semibold text-white text-sm">Strong Signals ({(result.strong_signals || []).length})</h4></div>
-            <div className="space-y-3">{(result.strong_signals || []).map((sig, i) => (
-              <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/40" /><div><div className="text-sm font-semibold text-white">{sig.signal}</div></div></div>
-            ))}</div>
+      <MobileSection title="Signals & Gaps" badge={`${(result.strong_signals||[]).length + (result.gaps||[]).length} items`} icon={<ClipboardList className="w-3.5 h-3.5" />} defaultOpen={true} className="mb-6">
+        <section className="animate-fade-in-up stagger-6">
+          <SectionHeading icon={<ClipboardList className="w-3.5 h-3.5" />} label="Signals & Gaps" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="glass-card glass-card-hover rounded-2xl p-4 sm:p-5 hover-glow">
+              <div className="flex items-center gap-2 mb-4"><TrendingUp className="w-4 h-4 text-white/90" /><h4 className="font-semibold text-white text-sm">Strong Signals ({(result.strong_signals || []).length})</h4></div>
+              <div className="space-y-3">{(result.strong_signals || []).map((sig, i) => (
+                <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/40" /><div><div className="text-sm font-semibold text-white">{sig.signal}</div></div></div>
+              ))}</div>
+            </div>
+            <div className="glass-card glass-card-hover rounded-2xl p-4 sm:p-5 hover-glow">
+              <div className="flex items-center gap-2 mb-4"><TrendingDown className="w-4 h-4 text-white/80" /><h4 className="font-semibold text-white/90 text-sm">Gaps ({(result.gaps || []).length})</h4></div>
+              <div className="space-y-3">{(result.gaps || []).map((gap, i) => (
+                <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/20" /><div><div className="text-sm font-semibold text-white">{gap.gap}</div><div className="text-xs text-white/80 mt-0.5">{gap.severity === 'blocking' ? 'Blocking' : 'Minor'}</div></div></div>
+              ))}</div>
+            </div>
           </div>
-          <div className="glass-card glass-card-hover rounded-2xl p-5 hover-glow">
-            <div className="flex items-center gap-2 mb-4"><TrendingDown className="w-4 h-4 text-white/80" /><h4 className="font-semibold text-white/90 text-sm">Gaps ({(result.gaps || []).length})</h4></div>
-            <div className="space-y-3">{(result.gaps || []).map((gap, i) => (
-              <div key={i} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-white/20" /><div><div className="text-sm font-semibold text-white">{gap.gap}</div><div className="text-xs text-white/80 mt-0.5">{gap.severity === 'blocking' ? 'Blocking' : 'Minor'}</div></div></div>
-            ))}</div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </MobileSection>
 
       {/* Bias audit + model comparison — shown to all users */}
-      <BiasStabilitySection 
-        cfResult={s.cfResult} 
-        isRunning={s.runningCF} 
-        onRunTest={!readOnly ? s.handleCounterfactualTest : null} 
-        isDemo={s.isDemo} 
-        readOnly={readOnly}
-      />
-      <ModelComparisonPanel 
-        compResult={s.compResult} 
-        isRunning={s.runningComp} 
-        onRunTest={!readOnly ? s.handleModelComparison : null} 
-        isDemo={s.isDemo}
-        readOnly={readOnly}
-      />
+      <MobileSection title="Bias Stability" badge="Test" icon={<Shield className="w-3.5 h-3.5" />} className="mb-6">
+        <BiasStabilitySection 
+          cfResult={s.cfResult} 
+          isRunning={s.runningCF} 
+          onRunTest={!readOnly ? s.handleCounterfactualTest : null} 
+          isDemo={s.isDemo} 
+          readOnly={readOnly}
+        />
+      </MobileSection>
+      <MobileSection title="LLM Comparison" badge="Models" icon={<Cpu className="w-3.5 h-3.5" />} className="mb-6">
+        <ModelComparisonPanel 
+          compResult={s.compResult} 
+          isRunning={s.runningComp} 
+          onRunTest={!readOnly ? s.handleModelComparison : null} 
+          isDemo={s.isDemo}
+          readOnly={readOnly}
+        />
+      </MobileSection>
       {s.cfResult?.fairness_metrics && <FairnessMetricsCard metrics={s.cfResult?.fairness_metrics} />}
       {isRecruiter && (
-        <>
+        <MobileSection title="Compliance" badge="Audit" icon={<Shield className="w-3.5 h-3.5" />} showConnector={false} className="mb-6">
           <ComplianceDashboard result={result} cfResult={s.cfResult} />
           <ResearchCitationsSection />
-        </>
+        </MobileSection>
       )}
 
       {/* Candidate: AI Coach CTA */}
