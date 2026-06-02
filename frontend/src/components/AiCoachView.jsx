@@ -89,6 +89,7 @@ export default function AiCoachView({ s }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [welcomed, setWelcomed] = useState(false);
+  const [isContextOpen, setIsContextOpen] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -135,6 +136,7 @@ export default function AiCoachView({ s }) {
     setMessages(newHistory);
     setInput('');
     setLoading(true);
+    setIsContextOpen(false); // Close mobile drawer when asking a question
 
     try {
       const API_BASE = API_URL || 'https://unded-17-aethel-backend-v3.hf.space';
@@ -193,18 +195,28 @@ export default function AiCoachView({ s }) {
     <div className="flex flex-col lg:flex-row absolute inset-0 overflow-hidden bg-black/60 backdrop-blur-xl">
 
       {/* ── LEFT PANEL: Resume Context ── */}
-      <aside className="w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] overflow-y-auto p-6 space-y-6 bg-black/40 relative">
+      <aside className={`
+        w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-white/[0.06] 
+        overflow-y-auto p-6 space-y-6 bg-[#0a0a0a] lg:bg-black/40 
+        absolute lg:static inset-0 z-[60] lg:z-auto transition-transform duration-400 ease-out
+        ${isContextOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}
+      `}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.05),transparent_70%)]" />
 
         {/* Header */}
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.05)]">
-            <Sparkles className="w-5 h-5 text-white/80" />
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+              <Sparkles className="w-5 h-5 text-white/80" />
+            </div>
+            <div>
+              <div className="text-sm font-extrabold text-white tracking-tight">AI Career Coach</div>
+              <div className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">Powered by 97k job postings</div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm font-extrabold text-white tracking-tight">AI Career Coach</div>
-            <div className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">Powered by 97k job postings</div>
-          </div>
+          <button onClick={() => setIsContextOpen(false)} className="lg:hidden p-2 text-white/50 hover:text-white rounded-lg bg-white/5">
+            ✕
+          </button>
         </div>
 
         {hasResult ? (
@@ -291,15 +303,21 @@ export default function AiCoachView({ s }) {
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)]" />
 
         {/* Chat header */}
-        <div className="shrink-0 flex items-center justify-between px-8 py-4 border-b border-white/[0.06] bg-black/40 backdrop-blur-md relative z-10">
+        <div className="shrink-0 flex items-center justify-between px-4 sm:px-8 py-4 border-b border-white/[0.06] bg-black/40 backdrop-blur-md relative z-10">
           <div>
             <div className="text-base font-extrabold text-white tracking-tight">Career Q&A</div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-0.5">Backed by real Indian job market data</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-0.5 hidden sm:block">Backed by real Indian job market data</div>
           </div>
-          <button onClick={handleReset} title="Reset conversation"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] hover-lift transition-all">
-            <RefreshCw className="w-3.5 h-3.5" /> Reset
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setIsContextOpen(true)}
+              className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white hover:bg-white/[0.06] border border-white/20 transition-all shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+              Context & Ideas
+            </button>
+            <button onClick={handleReset} title="Reset conversation"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/[0.06] border border-transparent hover:border-white/[0.15] hover-lift transition-all">
+              <RefreshCw className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reset</span>
+            </button>
+          </div>
         </div>
 
         {/* Messages area */}
